@@ -2,6 +2,7 @@
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <SFML/Window/Keyboard.hpp>
 #include <iostream>
 
 int main() {
@@ -31,23 +32,22 @@ int main() {
 
   while (window.isOpen()) {
     while (const std::optional event = window.pollEvent()) {
+
       if (event->is<sf::Event::Closed>()) {
         window.close();
       }
+      else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
 
-      if (event->is<sf::Event::MouseMoved>()) {
-        auto *move = event->getIf<sf::Event::MouseMoved>();
-
-        rotationAngle += move->position.x - (window.getSize().x / 0.1f);
-        sf::Angle angle = sf::degrees(rotationAngle);
-        rociSprite.setRotation(angle);
+        if (keyPressed->scancode == sf::Keyboard::Scancode::Escape) {
+          window.close();
+        }
       }
       else if (event->is<sf::Event::MouseWheelScrolled>()) {
         auto *scroll = event->getIf<sf::Event::MouseWheelScrolled>();
 
         std::cout << "Scroll delta: " << scroll->delta << std::endl;
 
-        if (scroll->delta > 0) {
+        if (scroll->delta < 0) {
           zoomFactor *= 1.1f;
         } else {
           zoomFactor /= 1.1f;
@@ -56,9 +56,24 @@ int main() {
         view.setSize({1920 * zoomFactor, 1080 * zoomFactor});
         window.setView(view);
       }
+
+      // dont use events for the keyboard, check if currently pressed. 
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
+          rotationAngle -= (window.getSize().x / 1000.f);
+          sf::Angle angle = sf::degrees(rotationAngle);
+          std::cout << "rotationAngle: " << rotationAngle << "angle: " << angle.asDegrees() << std::endl;
+          rociSprite.setRotation(angle);
+      }
+      else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
+          rotationAngle += (window.getSize().x / 1000.f);
+          sf::Angle angle = sf::degrees(rotationAngle);
+          std::cout << "rotationAngle: " << rotationAngle << "angle: " << angle.asDegrees() << std::endl;
+          rociSprite.setRotation(angle);
+      }
+
     }
 
-    window.clear(sf::Color::Black);
+    window.clear(sf::Color(56,58,94));
     rociSprite.setPosition(view.getCenter());
     window.draw(rociSprite);
     window.display();
