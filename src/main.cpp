@@ -1,7 +1,9 @@
 #include "../include/components.hpp"
 #include "../include/ecs.hpp"
 #include <SFML/Graphics.hpp>
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
@@ -23,6 +25,13 @@ int main() {
   ecs.registerComponent<Rotation>();
   ecs.registerComponent<SpriteComponent>();
   ecs.registerComponent<Weapon>();
+
+  // - Load Fonts -
+  sf::Font font;
+  if (!font.openFromFile("../assets/fonts/FiraCodeNerdFont-Medium.ttf")) {
+    std::cout << "Error loading font" << std::endl;
+    return -1;
+  }
 
   // - Load Textures -
   sf::Texture rociTexture, enemyTexture, bulletTexture;
@@ -74,14 +83,19 @@ int main() {
   ecs.addComponent(enemy, Weapon{});
 
   sf::FloatRect viewRect({0.f, 0.f}, {1920.f, 1080.f});
-  sf::View view(viewRect);
-  window.setView(view);
+  sf::View worldview(viewRect);
+  window.setView(worldview);
 
-  float zoomFactor = 1.f;
+  // zoom out by default and then display
+  float zoomFactor = 30.f;
+  worldview.setSize({1920 * zoomFactor, 1080 * zoomFactor});
 
   sf::Clock clock;
   while (window.isOpen()) {
     float dt = clock.restart().asSeconds();
+
+    // this is the main space window. Render this first, then render the HUD
+    window.setView(worldview);
 
     // - Events -
     while (const std::optional event = window.pollEvent()) {
@@ -98,16 +112,15 @@ int main() {
       else if (event->is<sf::Event::MouseWheelScrolled>()) {
         auto *scroll = event->getIf<sf::Event::MouseWheelScrolled>();
 
-        std::cout << "Scroll delta: " << scroll->delta << std::endl;
-
         if (scroll->delta < 0) {
-          zoomFactor *= 1.1f;
+          zoomFactor *= 1.3f;
         } else {
-          zoomFactor /= 1.1f;
+          zoomFactor /= 1.3f;
         }
 
-        view.setSize({1920 * zoomFactor, 1080 * zoomFactor});
-        window.setView(view);
+        worldview.setSize({1920 * zoomFactor, 1080 * zoomFactor});
+        window.setView(worldview);
+        std::cout << "zoomFactor " << zoomFactor << "\n";
       }
     }
 
@@ -168,8 +181,8 @@ int main() {
       std::cout << "Acceleration: " << acc.value.x << "," << acc.value.y
                 << std::endl;
     }
-    // Fire!
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
+    // Fire! NE PDC
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q)) {
       // get the vel of the player
       auto pvel = ecs.getComponent<Velocity>(player);
       auto ppos = ecs.getComponent<Position>(player);
@@ -184,6 +197,38 @@ int main() {
       ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * 100000.f * dt), pvel.value.y + (dy * 100000.f * dt)}});
       ecs.addComponent(bullet, Position{{ppos.value.x + (dx * 400.f), ppos.value.y + (dy * 400.f)}});
       ecs.addComponent(bullet, Rotation{prot.angle - 45.f});
+
+      SpriteComponent sc{sf::Sprite(bulletTexture)};
+      sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
+                                bulletTexture.getSize().y / 2.f);
+      sc.sprite.setOrigin(bulletOrigin);
+      ecs.addComponent(bullet, sc);
+
+      auto bvel = ecs.getComponent<Velocity>(bullet);
+      auto bpos = ecs.getComponent<Position>(bullet);
+      auto brot = ecs.getComponent<Rotation>(bullet);
+
+      std::cout << "dx " << dx << ", dy " << dy << "\n";
+      std::cout << "Bullet Velocity: " << bvel.value.x << "," << bvel.value.y << "\n";
+      std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle << "\n";
+      std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y << "\n";
+    }
+    // Fire! NW PDC
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
+      // get the vel of the player
+      auto pvel = ecs.getComponent<Velocity>(player);
+      auto ppos = ecs.getComponent<Position>(player);
+      auto prot = ecs.getComponent<Rotation>(player);
+
+      // try to get pdc 2 out at an angle
+      float dy = std::sin((prot.angle - 90.f + 45.f) * (M_PI / 180.f));
+      float dx = std::cos((prot.angle - 90.f + 45.f) * (M_PI / 180.f));
+
+      // create a pdc bullet entity
+      Entity bullet = ecs.createEntity();
+      ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * 100000.f * dt), pvel.value.y + (dy * 100000.f * dt)}});
+      ecs.addComponent(bullet, Position{{ppos.value.x + (dx * 400.f), ppos.value.y + (dy * 400.f)}});
+      ecs.addComponent(bullet, Rotation{prot.angle + 45.f});
 
       SpriteComponent sc{sf::Sprite(bulletTexture)};
       sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
@@ -222,10 +267,29 @@ int main() {
     }
 
     // - Render -
-    window.clear(sf::Color(56, 58, 94));
+    window.clear(sf::Color(7, 5, 8));
     u_int16_t screenWidth = window.getSize().x;
     u_int16_t screenHeight = window.getSize().y;
     sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
+
+    // GUI 
+    std::array<int, 5> radius {2000, 3000, 4000, 8000, 16000};
+
+    // Circles
+    for (auto r : radius) {
+      sf::CircleShape shape(r);
+      shape.setPointCount(100);
+      shape.setFillColor(sf::Color::Transparent);
+      shape.setOutlineThickness(1.2f * zoomFactor);
+      shape.setOutlineColor(sf::Color(75,20,26));
+
+      // move the origin to the centre of the circle
+      shape.setOrigin(sf::Vector2f(r, r));
+      shape.setPosition(screenCentre);
+
+      window.draw(shape);
+    }
+
 
     for (auto e : ecs.view<Position, Rotation, SpriteComponent>()) {
 
@@ -247,6 +311,40 @@ int main() {
 
       window.draw(sc.sprite);
     }
+
+    // Use a seperate HUD view
+    sf::View hudView = window.getDefaultView();
+    window.setView(hudView);
+
+    // Sidebar
+    sf::RectangleShape sidebar({180.f, static_cast<float>(screenHeight)});
+    sf::Vector2f sidebarPosition = {0.f, 0.f};
+    sidebar.setFillColor(sf::Color(10,40,50));
+    sidebar.setPosition(sidebarPosition);
+    window.draw(sidebar);
+
+    // Sidebar Text
+    sf::Text veltext(font);
+    sf::String velString = "Vel: " + std::to_string(ecs.getComponent<Velocity>(player).value.x) + "," +
+                                     std::to_string(ecs.getComponent<Velocity>(player).value.y);
+    veltext.setString(velString);
+    veltext.setCharacterSize(10);
+    veltext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
+    sf::Vector2f velTextPosition = { 10.f, 900.f };
+    veltext.setPosition(velTextPosition);
+    window.draw(veltext);
+
+    // Rotation
+    sf::Text rottext(font);
+    sf::String rotString = "Rot: " + std::to_string(ecs.getComponent<Rotation>(player).angle);
+    rottext.setString(rotString);
+    rottext.setCharacterSize(10);
+    rottext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
+    sf::Vector2f rotTextPosition = { 10.f, 920.f };
+    rottext.setPosition(rotTextPosition);
+    window.draw(rottext);
+
+    // diaplay everything
     window.display();
   }
 }

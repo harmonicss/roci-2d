@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.28)
 project(roci-2d LANGUAGES CXX)
 
+# If no build type was specified, default to Debug
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING
+      "Choose the type of build (Debug or Release)" FORCE)
+endif()
+
+# Optionally, list the allowed values in the GUI
+set_property(CACHE CMAKE_BUILD_TYPE
+             PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo" "MinSizeRel")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include(FetchContent)
