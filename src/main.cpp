@@ -132,11 +132,21 @@ int main() {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
       auto &rot = ecs.getComponent<Rotation>(player);
       rot.angle -= (window.getSize().x / 1000.f);
+      if (rot.angle >= 360.f) {
+        rot.angle -= 360.f;
+      } else if (rot.angle < 0.f) {
+        rot.angle += 360.f;
+      }
       std::cout << "rotationAngle: " << rot.angle << std::endl;
     } 
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
       auto &rot = ecs.getComponent<Rotation>(player);
       rot.angle += (window.getSize().x / 1000.f);
+      if (rot.angle >= 360.f) {
+        rot.angle -= 360.f;
+      } else if (rot.angle < 0.f) {
+        rot.angle += 360.f;
+      }
       std::cout << "rotationAngle: " << rot.angle << std::endl;
     } 
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) {
@@ -165,14 +175,15 @@ int main() {
       auto ppos = ecs.getComponent<Position>(player);
       auto prot = ecs.getComponent<Rotation>(player);
 
-      float dx = std::cos((prot.angle - 90.f) * (M_PI / 180.f)) * 100000.f * dt;
-      float dy = std::sin((prot.angle - 90.f) * (M_PI / 180.f)) * 100000.f * dt;
+      // try to get pdc 1 out at an angle
+      float dx = std::cos((prot.angle - 90.f - 45.f) * (M_PI / 180.f));
+      float dy = std::sin((prot.angle - 90.f - 45.f) * (M_PI / 180.f));
 
       // create a pdc bullet entity
       Entity bullet = ecs.createEntity();
-      ecs.addComponent(bullet, Velocity{{pvel.value.x + dx, pvel.value.y + dy}});
-      ecs.addComponent(bullet, Position{{ppos.value.x - 10, ppos.value.y + 10}});
-      ecs.addComponent(bullet, Rotation{prot.angle});
+      ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * 100000.f * dt), pvel.value.y + (dy * 100000.f * dt)}});
+      ecs.addComponent(bullet, Position{{ppos.value.x + (dx * 400.f), ppos.value.y + (dy * 400.f)}});
+      ecs.addComponent(bullet, Rotation{prot.angle - 45.f});
 
       SpriteComponent sc{sf::Sprite(bulletTexture)};
       sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
@@ -184,8 +195,9 @@ int main() {
       auto bpos = ecs.getComponent<Position>(bullet);
       auto brot = ecs.getComponent<Rotation>(bullet);
 
-      std::cout << "Bullet Velocity: " << bvel.value.x << "," << pvel.value.y << "\n";
-      std::cout << "Bullet Rotation: " << brot.angle << "," << prot.angle << "\n";
+      std::cout << "dx " << dx << ", dy " << dy << "\n";
+      std::cout << "Bullet Velocity: " << bvel.value.x << "," << bvel.value.y << "\n";
+      std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle << "\n";
       std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y << "\n";
     }
     // print for now
