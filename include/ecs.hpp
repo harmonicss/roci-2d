@@ -2,10 +2,12 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <map>
 #include <queue>
 #include <typeindex>
 #include <unordered_map>
 #include <utility>
+#include <string>
 
 using Entity = std::uint32_t;
 constexpr Entity MAX_ENTITIES = 5000;
@@ -16,6 +18,7 @@ constexpr Entity MAX_ENTITIES = 5000;
 class EntityManager {
   std::queue<Entity> freeEntities;
   std::array<bool, MAX_ENTITIES> alive{};
+  std::map<Entity, std::string> name{}; // e.g. Rocinante, enemy, bullet
 
 public:
   EntityManager() {
@@ -24,11 +27,12 @@ public:
     }
   }
 
-  Entity create() {
+  Entity create(std::string ename = "") {
     assert(!freeEntities.empty() && "Too many entities created");
     Entity id = freeEntities.front();
     freeEntities.pop();
     alive[id] = true;
+    name.insert({id, ename});
     return id;
   }
 
@@ -41,6 +45,11 @@ public:
   bool isAlive(Entity e) {
     assert(e < MAX_ENTITIES && "Entity out of range");
     return alive[e];
+  }
+
+  std::string getName(Entity e) {
+    assert(e < MAX_ENTITIES && "Entity out of range");
+    return name.at(e);
   }
 };
 
@@ -136,6 +145,7 @@ class Coordinator {
 
 public:
   Entity createEntity() { return entityMgr.create(); }
+  Entity createEntity(std::string name) { return entityMgr.create(name); }
   void destroyEntity(Entity e) { entityMgr.destroy(e); }
 
   template <typename T> void registerComponent() {
@@ -152,6 +162,10 @@ public:
 
   template <typename T> void hasComponent(Entity e) {
     return compMgr.hasComponent<T>(e);
+  }
+
+  std::string getEntityName(Entity e) {
+    return entityMgr.getName(e);
   }
 
   // View: get all entities with ALL of the listed components

@@ -11,6 +11,10 @@
 #include <iostream>
 #include <sys/types.h>
 
+extern void DrawHUD(sf::RenderWindow& window, Coordinator& ecs, Entity player, sf::Font& font);
+extern void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity player, sf::Font& font);
+extern void DrawShipNames(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font, float zoomFactor);
+
 int main() {
 
   auto window = sf::RenderWindow(sf::VideoMode({1920u, 1080u}), "Rocinante",
@@ -53,7 +57,7 @@ int main() {
   }
  
   // - Create Player Entity -
-  Entity player = ecs.createEntity();
+  Entity player = ecs.createEntity("Rocinante");
   ecs.addComponent(player, Position{{960, 540}});
   ecs.addComponent(player, Velocity{{0.f, 0.f}});
   ecs.addComponent(player, Rotation{0.f});
@@ -68,11 +72,11 @@ int main() {
   ecs.addComponent(player, Weapon{});
 
   // - Create Enemy Entity -
-  Entity enemy = ecs.createEntity();
+  Entity enemy = ecs.createEntity("Enemy");
   ecs.addComponent(enemy, Position{{300, -10000}});
-  ecs.addComponent(enemy, Velocity{{1.f, 0.f}});
+  ecs.addComponent(enemy, Velocity{{5.f, 5.f}});
   ecs.addComponent(enemy, Rotation{130.f});
-  ecs.addComponent(enemy, Acceleration{{1.f, 0.f}});
+  ecs.addComponent(enemy, Acceleration{{1.f, 1.f}});
   {
     SpriteComponent sc { sf::Sprite(enemyTexture) };
     sf::Vector2f enemyOrigin(enemyTexture.getSize().x / 2.f,
@@ -118,9 +122,13 @@ int main() {
           zoomFactor /= 1.3f;
         }
 
+        // min zoom factor
+        if (zoomFactor < 5.f) {
+          zoomFactor = 5.f;
+        }
+
         worldview.setSize({1920 * zoomFactor, 1080 * zoomFactor});
         window.setView(worldview);
-        std::cout << "zoomFactor " << zoomFactor << "\n";
       }
     }
 
@@ -290,7 +298,7 @@ int main() {
       window.draw(shape);
     }
 
-
+    // draw all the sprites
     for (auto e : ecs.view<Position, Rotation, SpriteComponent>()) {
 
       auto &pos = ecs.getComponent<Position>(e);
@@ -305,8 +313,8 @@ int main() {
         sc.sprite.setPosition(screenCentre);
       } else {
         auto &playerpos = ecs.getComponent<Position>(player);
-        sf::Vector2f camerOffset = screenCentre - playerpos.value;
-        sc.sprite.setPosition(pos.value + camerOffset);
+        sf::Vector2f cameraOffset = screenCentre - playerpos.value;
+        sc.sprite.setPosition(pos.value + cameraOffset);
       }
 
       window.draw(sc.sprite);
@@ -316,35 +324,12 @@ int main() {
     sf::View hudView = window.getDefaultView();
     window.setView(hudView);
 
-    // Sidebar
-    sf::RectangleShape sidebar({180.f, static_cast<float>(screenHeight)});
-    sf::Vector2f sidebarPosition = {0.f, 0.f};
-    sidebar.setFillColor(sf::Color(10,40,50));
-    sidebar.setPosition(sidebarPosition);
-    window.draw(sidebar);
+    DrawHUD(window, ecs, player, font);
+    DrawSidebarText(window, ecs, player, font);
+    DrawSidebarText(window, ecs, enemy, font);
+    DrawShipNames(window, ecs, enemy, font, zoomFactor);
 
-    // Sidebar Text
-    sf::Text veltext(font);
-    sf::String velString = "Vel: " + std::to_string(ecs.getComponent<Velocity>(player).value.x) + "," +
-                                     std::to_string(ecs.getComponent<Velocity>(player).value.y);
-    veltext.setString(velString);
-    veltext.setCharacterSize(10);
-    veltext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-    sf::Vector2f velTextPosition = { 10.f, 900.f };
-    veltext.setPosition(velTextPosition);
-    window.draw(veltext);
-
-    // Rotation
-    sf::Text rottext(font);
-    sf::String rotString = "Rot: " + std::to_string(ecs.getComponent<Rotation>(player).angle);
-    rottext.setString(rotString);
-    rottext.setCharacterSize(10);
-    rottext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-    sf::Vector2f rotTextPosition = { 10.f, 920.f };
-    rottext.setPosition(rotTextPosition);
-    window.draw(rottext);
-
-    // diaplay everything
+    // display everything
     window.display();
   }
 }
