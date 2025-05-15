@@ -27,7 +27,7 @@ struct SpriteComponent {
 };
 
 struct Health {
-  unsigned int value = 10;
+  unsigned int value = 100;
 };
 
 // Point Defense Cannon

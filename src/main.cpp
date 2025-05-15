@@ -9,6 +9,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <sys/types.h>
 
@@ -104,10 +105,22 @@ int main() {
     static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
 
   // Create Collision System, with lambda callback
-  CollisionSystem collisionSystem(ecs, [](Entity e1, Entity e2) {
+  CollisionSystem collisionSystem(ecs, [&ecs](Entity e1, Entity e2) {
 
     // Handle collision
     std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
+
+    // Damage the health of the entities
+    // cant capture player here, I know it is 0.
+    if (e1 == 0) {
+      auto& phealth = ecs.getComponent<Health>(e1);
+      phealth.value -= 1;
+    }
+
+    if (e2 == 1) {
+      auto& ehealth = ecs.getComponent<Health>(e2);
+      ehealth.value -= 1;
+    }
   });
 
   // Set up worldview
@@ -125,6 +138,10 @@ int main() {
   while (window.isOpen()) {
     float dt = clock.restart().asSeconds();
     tt += dt;
+    
+    // use this as a temporary fix to stop bullets colliding with the ship that fired
+    // it means the bullets start away from the ship, but live for this for now
+    const uint32_t bullet_launch_distance = 500;
 
     // this is the main space window. Render this first, then render the HUD
     window.setView(worldview);
@@ -178,6 +195,8 @@ int main() {
     }
 
     // dont use events for the keyboard, check if currently pressed.
+
+    // rotate left
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
       auto &rot = ecs.getComponent<Rotation>(player);
       rot.angle -= (window.getSize().x / 1000.f);
@@ -187,8 +206,10 @@ int main() {
         rot.angle += 360.f;
       }
       std::cout << "rotationAngle: " << rot.angle << std::endl;
-    } 
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
+    }
+
+    // rotate right
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
       auto &rot = ecs.getComponent<Rotation>(player);
       rot.angle += (window.getSize().x / 1000.f);
       if (rot.angle >= 360.f) {
@@ -197,8 +218,10 @@ int main() {
         rot.angle += 360.f;
       }
       std::cout << "rotationAngle: " << rot.angle << std::endl;
-    } 
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) {
+    }
+
+    // accelerate
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) {
       auto &acc = ecs.getComponent<Acceleration>(player);
       auto &rot = ecs.getComponent<Rotation>(player);
       acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
@@ -207,6 +230,7 @@ int main() {
                 << std::endl;
     }
     // remove this as there is no deceleration, only flip and burn
+    // decellerate
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
       auto &acc = ecs.getComponent<Acceleration>(player);
       auto &rot = ecs.getComponent<Rotation>(player);
@@ -215,8 +239,15 @@ int main() {
       std::cout << "Acceleration: " << acc.value.x << "," << acc.value.y
                 << std::endl;
     }
+    else {
+      // turn off acceleration if a key is not pressed
+      auto &acc = ecs.getComponent<Acceleration>(player);
+      acc.value.x = 0.f;
+      acc.value.y = 0.f;
+    }
+
     // Fire! NE PDC
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q)) {
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q)) {
 
       // get the vel of the player
       auto pvel = ecs.getComponent<Velocity>(player);
@@ -239,9 +270,9 @@ int main() {
         // stops bullets colliding with each other. 
         Entity bullet = ecs.createEntity();
         ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * pdc1.projectileSpeed), pvel.value.y + (dy * pdc1.projectileSpeed)}});
-        ecs.addComponent(bullet, Position{{ppos.value.x + (dx * 400.f), ppos.value.y + (dy * 400.f)}});
+        ecs.addComponent(bullet, Position{{ppos.value.x + (dx * bullet_launch_distance), ppos.value.y + (dy * bullet_launch_distance)}});
         ecs.addComponent(bullet, Rotation{prot.angle - 45.f});
-        ecs.addComponent(bullet, Collision{ShapeType::AABB, 2.f, 2.f, 0.f});
+        ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.25f, 0.25f, 0.f});
 
         SpriteComponent sc{sf::Sprite(bulletTexture)};
         sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
@@ -257,66 +288,51 @@ int main() {
         //std::cout << bullet << " Bullet Velocity: " << bvel.value.x << "," << bvel.value.y << "\n";
         // std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle << "\n";
         //std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y << "\n";
-      } 
+      }
     }
+
     // Fire! NW PDC
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
       // get the vel of the player
       auto pvel = ecs.getComponent<Velocity>(player);
       auto ppos = ecs.getComponent<Position>(player);
       auto prot = ecs.getComponent<Rotation>(player);
-      auto pdc2 = ecs.getComponent<Pdc2>(player);
+      auto &pdc2 = ecs.getComponent<Pdc2>(player);
 
-      // try to get pdc 2 out at an angle
-      float dy = std::sin((prot.angle + 45.f) * (M_PI / 180.f));
-      float dx = std::cos((prot.angle + 45.f) * (M_PI / 180.f));
+      if (tt > pdc2.timeSinceFired + pdc2.cooldown) {
+        pdc2.timeSinceFired = tt;
 
-      // create a pdc bullet entity
-      Entity bullet = ecs.createEntity();
-      ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * pdc2.projectileSpeed), pvel.value.y + (dy * pdc2.projectileSpeed)}});
-      ecs.addComponent(bullet, Position{{ppos.value.x + (dx * 400.f), ppos.value.y + (dy * 400.f)}});
-      ecs.addComponent(bullet, Rotation{prot.angle + 45.f});
-      ecs.addComponent(bullet, Collision{ShapeType::AABB, 2.f, 2.f, 0.f});
+        // try to get pdc 2 out at an angle
+        float dy = std::sin((prot.angle + 45.f) * (M_PI / 180.f));
+        float dx = std::cos((prot.angle + 45.f) * (M_PI / 180.f));
 
-      SpriteComponent sc{sf::Sprite(bulletTexture)};
-      sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
-                                bulletTexture.getSize().y / 2.f);
-      sc.sprite.setOrigin(bulletOrigin);
-      ecs.addComponent(bullet, sc);
+        // create a pdc bullet entity
+        Entity bullet = ecs.createEntity();
+        ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * pdc2.projectileSpeed), pvel.value.y + (dy * pdc2.projectileSpeed)}});
+        ecs.addComponent(bullet, Position{{ppos.value.x + (dx * bullet_launch_distance), ppos.value.y + (dy * bullet_launch_distance)}});
+        ecs.addComponent(bullet, Rotation{prot.angle + 45.f});
+        ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.25f, 0.25f, 0.f});
 
-      auto bvel = ecs.getComponent<Velocity>(bullet);
-      auto bpos = ecs.getComponent<Position>(bullet);
-      auto brot = ecs.getComponent<Rotation>(bullet);
+        SpriteComponent sc{sf::Sprite(bulletTexture)};
+        sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
+                                  bulletTexture.getSize().y / 2.f);
+        sc.sprite.setOrigin(bulletOrigin);
+        ecs.addComponent(bullet, sc);
 
-      std::cout << "dx " << dx << ", dy " << dy << "\n";
-      std::cout << "Bullet Velocity: " << bvel.value.x << "," << bvel.value.y << "\n";
-      std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle << "\n";
-      std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y << "\n";
+        auto bvel = ecs.getComponent<Velocity>(bullet);
+        auto bpos = ecs.getComponent<Position>(bullet);
+        auto brot = ecs.getComponent<Rotation>(bullet);
+
+        std::cout << "dx " << dx << ", dy " << dy << "\n";
+        std::cout << "Bullet Velocity: " << bvel.value.x << "," << bvel.value.y << "\n";
+        std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle << "\n";
+        std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y << "\n";
+      }
     }
-    // print for now
-    else {
-      auto &pacc = ecs.getComponent<Acceleration>(player);
-      auto &pvel = ecs.getComponent<Velocity>(player);
-      auto &ppos = ecs.getComponent<Position>(player);
-      // std::cout << "Player Acceleration: " << pacc.value.x << "," << pacc.value.y << "\n";
-      // std::cout << "Player Velocity: " << pvel.value.x << "," << pvel.value.y << "\n";
-      // std::cout << "Player Position: " << ppos.value.x << "," << ppos.value.y << "\n";
 
-      auto &eacc = ecs.getComponent<Acceleration>(enemy);
-      auto &evel = ecs.getComponent<Velocity>(enemy);
-      auto &epos = ecs.getComponent<Position>(enemy);
-      // std::cout << "Enemy Acceleration: " << eacc.value.x << "," << eacc.value.y << "\n";
-      // std::cout << "Enemy Velocity: " << evel.value.x << "," << evel.value.y << "\n";
-      // std::cout << "Enemy Position: " << epos.value.x << "," << epos.value.y << "\n";
-
-      // turn off the acceleration when not pressing W or S
-      pacc.value.x = 0;
-      pacc.value.y = 0;
-    }
 
     // Collision System - check for collisions
     collisionSystem.Update();
-
 
     // - Render -
     window.clear(sf::Color(7, 5, 8));

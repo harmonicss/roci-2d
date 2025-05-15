@@ -36,11 +36,6 @@ public:
             otherCollision.type == ShapeType::AABB) {
           if (AABBCollision(pos.value, rot.angle, collision.halfWidth, collision.halfHeight, 
                             otherPos.value, otherRot.angle, otherCollision.halfWidth, otherCollision.halfHeight)) {
-            std::cout << 
-              "AABB Collision detected " << "\n" << "pos.x " << pos.value.x << " pos.y " << pos.value.y << 
-              " col.halfWidth " << collision.halfWidth << " col.halfHeight " << collision.halfHeight << "\n" <<
-              "other.x " << otherPos.value.x << " other.y " << otherPos.value.y << 
-              " other.halfWidth " << otherCollision.halfWidth << " other.halfHeight " << otherCollision.halfHeight << std::endl;
             onCollision(e, other);
           }
         } else if (collision.type      == ShapeType::Circle &&
@@ -61,7 +56,7 @@ private:
 
   // check for AABB collision
   // use a dynamic AABB rectangle, whish isnt the best solution as the rectangle gets bigger 
-  // in certain situations, but will do for now.
+  // in certain situations, but will do for now. 
   bool AABBCollision (sf::Vector2f pos1, float rot1, float halfWidth1, float halfHeight1, 
                       sf::Vector2f pos2, float rot2, float halfWidth2, float halfHeight2) {
 
@@ -98,7 +93,15 @@ private:
             pos1.x + halfWidth1 > pos2.x - halfWidth2 &&
             pos1.y - halfHeight1 < pos2.y + halfHeight2 &&
             pos1.y + halfHeight1 > pos2.y - halfHeight2);
+    if (collision) {
 
+      std::cout << 
+        "AABB Collision detected " << "\n" << "pos1.x " << pos1.x << " pos1.y " << pos1.y << 
+        " halfWidth1 " << halfWidth1 << " halfHeight1 " << halfHeight1 << "\n" <<
+        "pos2.x " << pos2.x << " pos2.y " << pos2.y << 
+        " halfWidth2 " << halfWidth2 << " halfHeight2 " << halfHeight2 << std::endl;
+
+    }
     return collision;
   }
 
