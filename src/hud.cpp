@@ -7,6 +7,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <cmath>
+#include <string>
 #include <sys/types.h>
 
 void DrawHUD(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font) {
@@ -37,12 +38,36 @@ void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::F
   // Sidebar Text
   char bufx[32];
   char bufy[32];
-   
-  sf::Text veltext(font);
 
+  // Health
+  sf::Text healthtext(font);
+  sf::String healthString = std::string("Health: ") + std::to_string(ecs.getComponent<Health>(e).value);
+  healthtext.setString(healthString);
+  healthtext.setCharacterSize(10);
+  healthtext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
+  sf::Vector2f healthTextPosition = { 10.f, yOffset };
+  yOffset += 20.f;
+  healthtext.setPosition(healthTextPosition);
+  window.draw(healthtext);
+
+  // Acceleration
+  sf::Text acctext(font);
+  sf::Vector2f acc = ecs.getComponent<Acceleration>(e).value;
+  // convert to Gs with a simple division
+  std::snprintf(bufx, sizeof(bufx), "%.1f", acc.length() / 100);
+  sf::String accString = std::string("Acc: ") + bufx + "Gs"; 
+  acctext.setString(accString);
+  acctext.setCharacterSize(10);
+  acctext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
+  sf::Vector2f accTextPosition = { 10.f, yOffset };
+  yOffset += 20.f;
+  acctext.setPosition(accTextPosition);
+  window.draw(acctext);
+
+  // Velocity
+  sf::Text veltext(font);
   std::snprintf(bufx, sizeof(bufx), "%.2f", ecs.getComponent<Velocity>(e).value.x);
   std::snprintf(bufy, sizeof(bufy), "%.2f", ecs.getComponent<Velocity>(e).value.y);
-
   sf::String velString = std::string("Vel: ") + bufx + "," + bufy;
   veltext.setString(velString);
   veltext.setCharacterSize(10);
