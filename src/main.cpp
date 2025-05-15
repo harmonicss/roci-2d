@@ -1,5 +1,6 @@
 #include "../include/components.hpp"
 #include "../include/ecs.hpp"
+#include "../include/collision.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -28,7 +29,10 @@ int main() {
   ecs.registerComponent<Acceleration>();
   ecs.registerComponent<Rotation>();
   ecs.registerComponent<SpriteComponent>();
-  ecs.registerComponent<Weapon>();
+  ecs.registerComponent<Health>();
+  ecs.registerComponent<Pdc1>();
+  ecs.registerComponent<Pdc2>();
+  ecs.registerComponent<Collision>();
 
   // - Load Fonts -
   sf::Font font;
@@ -44,6 +48,7 @@ int main() {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
+  std::cout << "Roci x " << rociTexture.getSize().x << " y " << rociTexture.getSize().y << "\n";
 
   // roci fighting itself for now
   if (!enemyTexture.loadFromFile("../assets/textures/roci.png")) {
@@ -61,6 +66,7 @@ int main() {
   ecs.addComponent(player, Position{{960, 540}});
   ecs.addComponent(player, Velocity{{0.f, 0.f}});
   ecs.addComponent(player, Rotation{0.f});
+  ecs.addComponent(player, Health{100});
   ecs.addComponent(player, Acceleration{{0.f, 0.f}});
   {
     SpriteComponent sc { sf::Sprite(rociTexture) };
@@ -69,13 +75,19 @@ int main() {
     sc.sprite.setOrigin(rociOrigin);
     ecs.addComponent(player, SpriteComponent{sc});
   }
-  ecs.addComponent(player, Weapon{});
+  ecs.addComponent(player, Pdc1{});
+  ecs.addComponent(player, Pdc2{});
+  ecs.addComponent(player, Collision{
+    ShapeType::AABB, 
+    static_cast<float>(rociTexture.getSize().x) / 2,
+    static_cast<float>(rociTexture.getSize().y) / 2, 0.f});
 
   // - Create Enemy Entity -
   Entity enemy = ecs.createEntity("Enemy");
-  ecs.addComponent(enemy, Position{{300, -10000}});
+  ecs.addComponent(enemy, Position{{300, -1000}});
   ecs.addComponent(enemy, Velocity{{5.f, 5.f}});
   ecs.addComponent(enemy, Rotation{130.f});
+  ecs.addComponent(enemy, Health{100});
   ecs.addComponent(enemy, Acceleration{{1.f, 1.f}});
   {
     SpriteComponent sc { sf::Sprite(enemyTexture) };
@@ -84,8 +96,21 @@ int main() {
     sc.sprite.setOrigin(enemyOrigin);
     ecs.addComponent(enemy, sc);
   }
-  ecs.addComponent(enemy, Weapon{});
+  ecs.addComponent(enemy, Pdc1{});
+  ecs.addComponent(enemy, Pdc2{});
+  ecs.addComponent(enemy, Collision{
+    ShapeType::AABB, 
+    static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
+    static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
 
+  // Create Collision System, with lambda callback
+  CollisionSystem collisionSystem(ecs, [](Entity e1, Entity e2) {
+
+    // Handle collision
+    std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
+  });
+
+  // Set up worldview
   sf::FloatRect viewRect({0.f, 0.f}, {1920.f, 1080.f});
   sf::View worldview(viewRect);
   window.setView(worldview);
@@ -95,8 +120,11 @@ int main() {
   worldview.setSize({1920 * zoomFactor, 1080 * zoomFactor});
 
   sf::Clock clock;
+  float tt = 0; // total time for weapon cooldown
+  
   while (window.isOpen()) {
     float dt = clock.restart().asSeconds();
+    tt += dt;
 
     // this is the main space window. Render this first, then render the HUD
     window.setView(worldview);
@@ -173,9 +201,8 @@ int main() {
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) {
       auto &acc = ecs.getComponent<Acceleration>(player);
       auto &rot = ecs.getComponent<Rotation>(player);
-      // subtract 90 degs from the angle to get the correct direction
-      acc.value.x += std::cos((rot.angle - 90.f) * (M_PI / 180.f)) * 500.f * dt;
-      acc.value.y += std::sin((rot.angle - 90.f) * (M_PI / 180.f)) * 500.f * dt;
+      acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
+      acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
       std::cout << "Acceleration: " << acc.value.x << "," << acc.value.y
                 << std::endl;
     }
@@ -183,43 +210,54 @@ int main() {
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
       auto &acc = ecs.getComponent<Acceleration>(player);
       auto &rot = ecs.getComponent<Rotation>(player);
-      // subtract 90 degs from the angle to get the correct direction
-      acc.value.x -= std::cos((rot.angle - 90.f) * (M_PI / 180.f)) * 500.f * dt;
-      acc.value.y -= std::sin((rot.angle - 90.f) * (M_PI / 180.f)) * 500.f * dt;
+      acc.value.x -= std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
+      acc.value.y -= std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
       std::cout << "Acceleration: " << acc.value.x << "," << acc.value.y
                 << std::endl;
     }
     // Fire! NE PDC
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q)) {
+
       // get the vel of the player
       auto pvel = ecs.getComponent<Velocity>(player);
       auto ppos = ecs.getComponent<Position>(player);
       auto prot = ecs.getComponent<Rotation>(player);
+      auto &pdc1 = ecs.getComponent<Pdc1>(player);
 
-      // try to get pdc 1 out at an angle
-      float dx = std::cos((prot.angle - 90.f - 45.f) * (M_PI / 180.f));
-      float dy = std::sin((prot.angle - 90.f - 45.f) * (M_PI / 180.f));
+      if (tt > pdc1.timeSinceFired + pdc1.cooldown) {
+        pdc1.timeSinceFired = tt; 
+        // std::cout << "Firing!" << "\n";
+        // std::cout << "new pdc1.timeSinceFired: " << pdc1.timeSinceFired << "\n";
+        // std::cout << "pdc1.projectileSpeed: " << pdc1.projectileSpeed << "\n";
+        // std::cout << "dt: " << dt << "\n";
 
-      // create a pdc bullet entity
-      Entity bullet = ecs.createEntity();
-      ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * 100000.f * dt), pvel.value.y + (dy * 100000.f * dt)}});
-      ecs.addComponent(bullet, Position{{ppos.value.x + (dx * 400.f), ppos.value.y + (dy * 400.f)}});
-      ecs.addComponent(bullet, Rotation{prot.angle - 45.f});
+        // try to get pdc 1 out at an angle, convert to radians
+        float dx = std::cos((prot.angle - 45.f) * (M_PI / 180.f));
+        float dy = std::sin((prot.angle - 45.f) * (M_PI / 180.f));
 
-      SpriteComponent sc{sf::Sprite(bulletTexture)};
-      sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
-                                bulletTexture.getSize().y / 2.f);
-      sc.sprite.setOrigin(bulletOrigin);
-      ecs.addComponent(bullet, sc);
+        // create a pdc bullet entity. Keep a constant vecocity, no matter the dt,
+        // stops bullets colliding with each other. 
+        Entity bullet = ecs.createEntity();
+        ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * pdc1.projectileSpeed), pvel.value.y + (dy * pdc1.projectileSpeed)}});
+        ecs.addComponent(bullet, Position{{ppos.value.x + (dx * 400.f), ppos.value.y + (dy * 400.f)}});
+        ecs.addComponent(bullet, Rotation{prot.angle - 45.f});
+        ecs.addComponent(bullet, Collision{ShapeType::AABB, 2.f, 2.f, 0.f});
 
-      auto bvel = ecs.getComponent<Velocity>(bullet);
-      auto bpos = ecs.getComponent<Position>(bullet);
-      auto brot = ecs.getComponent<Rotation>(bullet);
+        SpriteComponent sc{sf::Sprite(bulletTexture)};
+        sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
+                                  bulletTexture.getSize().y / 2.f);
+        sc.sprite.setOrigin(bulletOrigin);
+        ecs.addComponent(bullet, sc);
 
-      std::cout << "dx " << dx << ", dy " << dy << "\n";
-      std::cout << "Bullet Velocity: " << bvel.value.x << "," << bvel.value.y << "\n";
-      std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle << "\n";
-      std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y << "\n";
+        auto bvel = ecs.getComponent<Velocity>(bullet);
+        auto bpos = ecs.getComponent<Position>(bullet);
+        auto brot = ecs.getComponent<Rotation>(bullet);
+
+        // std::cout << "dx " << dx << ", dy " << dy << "\n";
+        //std::cout << bullet << " Bullet Velocity: " << bvel.value.x << "," << bvel.value.y << "\n";
+        // std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle << "\n";
+        //std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y << "\n";
+      } 
     }
     // Fire! NW PDC
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
@@ -227,16 +265,18 @@ int main() {
       auto pvel = ecs.getComponent<Velocity>(player);
       auto ppos = ecs.getComponent<Position>(player);
       auto prot = ecs.getComponent<Rotation>(player);
+      auto pdc2 = ecs.getComponent<Pdc2>(player);
 
       // try to get pdc 2 out at an angle
-      float dy = std::sin((prot.angle - 90.f + 45.f) * (M_PI / 180.f));
-      float dx = std::cos((prot.angle - 90.f + 45.f) * (M_PI / 180.f));
+      float dy = std::sin((prot.angle + 45.f) * (M_PI / 180.f));
+      float dx = std::cos((prot.angle + 45.f) * (M_PI / 180.f));
 
       // create a pdc bullet entity
       Entity bullet = ecs.createEntity();
-      ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * 100000.f * dt), pvel.value.y + (dy * 100000.f * dt)}});
+      ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * pdc2.projectileSpeed), pvel.value.y + (dy * pdc2.projectileSpeed)}});
       ecs.addComponent(bullet, Position{{ppos.value.x + (dx * 400.f), ppos.value.y + (dy * 400.f)}});
       ecs.addComponent(bullet, Rotation{prot.angle + 45.f});
+      ecs.addComponent(bullet, Collision{ShapeType::AABB, 2.f, 2.f, 0.f});
 
       SpriteComponent sc{sf::Sprite(bulletTexture)};
       sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
@@ -273,6 +313,10 @@ int main() {
       pacc.value.x = 0;
       pacc.value.y = 0;
     }
+
+    // Collision System - check for collisions
+    collisionSystem.Update();
+
 
     // - Render -
     window.clear(sf::Color(7, 5, 8));
@@ -328,6 +372,7 @@ int main() {
     DrawSidebarText(window, ecs, player, font);
     DrawSidebarText(window, ecs, enemy, font);
     DrawShipNames(window, ecs, enemy, font, zoomFactor);
+    DrawShipNames(window, ecs, player, font, zoomFactor);
 
     // display everything
     window.display();
