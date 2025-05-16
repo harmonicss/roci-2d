@@ -17,11 +17,20 @@ extern void DrawHUD(sf::RenderWindow& window, Coordinator& ecs, Entity player, s
 extern void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity player, sf::Font& font);
 extern void DrawShipNames(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font, float zoomFactor);
 
+struct FlipControl {
+     bool flipping = false;
+    float timeSinceFlipped = 0.f;
+    float cooldown = 0.5f;
+    float targetAngle = 0.f;
+};
+
 int main() {
 
   auto window = sf::RenderWindow(sf::VideoMode({1920u, 1080u}), "Rocinante",
                                  sf::Style::Default);
   window.setFramerateLimit(60);
+
+  FlipControl flipControl;
 
   // - ECS Setup -
   Coordinator ecs;
@@ -134,7 +143,8 @@ int main() {
 
   sf::Clock clock;
   float tt = 0; // total time for weapon cooldown
-  
+
+
   while (window.isOpen()) {
     float dt = clock.restart().asSeconds();
     tt += dt;
@@ -205,7 +215,6 @@ int main() {
       } else if (rot.angle < 0.f) {
         rot.angle += 360.f;
       }
-      std::cout << "rotationAngle: " << rot.angle << std::endl;
     }
 
     // rotate right
@@ -217,7 +226,6 @@ int main() {
       } else if (rot.angle < 0.f) {
         rot.angle += 360.f;
       }
-      std::cout << "rotationAngle: " << rot.angle << std::endl;
     }
 
     // accelerate
@@ -226,24 +234,34 @@ int main() {
       auto &rot = ecs.getComponent<Rotation>(player);
       acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
       acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
-      std::cout << "Acceleration: " << acc.value.x << "," << acc.value.y
-                << std::endl;
     }
-    // remove this as there is no deceleration, only flip and burn
-    // decellerate
+    // flip
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
-      auto &acc = ecs.getComponent<Acceleration>(player);
-      auto &rot = ecs.getComponent<Rotation>(player);
-      acc.value.x -= std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
-      acc.value.y -= std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
-      std::cout << "Acceleration: " << acc.value.x << "," << acc.value.y
-                << std::endl;
+      // need to debounce the flip
+      if (tt > flipControl.timeSinceFlipped + flipControl.cooldown) {
+        flipControl.timeSinceFlipped = tt;
+        flipControl.flipping = true;
+        auto &rot = ecs.getComponent<Rotation>(player);
+        flipControl.targetAngle = rot.angle + 180.f;
+      }
     }
     else {
       // turn off acceleration if a key is not pressed
       auto &acc = ecs.getComponent<Acceleration>(player);
       acc.value.x = 0.f;
       acc.value.y = 0.f;
+    }
+
+    // Animate the flip
+    if (flipControl.flipping) {
+      auto &rot = ecs.getComponent<Rotation>(player);
+      if (rot.angle < flipControl.targetAngle) {
+        rot.angle += 15.f; //(window.getSize().x / 100.f);
+      }
+      if (rot.angle == flipControl.targetAngle) {
+        flipControl.flipping = false;
+        flipControl.targetAngle = 0.f;
+      }
     }
 
     // Fire! NE PDC
