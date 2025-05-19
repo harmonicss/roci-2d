@@ -146,7 +146,9 @@ class Coordinator {
 public:
   Entity createEntity() { return entityMgr.create(); }
   Entity createEntity(std::string name) { return entityMgr.create(name); }
-  void destroyEntity(Entity e) { entityMgr.destroy(e); }
+  void destroyEntity(Entity e) { 
+    entityMgr.destroy(e); 
+  }
 
   template <typename T> void registerComponent() {
     compMgr.registerComponent<T>();
@@ -154,6 +156,10 @@ public:
 
   template <typename T> void addComponent(Entity e, T comp) {
     compMgr.addComponent<T>(e, std::move(comp));
+  }
+
+  template <typename T> void removeComponent(Entity e) {
+    compMgr.removeComponent<T>(e);
   }
 
   template <typename T> T &getComponent(Entity e) {
@@ -166,6 +172,10 @@ public:
 
   std::string getEntityName(Entity e) {
     return entityMgr.getName(e);
+  }
+
+  bool isAlive(Entity e) {
+    return entityMgr.isAlive(e);
   }
 
   // View: get all entities with ALL of the listed components

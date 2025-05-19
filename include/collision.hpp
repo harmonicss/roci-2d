@@ -18,6 +18,11 @@ public:
   void Update() {
 
     for (auto e : ecs.view<Collision>()) {
+
+      // it is possible that the entity has been destroyed by the callback in the meantime
+      if (!ecs.isAlive(e))
+        continue;
+
       auto &collision = ecs.getComponent<Collision>(e);
       auto &pos = ecs.getComponent<Position>(e);
       auto &rot = ecs.getComponent<Rotation>(e);
@@ -27,8 +32,12 @@ public:
         if (e == other)
           continue; // skip self collision
 
-        auto& otherPos = ecs.getComponent<Position>(other);
+        // it is possible that the entity has been destroyed by the callback in the meantime
+        if (!ecs.isAlive(e))
+          continue;
+
         auto& otherCollision = ecs.getComponent<Collision>(other);
+        auto& otherPos = ecs.getComponent<Position>(other);
         auto& otherRot = ecs.getComponent<Rotation>(other);
 
         // Perform collision detection based on shape type

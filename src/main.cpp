@@ -1,6 +1,6 @@
+#include "../include/collision.hpp"
 #include "../include/components.hpp"
 #include "../include/ecs.hpp"
-#include "../include/collision.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -13,15 +13,22 @@
 #include <iostream>
 #include <sys/types.h>
 
-extern void DrawHUD(sf::RenderWindow& window, Coordinator& ecs, Entity player, sf::Font& font);
-extern void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity player, sf::Font& font);
-extern void DrawShipNames(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font, float zoomFactor);
+extern void DrawHUD(sf::RenderWindow &window, Coordinator &ecs, Entity player,
+                    sf::Font &font);
+extern void DrawSidebarText(sf::RenderWindow &window, Coordinator &ecs,
+                            Entity player, sf::Font &font);
+extern void DrawShipNames(sf::RenderWindow &window, Coordinator &ecs, Entity e,
+                          sf::Font &font, float zoomFactor);
 
-struct FlipControl {
-     bool flipping = false;
-    float timeSinceFlipped = 0.f;
-    float cooldown = 0.5f;
-    float targetAngle = 0.f;
+// Flip 180 and burn to a stop
+struct FlipBurnControl {
+  bool flipping = false;
+  bool burning = false;
+  float timeSinceFlipped = 0.f;
+  float cooldown = 0.5f;
+  float targetAngle = 0.f;
+  enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE };
+  RotationDirection rotationDir = RotationDirection::CLOCKWISE; 
 };
 
 int main() {
@@ -30,7 +37,7 @@ int main() {
                                  sf::Style::Default);
   window.setFramerateLimit(60);
 
-  FlipControl flipControl;
+  FlipBurnControl flipControl;
 
   // - ECS Setup -
   Coordinator ecs;
@@ -58,19 +65,20 @@ int main() {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
-  std::cout << "Roci x " << rociTexture.getSize().x << " y " << rociTexture.getSize().y << "\n";
+  std::cout << "Roci x " << rociTexture.getSize().x << " y "
+            << rociTexture.getSize().y << "\n";
 
   // roci fighting itself for now
   if (!enemyTexture.loadFromFile("../assets/textures/roci.png")) {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
- 
+
   if (!bulletTexture.loadFromFile("../assets/textures/pdc-bullet.png")) {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
- 
+
   // - Create Player Entity -
   Entity player = ecs.createEntity("Rocinante");
   ecs.addComponent(player, Position{{960, 540}});
@@ -79,7 +87,7 @@ int main() {
   ecs.addComponent(player, Health{100});
   ecs.addComponent(player, Acceleration{{0.f, 0.f}});
   {
-    SpriteComponent sc { sf::Sprite(rociTexture) };
+    SpriteComponent sc{sf::Sprite(rociTexture)};
     sf::Vector2f rociOrigin(rociTexture.getSize().x / 2.f,
                             rociTexture.getSize().y / 2.f);
     sc.sprite.setOrigin(rociOrigin);
@@ -87,20 +95,20 @@ int main() {
   }
   ecs.addComponent(player, Pdc1{});
   ecs.addComponent(player, Pdc2{});
-  ecs.addComponent(player, Collision{
-    ShapeType::AABB, 
-    static_cast<float>(rociTexture.getSize().x) / 2,
-    static_cast<float>(rociTexture.getSize().y) / 2, 0.f});
+  ecs.addComponent(
+      player, Collision{ShapeType::AABB,
+                        static_cast<float>(rociTexture.getSize().x) / 2,
+                        static_cast<float>(rociTexture.getSize().y) / 2, 0.f});
 
   // - Create Enemy Entity -
   Entity enemy = ecs.createEntity("Enemy");
   ecs.addComponent(enemy, Position{{300, -1000}});
-  ecs.addComponent(enemy, Velocity{{5.f, 5.f}});
+  ecs.addComponent(enemy, Velocity{{0.f, 0.f}});
   ecs.addComponent(enemy, Rotation{130.f});
   ecs.addComponent(enemy, Health{100});
-  ecs.addComponent(enemy, Acceleration{{1.f, 1.f}});
+  ecs.addComponent(enemy, Acceleration{{0.f, 0.f}});
   {
-    SpriteComponent sc { sf::Sprite(enemyTexture) };
+    SpriteComponent sc{sf::Sprite(enemyTexture)};
     sf::Vector2f enemyOrigin(enemyTexture.getSize().x / 2.f,
                              enemyTexture.getSize().y / 2.f);
     sc.sprite.setOrigin(enemyOrigin);
@@ -108,27 +116,49 @@ int main() {
   }
   ecs.addComponent(enemy, Pdc1{});
   ecs.addComponent(enemy, Pdc2{});
-  ecs.addComponent(enemy, Collision{
-    ShapeType::AABB, 
-    static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
-    static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
+  ecs.addComponent(
+      enemy,
+      Collision{ShapeType::AABB,
+                static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
+                static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
 
   // Create Collision System, with lambda callback
   CollisionSystem collisionSystem(ecs, [&ecs](Entity e1, Entity e2) {
-
     // Handle collision
     std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
 
     // Damage the health of the entities
     // cant capture player here, I know it is 0.
-    if (e1 == 0) {
-      auto& phealth = ecs.getComponent<Health>(e1);
+    if (e1 == 0 || e2 == 0) {
+      auto &phealth = ecs.getComponent<Health>(0);
       phealth.value -= 1;
+      std::cout << "Player health: " << phealth.value << "\n";
     }
 
-    if (e2 == 1) {
-      auto& ehealth = ecs.getComponent<Health>(e2);
+    if (e1 == 1 || e2 == 1) {
+      auto &ehealth = ecs.getComponent<Health>(1);
       ehealth.value -= 1;
+      std::cout << "Enemy health: " << ehealth.value << "\n";
+    }
+
+    if (e1 > 1) {
+      std::cout << "Deleting bullet " << e1 << "\n";
+      ecs.removeComponent<Velocity>(e1);
+      ecs.removeComponent<Position>(e1);
+      ecs.removeComponent<Rotation>(e1);
+      ecs.removeComponent<Collision>(e1);
+      ecs.removeComponent<SpriteComponent>(e1);
+      ecs.destroyEntity(e1);
+    }
+
+    if (e2 > 1) {
+      std::cout << "Deleting bullet " << e2 << "\n";
+      ecs.removeComponent<Velocity>(e2);
+      ecs.removeComponent<Position>(e2);
+      ecs.removeComponent<Rotation>(e2);
+      ecs.removeComponent<Collision>(e2);
+      ecs.removeComponent<SpriteComponent>(e2);
+      ecs.destroyEntity(e2);
     }
   });
 
@@ -144,13 +174,13 @@ int main() {
   sf::Clock clock;
   float tt = 0; // total time for weapon cooldown
 
-
   while (window.isOpen()) {
     float dt = clock.restart().asSeconds();
     tt += dt;
-    
-    // use this as a temporary fix to stop bullets colliding with the ship that fired
-    // it means the bullets start away from the ship, but live for this for now
+
+    // use this as a temporary fix to stop bullets colliding with the ship that
+    // fired it means the bullets start away from the ship, but live for this
+    // for now
     const uint32_t bullet_launch_distance = 500;
 
     // this is the main space window. Render this first, then render the HUD
@@ -161,14 +191,13 @@ int main() {
 
       if (event->is<sf::Event::Closed>()) {
         window.close();
-      }
-      else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+      } else if (const auto *keyPressed =
+                     event->getIf<sf::Event::KeyPressed>()) {
 
         if (keyPressed->scancode == sf::Keyboard::Scancode::Escape) {
           window.close();
         }
-      }
-      else if (event->is<sf::Event::MouseWheelScrolled>()) {
+      } else if (event->is<sf::Event::MouseWheelScrolled>()) {
         auto *scroll = event->getIf<sf::Event::MouseWheelScrolled>();
 
         if (scroll->delta < 0) {
@@ -206,61 +235,137 @@ int main() {
 
     // dont use events for the keyboard, check if currently pressed.
 
-    // rotate left
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
-      auto &rot = ecs.getComponent<Rotation>(player);
-      rot.angle -= (window.getSize().x / 1000.f);
-      if (rot.angle >= 360.f) {
-        rot.angle -= 360.f;
-      } else if (rot.angle < 0.f) {
-        rot.angle += 360.f;
-      }
-    }
-
-    // rotate right
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
-      auto &rot = ecs.getComponent<Rotation>(player);
-      rot.angle += (window.getSize().x / 1000.f);
-      if (rot.angle >= 360.f) {
-        rot.angle -= 360.f;
-      } else if (rot.angle < 0.f) {
-        rot.angle += 360.f;
-      }
-    }
-
-    // accelerate
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) {
+    if (flipControl.burning == true) {
+      // burn deceleration to 0
       auto &acc = ecs.getComponent<Acceleration>(player);
+      auto &vel = ecs.getComponent<Velocity>(player);
       auto &rot = ecs.getComponent<Rotation>(player);
       acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
       acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
-    }
-    // flip
+
+      // std::cout << "Burn velocity: " << vel.value.length() << "\n";
+
+      // approaching 0 velocity
+      if ((vel.value.length() < 50.f) && 
+          (vel.value.length() > -50.f)) {
+        flipControl.burning = false;
+        acc.value.x = 0.f;
+        acc.value.y = 0.f;
+        vel.value.x = 0.f;
+        vel.value.y = 0.f;
+      }
+    } 
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
-      // need to debounce the flip
+      // flip and decelerate
+      // debounce the flip
+      // rotate to burn and reduce veclocity, may not be 180 if there is 
+      // some lateral movement
       if (tt > flipControl.timeSinceFlipped + flipControl.cooldown) {
+        std::cout << "Starting Flipping!\n";
         flipControl.timeSinceFlipped = tt;
         flipControl.flipping = true;
         auto &rot = ecs.getComponent<Rotation>(player);
-        flipControl.targetAngle = rot.angle + 180.f;
+        auto &vel = ecs.getComponent<Velocity>(player).value;
+
+        // cannot calculate the angle from a zero vector
+        if (vel.length() == 0.f) {
+          std::cout << "Flip correctionAngle: 0\n";
+          flipControl.targetAngle = rot.angle + 180.f;
+          if (flipControl.targetAngle >= 360.f) {
+            flipControl.targetAngle -= 360.f;
+          } else if (flipControl.targetAngle < 0.f) {
+            flipControl.targetAngle += 360.f;
+          }
+          flipControl.rotationDir = FlipBurnControl::RotationDirection::CLOCKWISE;
+        }
+        else {
+          // get the angle of the velocity vector
+          sf::Angle correctionAngle = vel.angle();
+          std::cout << "Flip correctionAngle: " << correctionAngle.asDegrees() << "\n";
+          flipControl.targetAngle = correctionAngle.asDegrees() - 180.f;
+          float diff = std::abs(flipControl.targetAngle - rot.angle);
+          if (diff > 180.f) {
+            flipControl.rotationDir = FlipBurnControl::RotationDirection::CLOCKWISE;
+          } else {
+            flipControl.rotationDir = FlipBurnControl::RotationDirection::COUNTERCLOCKWISE;
+          }
+          if (flipControl.targetAngle >= 360.f) {
+            flipControl.targetAngle -= 360.f;
+          } else if (flipControl.targetAngle < 0.f) {
+            flipControl.targetAngle += 360.f;
+          }
+          std::cout << "Flip target angle: " << flipControl.targetAngle << "\n";
+        }
       }
     }
-    else {
-      // turn off acceleration if a key is not pressed
-      auto &acc = ecs.getComponent<Acceleration>(player);
-      acc.value.x = 0.f;
-      acc.value.y = 0.f;
+    else if (flipControl.flipping == false) {
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
+        // rotate left
+        auto &rot = ecs.getComponent<Rotation>(player);
+        rot.angle -= (window.getSize().x / 1000.f);
+        if (rot.angle >= 360.f) {
+          rot.angle -= 360.f;
+        } else if (rot.angle < 0.f) {
+          rot.angle += 360.f;
+        }
+      }
+      else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
+        // rotate right
+        auto &rot = ecs.getComponent<Rotation>(player);
+        rot.angle += (window.getSize().x / 1000.f);
+        if (rot.angle >= 360.f) {
+          rot.angle -= 360.f;
+        } else if (rot.angle < 0.f) {
+          rot.angle += 360.f;
+        }
+      }
+
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) {
+        // accelerate
+        auto &acc = ecs.getComponent<Acceleration>(player);
+        auto &rot = ecs.getComponent<Rotation>(player);
+        acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
+        acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
+      }
+      else {
+        // turn off acceleration if a acceleration key is not pressed
+        auto &acc = ecs.getComponent<Acceleration>(player);
+        acc.value.x = 0.f;
+        acc.value.y = 0.f;
+      }
     }
 
     // Animate the flip
     if (flipControl.flipping) {
       auto &rot = ecs.getComponent<Rotation>(player);
-      if (rot.angle < flipControl.targetAngle) {
+      float diff = std::abs(flipControl.targetAngle - rot.angle);
+
+      std::cout << "\ntargetAngle:   " << flipControl.targetAngle << "\n";
+      std::cout << "Current angle: " << rot.angle << "\n";
+      std::cout << "Flipping diff: " << diff << "\n";
+
+      if (diff < 20.f) {
+        rot.angle = flipControl.targetAngle;
+      } 
+      else if (flipControl.rotationDir == FlipBurnControl::RotationDirection::CLOCKWISE) {
+        rot.angle -= 15.f; //(window.getSize().x / 100.f);
+      }
+      else {
         rot.angle += 15.f; //(window.getSize().x / 100.f);
       }
+
+      // TODO: wrap with Angle.wrapUnsigned
+      if (rot.angle >= 360.f) {
+        rot.angle -= 360.f;
+      } else if (rot.angle < 0.f) {
+        rot.angle += 360.f;
+      }
+      std::cout << "New angle:     " << rot.angle << "\n";
       if (rot.angle == flipControl.targetAngle) {
+        std::cout << "Flipped to target angle: " << flipControl.targetAngle << "\n";
         flipControl.flipping = false;
         flipControl.targetAngle = 0.f;
+        flipControl.burning = true;
       }
     }
 
@@ -274,21 +379,25 @@ int main() {
       auto &pdc1 = ecs.getComponent<Pdc1>(player);
 
       if (tt > pdc1.timeSinceFired + pdc1.cooldown) {
-        pdc1.timeSinceFired = tt; 
+        pdc1.timeSinceFired = tt;
         // std::cout << "Firing!" << "\n";
-        // std::cout << "new pdc1.timeSinceFired: " << pdc1.timeSinceFired << "\n";
-        // std::cout << "pdc1.projectileSpeed: " << pdc1.projectileSpeed << "\n";
-        // std::cout << "dt: " << dt << "\n";
+        // std::cout << "new pdc1.timeSinceFired: " << pdc1.timeSinceFired <<
+        // "\n"; std::cout << "pdc1.projectileSpeed: " << pdc1.projectileSpeed
+        // << "\n"; std::cout << "dt: " << dt << "\n";
 
         // try to get pdc 1 out at an angle, convert to radians
         float dx = std::cos((prot.angle - 45.f) * (M_PI / 180.f));
         float dy = std::sin((prot.angle - 45.f) * (M_PI / 180.f));
 
-        // create a pdc bullet entity. Keep a constant vecocity, no matter the dt,
-        // stops bullets colliding with each other. 
+        // create a pdc bullet entity. Keep a constant vecocity, no matter the
+        // dt, stops bullets colliding with each other.
         Entity bullet = ecs.createEntity();
-        ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * pdc1.projectileSpeed), pvel.value.y + (dy * pdc1.projectileSpeed)}});
-        ecs.addComponent(bullet, Position{{ppos.value.x + (dx * bullet_launch_distance), ppos.value.y + (dy * bullet_launch_distance)}});
+        ecs.addComponent(
+            bullet, Velocity{{pvel.value.x + (dx * pdc1.projectileSpeed),
+                              pvel.value.y + (dy * pdc1.projectileSpeed)}});
+        ecs.addComponent(
+            bullet, Position{{ppos.value.x + (dx * bullet_launch_distance),
+                              ppos.value.y + (dy * bullet_launch_distance)}});
         ecs.addComponent(bullet, Rotation{prot.angle - 45.f});
         ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.25f, 0.25f, 0.f});
 
@@ -303,9 +412,12 @@ int main() {
         auto brot = ecs.getComponent<Rotation>(bullet);
 
         // std::cout << "dx " << dx << ", dy " << dy << "\n";
-        //std::cout << bullet << " Bullet Velocity: " << bvel.value.x << "," << bvel.value.y << "\n";
-        // std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle << "\n";
-        //std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y << "\n";
+        // std::cout << bullet << " Bullet Velocity: " << bvel.value.x << "," <<
+        // bvel.value.y << "\n";
+        // std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle
+        // << "\n";
+        // std::cout << "Bullet Position: " << bpos.value.x << "," <<
+        // bpos.value.y << "\n";
       }
     }
 
@@ -326,8 +438,12 @@ int main() {
 
         // create a pdc bullet entity
         Entity bullet = ecs.createEntity();
-        ecs.addComponent(bullet, Velocity{{pvel.value.x + (dx * pdc2.projectileSpeed), pvel.value.y + (dy * pdc2.projectileSpeed)}});
-        ecs.addComponent(bullet, Position{{ppos.value.x + (dx * bullet_launch_distance), ppos.value.y + (dy * bullet_launch_distance)}});
+        ecs.addComponent(
+            bullet, Velocity{{pvel.value.x + (dx * pdc2.projectileSpeed),
+                              pvel.value.y + (dy * pdc2.projectileSpeed)}});
+        ecs.addComponent(
+            bullet, Position{{ppos.value.x + (dx * bullet_launch_distance),
+                              ppos.value.y + (dy * bullet_launch_distance)}});
         ecs.addComponent(bullet, Rotation{prot.angle + 45.f});
         ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.25f, 0.25f, 0.f});
 
@@ -342,12 +458,14 @@ int main() {
         auto brot = ecs.getComponent<Rotation>(bullet);
 
         std::cout << "dx " << dx << ", dy " << dy << "\n";
-        std::cout << "Bullet Velocity: " << bvel.value.x << "," << bvel.value.y << "\n";
-        std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle << "\n";
-        std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y << "\n";
+        std::cout << "Bullet Velocity: " << bvel.value.x << "," << bvel.value.y
+                  << "\n";
+        std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle
+                  << "\n";
+        std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y
+                  << "\n";
       }
     }
-
 
     // Collision System - check for collisions
     collisionSystem.Update();
@@ -358,8 +476,8 @@ int main() {
     u_int16_t screenHeight = window.getSize().y;
     sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
-    // GUI 
-    std::array<int, 5> radius {2000, 3000, 4000, 8000, 16000};
+    // GUI
+    std::array<int, 5> radius{2000, 3000, 4000, 8000, 16000};
 
     // Circles
     for (auto r : radius) {
@@ -367,7 +485,7 @@ int main() {
       shape.setPointCount(100);
       shape.setFillColor(sf::Color::Transparent);
       shape.setOutlineThickness(1.2f * zoomFactor);
-      shape.setOutlineColor(sf::Color(75,20,26));
+      shape.setOutlineColor(sf::Color(75, 20, 26));
 
       // move the origin to the centre of the circle
       shape.setOrigin(sf::Vector2f(r, r));
