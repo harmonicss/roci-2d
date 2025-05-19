@@ -8,6 +8,7 @@
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
+#include <SFML/Audio.hpp>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -79,6 +80,23 @@ int main() {
     return -1;
   }
 
+
+  // - Load Sounds -
+  sf::SoundBuffer pdcFireSoundBuffer;
+  if (!pdcFireSoundBuffer.loadFromFile("../assets/sounds/pdc.wav")) {
+    std::cout << "Error loading sound" << std::endl;
+    return -1;
+  }
+  sf::Sound pdcFireSoundPlayer(pdcFireSoundBuffer);
+
+  sf::SoundBuffer pdcHitSoundBuffer;
+  if (!pdcHitSoundBuffer.loadFromFile("../assets/sounds/pdc-hit.wav")) {
+    std::cout << "Error loading sound" << std::endl;
+    return -1;
+  }
+  sf::Sound pdcHitSoundPlayer(pdcHitSoundBuffer);
+
+
   // - Create Player Entity -
   Entity player = ecs.createEntity("Rocinante");
   ecs.addComponent(player, Position{{960, 540}});
@@ -122,8 +140,10 @@ int main() {
                 static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
                 static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
 
+  //
   // Create Collision System, with lambda callback
-  CollisionSystem collisionSystem(ecs, [&ecs](Entity e1, Entity e2) {
+  //
+  CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, [&ecs, &pdcHitSoundPlayer](Entity e1, Entity e2) {
     // Handle collision
     std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
 
@@ -133,12 +153,14 @@ int main() {
       auto &phealth = ecs.getComponent<Health>(0);
       phealth.value -= 1;
       std::cout << "Player health: " << phealth.value << "\n";
+      pdcHitSoundPlayer.play();
     }
 
     if (e1 == 1 || e2 == 1) {
       auto &ehealth = ecs.getComponent<Health>(1);
       ehealth.value -= 1;
       std::cout << "Enemy health: " << ehealth.value << "\n";
+      pdcHitSoundPlayer.play();
     }
 
     if (e1 > 1) {
@@ -302,7 +324,7 @@ int main() {
       if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
         // rotate left
         auto &rot = ecs.getComponent<Rotation>(player);
-        rot.angle -= (window.getSize().x / 1000.f);
+        rot.angle -= (window.getSize().x / 500.f);
         if (rot.angle >= 360.f) {
           rot.angle -= 360.f;
         } else if (rot.angle < 0.f) {
@@ -312,7 +334,7 @@ int main() {
       else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
         // rotate right
         auto &rot = ecs.getComponent<Rotation>(player);
-        rot.angle += (window.getSize().x / 1000.f);
+        rot.angle += (window.getSize().x / 500.f);
         if (rot.angle >= 360.f) {
           rot.angle -= 360.f;
         } else if (rot.angle < 0.f) {
@@ -418,6 +440,8 @@ int main() {
         // << "\n";
         // std::cout << "Bullet Position: " << bpos.value.x << "," <<
         // bpos.value.y << "\n";
+
+        pdcFireSoundPlayer.play();
       }
     }
 
@@ -457,13 +481,15 @@ int main() {
         auto bpos = ecs.getComponent<Position>(bullet);
         auto brot = ecs.getComponent<Rotation>(bullet);
 
-        std::cout << "dx " << dx << ", dy " << dy << "\n";
-        std::cout << "Bullet Velocity: " << bvel.value.x << "," << bvel.value.y
-                  << "\n";
-        std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle
-                  << "\n";
-        std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y
-                  << "\n";
+        // std::cout << "dx " << dx << ", dy " << dy << "\n";
+        // std::cout << "Bullet Velocity: " << bvel.value.x << "," << bvel.value.y
+        //           << "\n";
+        // std::cout << "Bullet Rotation: " << brot.angle << "," << brot.angle
+        //           << "\n";
+        // std::cout << "Bullet Position: " << bpos.value.x << "," << bpos.value.y
+        //           << "\n";
+
+        pdcFireSoundPlayer.play();
       }
     }
 

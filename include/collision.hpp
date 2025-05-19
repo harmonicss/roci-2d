@@ -1,7 +1,9 @@
 #pragma once
 #include "components.hpp"
 #include "ecs.hpp"
+#include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <SFML/Audio.hpp>
 #include <functional>
 #include <iostream>
 #include <cmath>
@@ -10,8 +12,9 @@ class CollisionSystem {
 public:
   using CollisionCallback = std::function<void(Entity, Entity)>;
 
-  CollisionSystem(Coordinator &ecs, CollisionCallback cb)
+  CollisionSystem(Coordinator &ecs, const sf::Sound &sound, CollisionCallback cb)
       : ecs(ecs), // Bind member variable to the passed in Coordinator
+        sound(sound), // Bind member variable to the passed in SoundBuffer
         onCollision(std::move(cb)) // Move callback into member
   {}
 
@@ -61,6 +64,7 @@ public:
 
 private:
   Coordinator &ecs;
+  const sf::Sound &sound;
   CollisionCallback onCollision;
 
   // check for AABB collision

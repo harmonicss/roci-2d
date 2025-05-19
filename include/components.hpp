@@ -32,13 +32,13 @@ struct Health {
 
 // Point Defense Cannon
 struct Pdc1 {
-  float cooldown = 0.05f;
+  float cooldown = 0.10f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 2000.f;
 };
 
 struct Pdc2 {
-  float cooldown = 0.05f;
+  float cooldown = 0.10f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 2000.f;
 };
