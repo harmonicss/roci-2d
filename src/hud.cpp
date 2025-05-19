@@ -28,16 +28,27 @@ void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::F
   // display the enemy data at the top, player at the bottom
   float yOffset = 0;
 
+  // Sidebar Text
+  char bufx[32];
+  char bufy[32];
+
   // entity 0 is the player
   if (e == 0) {
-    yOffset = 900.f;
+    yOffset = 850.f;
   } else {
     yOffset = 50.f;
   }
 
-  // Sidebar Text
-  char bufx[32];
-  char bufy[32];
+  // Name
+  sf::Text nametext(font);
+  sf::String name = ecs.getEntityName(e);
+  nametext.setString(name);
+  nametext.setCharacterSize(16);
+  nametext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
+  sf::Vector2f nameTextPosition = { 10.f, yOffset };
+  yOffset += 20.f;
+  nametext.setPosition(nameTextPosition);
+  window.draw(nametext);
 
   // Health
   sf::Text healthtext(font);
@@ -101,6 +112,19 @@ void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::F
   yOffset += 20.f;
   postext.setPosition(posTextPosition);
   window.draw(postext);
+
+  // Pdc rounds
+  sf::Text pdctext(font);
+  std::snprintf(bufx, sizeof(bufx), "%i", ecs.getComponent<Pdc1>(e).rounds);
+  std::snprintf(bufy, sizeof(bufy), "%i", ecs.getComponent<Pdc2>(e).rounds);
+  sf::String pdcString = std::string("PDC1: ") + bufx + ", PDC2: " + bufy;
+  pdctext.setString(pdcString);
+  pdctext.setCharacterSize(10);
+  pdctext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
+  sf::Vector2f pdcTextPosition = { 10.f, yOffset };
+  yOffset += 20.f;
+  pdctext.setPosition(pdcTextPosition);
+  window.draw(pdctext);
 }
 
 void DrawShipNames (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font, float zoomFactor) {

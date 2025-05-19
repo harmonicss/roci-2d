@@ -152,19 +152,17 @@ int main() {
     if (e1 == 0 || e2 == 0) {
       auto &phealth = ecs.getComponent<Health>(0);
       phealth.value -= 1;
-      std::cout << "Player health: " << phealth.value << "\n";
       pdcHitSoundPlayer.play();
     }
-
+ 
+    // enemy is 1
     if (e1 == 1 || e2 == 1) {
       auto &ehealth = ecs.getComponent<Health>(1);
       ehealth.value -= 1;
-      std::cout << "Enemy health: " << ehealth.value << "\n";
       pdcHitSoundPlayer.play();
     }
 
     if (e1 > 1) {
-      std::cout << "Deleting bullet " << e1 << "\n";
       ecs.removeComponent<Velocity>(e1);
       ecs.removeComponent<Position>(e1);
       ecs.removeComponent<Rotation>(e1);
@@ -174,7 +172,6 @@ int main() {
     }
 
     if (e2 > 1) {
-      std::cout << "Deleting bullet " << e2 << "\n";
       ecs.removeComponent<Velocity>(e2);
       ecs.removeComponent<Position>(e2);
       ecs.removeComponent<Rotation>(e2);
@@ -394,11 +391,15 @@ int main() {
     // Fire! NE PDC
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q)) {
 
-      // get the vel of the player
+      auto &pdc1 = ecs.getComponent<Pdc1>(player);
+
+      if (pdc1.rounds == 0) {
+        continue;
+      }
+
       auto pvel = ecs.getComponent<Velocity>(player);
       auto ppos = ecs.getComponent<Position>(player);
       auto prot = ecs.getComponent<Rotation>(player);
-      auto &pdc1 = ecs.getComponent<Pdc1>(player);
 
       if (tt > pdc1.timeSinceFired + pdc1.cooldown) {
         pdc1.timeSinceFired = tt;
@@ -442,16 +443,23 @@ int main() {
         // bpos.value.y << "\n";
 
         pdcFireSoundPlayer.play();
+
+        pdc1.rounds--;
       }
     }
 
     // Fire! NW PDC
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
-      // get the vel of the player
+
+      auto &pdc2 = ecs.getComponent<Pdc2>(player);
+
+      if (pdc2.rounds == 0) {
+        continue;
+      }
+ 
       auto pvel = ecs.getComponent<Velocity>(player);
       auto ppos = ecs.getComponent<Position>(player);
       auto prot = ecs.getComponent<Rotation>(player);
-      auto &pdc2 = ecs.getComponent<Pdc2>(player);
 
       if (tt > pdc2.timeSinceFired + pdc2.cooldown) {
         pdc2.timeSinceFired = tt;
@@ -490,6 +498,8 @@ int main() {
         //           << "\n";
 
         pdcFireSoundPlayer.play();
+
+        pdc2.rounds--;
       }
     }
 
