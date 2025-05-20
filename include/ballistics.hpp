@@ -20,14 +20,12 @@ public:
   }
   virtual ~BallisticsFactory() = default;
 
+  // pure virtual method, removed as not allowed with fire template
+  //virtual void fire(Entity firedby) = 0; 
+
 protected:  
   Coordinator &ecs;
   sf::Texture texture;
-
-private:
-
-  // pure virtual method
-  virtual void fire(Entity createdby) = 0; 
 };
 
 // use this as a temporary fix to stop bullets colliding with the ship that
@@ -42,17 +40,12 @@ public:
   }
   ~BulletFactory() override = default;
 
-  void fire(Entity firedby) override {
-    std::cout << "Bullet fired by: " << firedby << std::endl;
-
-    auto &pdc1 = ecs.getComponent<Pdc1>(firedby);
-
-    if (pdc1.rounds == 0) {
-      return;
-    }
+  template<typename Weapon>
+  void fire(Entity firedby) {
 
     Entity bullet = ecs.createEntity();
  
+    auto &pdc1 = ecs.getComponent<Weapon>(firedby);
     auto pvel = ecs.getComponent<Velocity>(firedby);
     auto ppos = ecs.getComponent<Position>(firedby);
     auto prot = ecs.getComponent<Rotation>(firedby);
@@ -75,8 +68,6 @@ public:
                               texture.getSize().y / 2.f);
     sc.sprite.setOrigin(bulletOrigin);
     ecs.addComponent(bullet, sc);
-
-    pdc1.rounds--;
   }
 };
 
@@ -87,31 +78,11 @@ public:
   }
   ~MissileFactory() override = default;
 
-  void fire(Entity firedby) override {
+  template<typename Weapon>
+  void fire(Entity firedby) {
     std::cout << "Missile fired" << std::endl;
   }
 };
 
 
-
-// remove?
-class Ballistic {
-public:
-  virtual void create() = 0;
-  virtual ~Ballistic() = default;
-};
-
-class Bullet : public Ballistic {
-public:
-  void create() {
-    std::cout << "Bullet created" << std::endl;
-  }
-};
-
-class Missile : public Ballistic {
-public:
-  void create() {
-    std::cout << "Missile created" << std::endl;
-  }
-};
 
