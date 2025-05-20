@@ -1,6 +1,7 @@
 #include "../include/collision.hpp"
 #include "../include/components.hpp"
 #include "../include/ecs.hpp"
+#include "../include/ballistics.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -52,6 +53,7 @@ int main() {
   ecs.registerComponent<Pdc2>();
   ecs.registerComponent<Collision>();
 
+  ///////////////////////////////////////////////////////////////////////////////
   // - Load Fonts -
   sf::Font font;
   if (!font.openFromFile("../assets/fonts/FiraCodeNerdFont-Medium.ttf")) {
@@ -59,6 +61,7 @@ int main() {
     return -1;
   }
 
+  ///////////////////////////////////////////////////////////////////////////////
   // - Load Textures -
   sf::Texture rociTexture, enemyTexture, bulletTexture;
 
@@ -80,7 +83,7 @@ int main() {
     return -1;
   }
 
-
+  ///////////////////////////////////////////////////////////////////////////////
   // - Load Sounds -
   sf::SoundBuffer pdcFireSoundBuffer;
   if (!pdcFireSoundBuffer.loadFromFile("../assets/sounds/pdc.wav")) {
@@ -96,7 +99,7 @@ int main() {
   }
   sf::Sound pdcHitSoundPlayer(pdcHitSoundBuffer);
 
-
+  ///////////////////////////////////////////////////////////////////////////////
   // - Create Player Entity -
   Entity player = ecs.createEntity("Rocinante");
   ecs.addComponent(player, Position{{960, 540}});
@@ -111,13 +114,15 @@ int main() {
     sc.sprite.setOrigin(rociOrigin);
     ecs.addComponent(player, SpriteComponent{sc});
   }
-  ecs.addComponent(player, Pdc1{});
-  ecs.addComponent(player, Pdc2{});
+  
+  ecs.addComponent(player, Pdc1{ -45.f });
+  ecs.addComponent(player, Pdc2{ +45.f });
   ecs.addComponent(
       player, Collision{ShapeType::AABB,
-                        static_cast<float>(rociTexture.getSize().x) / 2,
-                        static_cast<float>(rociTexture.getSize().y) / 2, 0.f});
+                        static_cast<float>(rociTexture.getSize().x) / 2 - 45,
+                        static_cast<float>(rociTexture.getSize().y) / 2 - 45, 0.f});
 
+  ///////////////////////////////////////////////////////////////////////////////
   // - Create Enemy Entity -
   Entity enemy = ecs.createEntity("Enemy");
   ecs.addComponent(enemy, Position{{300, -1000}});
@@ -135,12 +140,11 @@ int main() {
   ecs.addComponent(enemy, Pdc1{});
   ecs.addComponent(enemy, Pdc2{});
   ecs.addComponent(
-      enemy,
-      Collision{ShapeType::AABB,
-                static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
-                static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
+      enemy, Collision{ShapeType::AABB,
+                       static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
+                       static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
 
-  //
+  ///////////////////////////////////////////////////////////////////////////////
   // Create Collision System, with lambda callback
   //
   CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, [&ecs, &pdcHitSoundPlayer](Entity e1, Entity e2) {
@@ -180,6 +184,10 @@ int main() {
       ecs.destroyEntity(e2);
     }
   });
+ 
+  ///////////////////////////////////////////////////////////////////////////////
+  // Create Ballistics Factory
+  BulletFactory bulletFactory(ecs, bulletTexture);
 
   // Set up worldview
   sf::FloatRect viewRect({0.f, 0.f}, {1920.f, 1080.f});
@@ -205,6 +213,7 @@ int main() {
     // this is the main space window. Render this first, then render the HUD
     window.setView(worldview);
 
+    ///////////////////////////////////////////////////////////////////////////////
     // - Events -
     while (const std::optional event = window.pollEvent()) {
 
@@ -235,6 +244,7 @@ int main() {
       }
     }
 
+    ///////////////////////////////////////////////////////////////////////////////
     // - Physics: A->V->P -
     for (auto e : ecs.view<Velocity, Acceleration>()) {
       auto &vel = ecs.getComponent<Velocity>(e);
@@ -252,8 +262,10 @@ int main() {
       pos.value += vel.value * dt;
     }
 
-    // dont use events for the keyboard, check if currently pressed.
 
+    ///////////////////////////////////////////////////////////////////////////////
+    // Keyboard and flip control
+    // dont use events for the keyboard, check if currently pressed.
     if (flipControl.burning == true) {
       // burn deceleration to 0
       auto &acc = ecs.getComponent<Acceleration>(player);
@@ -354,6 +366,7 @@ int main() {
       }
     }
 
+    ///////////////////////////////////////////////////////////////////////////////
     // Animate the flip
     if (flipControl.flipping) {
       auto &rot = ecs.getComponent<Rotation>(player);
@@ -388,51 +401,60 @@ int main() {
       }
     }
 
+    ///////////////////////////////////////////////////////////////////////////////
     // Fire! NE PDC
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q)) {
 
       auto &pdc1 = ecs.getComponent<Pdc1>(player);
-
-      if (pdc1.rounds == 0) {
-        continue;
-      }
-
-      auto pvel = ecs.getComponent<Velocity>(player);
-      auto ppos = ecs.getComponent<Position>(player);
-      auto prot = ecs.getComponent<Rotation>(player);
-
       if (tt > pdc1.timeSinceFired + pdc1.cooldown) {
         pdc1.timeSinceFired = tt;
-        // std::cout << "Firing!" << "\n";
-        // std::cout << "new pdc1.timeSinceFired: " << pdc1.timeSinceFired <<
-        // "\n"; std::cout << "pdc1.projectileSpeed: " << pdc1.projectileSpeed
-        // << "\n"; std::cout << "dt: " << dt << "\n";
+        std::cout << "Firing!" << "\n";
+        bulletFactory.fire(player);
+        pdcFireSoundPlayer.play();
+      }
 
-        // try to get pdc 1 out at an angle, convert to radians
-        float dx = std::cos((prot.angle - 45.f) * (M_PI / 180.f));
-        float dy = std::sin((prot.angle - 45.f) * (M_PI / 180.f));
-
-        // create a pdc bullet entity. Keep a constant vecocity, no matter the
-        // dt, stops bullets colliding with each other.
-        Entity bullet = ecs.createEntity();
-        ecs.addComponent(
-            bullet, Velocity{{pvel.value.x + (dx * pdc1.projectileSpeed),
-                              pvel.value.y + (dy * pdc1.projectileSpeed)}});
-        ecs.addComponent(
-            bullet, Position{{ppos.value.x + (dx * bullet_launch_distance),
-                              ppos.value.y + (dy * bullet_launch_distance)}});
-        ecs.addComponent(bullet, Rotation{prot.angle - 45.f});
-        ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.25f, 0.25f, 0.f});
-
-        SpriteComponent sc{sf::Sprite(bulletTexture)};
-        sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
-                                  bulletTexture.getSize().y / 2.f);
-        sc.sprite.setOrigin(bulletOrigin);
-        ecs.addComponent(bullet, sc);
-
-        auto bvel = ecs.getComponent<Velocity>(bullet);
-        auto bpos = ecs.getComponent<Position>(bullet);
-        auto brot = ecs.getComponent<Rotation>(bullet);
+      // auto &pdc1 = ecs.getComponent<Pdc1>(player);
+      //
+      // if (pdc1.rounds == 0) {
+      //   continue;
+      // }
+      //
+      // auto pvel = ecs.getComponent<Velocity>(player);
+      // auto ppos = ecs.getComponent<Position>(player);
+      // auto prot = ecs.getComponent<Rotation>(player);
+      //
+      // if (tt > pdc1.timeSinceFired + pdc1.cooldown) {
+      //   pdc1.timeSinceFired = tt;
+      //   // std::cout << "Firing!" << "\n";
+      //   // std::cout << "new pdc1.timeSinceFired: " << pdc1.timeSinceFired <<
+      //   // "\n"; std::cout << "pdc1.projectileSpeed: " << pdc1.projectileSpeed
+      //   // << "\n"; std::cout << "dt: " << dt << "\n";
+      //
+      //   // fire pdc 1 out at an angle, convert to radians
+      //   float dx = std::cos((prot.angle + pdc1.firingAngle) * (M_PI / 180.f));
+      //   float dy = std::sin((prot.angle + pdc1.firingAngle) * (M_PI / 180.f));
+      //
+      //   // create a pdc bullet entity. Keep a constant vecocity, no matter the
+      //   // dt, stops bullets colliding with each other.
+      //   Entity bullet = ecs.createEntity();
+      //   ecs.addComponent(
+      //       bullet, Velocity{{pvel.value.x + (dx * pdc1.projectileSpeed),
+      //                         pvel.value.y + (dy * pdc1.projectileSpeed)}});
+      //   ecs.addComponent(
+      //       bullet, Position{{ppos.value.x + (dx * bullet_launch_distance),
+      //                         ppos.value.y + (dy * bullet_launch_distance)}});
+      //   ecs.addComponent(bullet, Rotation{prot.angle + pdc1.firingAngle});
+      //   ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.25f, 0.25f, 0.f});
+      //
+      //   SpriteComponent sc{sf::Sprite(bulletTexture)};
+      //   sf::Vector2f bulletOrigin(bulletTexture.getSize().x / 2.f,
+      //                             bulletTexture.getSize().y / 2.f);
+      //   sc.sprite.setOrigin(bulletOrigin);
+      //   ecs.addComponent(bullet, sc);
+      //
+        // auto bvel = ecs.getComponent<Velocity>(bullet);
+        // auto bpos = ecs.getComponent<Position>(bullet);
+        // auto brot = ecs.getComponent<Rotation>(bullet);
 
         // std::cout << "dx " << dx << ", dy " << dy << "\n";
         // std::cout << bullet << " Bullet Velocity: " << bvel.value.x << "," <<
@@ -442,12 +464,11 @@ int main() {
         // std::cout << "Bullet Position: " << bpos.value.x << "," <<
         // bpos.value.y << "\n";
 
-        pdcFireSoundPlayer.play();
 
-        pdc1.rounds--;
-      }
+//      }
     }
 
+    ///////////////////////////////////////////////////////////////////////////////
     // Fire! NW PDC
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
 
@@ -464,9 +485,9 @@ int main() {
       if (tt > pdc2.timeSinceFired + pdc2.cooldown) {
         pdc2.timeSinceFired = tt;
 
-        // try to get pdc 2 out at an angle
-        float dy = std::sin((prot.angle + 45.f) * (M_PI / 180.f));
-        float dx = std::cos((prot.angle + 45.f) * (M_PI / 180.f));
+        // fire pdc 2 out at an angle
+        float dy = std::sin((prot.angle + pdc2.firingAngle) * (M_PI / 180.f));
+        float dx = std::cos((prot.angle + pdc2.firingAngle) * (M_PI / 180.f));
 
         // create a pdc bullet entity
         Entity bullet = ecs.createEntity();
@@ -476,7 +497,7 @@ int main() {
         ecs.addComponent(
             bullet, Position{{ppos.value.x + (dx * bullet_launch_distance),
                               ppos.value.y + (dy * bullet_launch_distance)}});
-        ecs.addComponent(bullet, Rotation{prot.angle + 45.f});
+        ecs.addComponent(bullet, Rotation{prot.angle + pdc2.firingAngle});
         ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.25f, 0.25f, 0.f});
 
         SpriteComponent sc{sf::Sprite(bulletTexture)};
@@ -506,6 +527,7 @@ int main() {
     // Collision System - check for collisions
     collisionSystem.Update();
 
+    ///////////////////////////////////////////////////////////////////////////////
     // - Render -
     window.clear(sf::Color(7, 5, 8));
     u_int16_t screenWidth = window.getSize().x;

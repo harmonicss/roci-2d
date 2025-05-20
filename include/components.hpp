@@ -33,6 +33,7 @@ struct Health {
 
 // Point Defense Cannon
 struct Pdc1 {
+  float firingAngle = -45.f;
   float cooldown = 0.10f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 2000.f;
@@ -40,6 +41,7 @@ struct Pdc1 {
 };
 
 struct Pdc2 {
+  float firingAngle = +45.f;
   float cooldown = 0.10f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 2000.f;
