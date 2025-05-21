@@ -106,6 +106,7 @@ private:
             pos1.x + halfWidth1 > pos2.x - halfWidth2 &&
             pos1.y - halfHeight1 < pos2.y + halfHeight2 &&
             pos1.y + halfHeight1 > pos2.y - halfHeight2);
+#if 0
     if (collision) {
 
       std::cout << 
@@ -115,6 +116,7 @@ private:
         " halfWidth2 " << halfWidth2 << " halfHeight2 " << halfHeight2 << std::endl;
 
     }
+#endif
     return collision;
   }
 

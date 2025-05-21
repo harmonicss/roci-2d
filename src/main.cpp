@@ -2,6 +2,7 @@
 #include "../include/components.hpp"
 #include "../include/ecs.hpp"
 #include "../include/ballistics.hpp"
+#include "../include/enemyai.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -125,7 +126,7 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // - Create Enemy Entity -
   Entity enemy = ecs.createEntity("Enemy");
-  ecs.addComponent(enemy, Position{{300, -1000}});
+  ecs.addComponent(enemy, Position{{300, -10000}});
   ecs.addComponent(enemy, Velocity{{0.f, 0.f}});
   ecs.addComponent(enemy, Rotation{130.f});
   ecs.addComponent(enemy, Health{100});
@@ -189,6 +190,10 @@ int main() {
   // Create Ballistics Factory
   BulletFactory bulletFactory(ecs, bulletTexture);
 
+  ///////////////////////////////////////////////////////////////////////////////
+  // Create Enemy AI
+  EnemyAI enemyAI(ecs, enemy);
+  
   // Set up worldview
   sf::FloatRect viewRect({0.f, 0.f}, {1920.f, 1080.f});
   sf::View worldview(viewRect);
@@ -436,6 +441,9 @@ int main() {
         pdc2.rounds--;
       }
     }
+
+    // Enemy AI
+    enemyAI.Update(dt);
 
     // Collision System - check for collisions
     collisionSystem.Update();

@@ -77,9 +77,15 @@ void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::F
 
   // Velocity
   sf::Text veltext(font);
-  std::snprintf(bufx, sizeof(bufx), "%.2f", ecs.getComponent<Velocity>(e).value.x);
-  std::snprintf(bufy, sizeof(bufy), "%.2f", ecs.getComponent<Velocity>(e).value.y);
-  sf::String velString = std::string("Vel: ") + bufx + "," + bufy;
+  sf::Vector2f vel = ecs.getComponent<Velocity>(e).value;
+  if (vel.x == 0.f && vel.y == 0.f) {
+    std::snprintf(bufx, sizeof(bufx), "0.0");
+    std::snprintf(bufx, sizeof(bufx), "-");
+  } else {
+    std::snprintf(bufx, sizeof(bufx), "%.2f", ecs.getComponent<Velocity>(e).value.length());
+    std::snprintf(bufy, sizeof(bufy), "%.2f", ecs.getComponent<Velocity>(e).value.angle().asDegrees());
+  }
+  sf::String velString = std::string("Speed: ") + bufx + ", Angle: " + bufy;
   veltext.setString(velString);
   veltext.setCharacterSize(10);
   veltext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
