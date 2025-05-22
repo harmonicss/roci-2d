@@ -118,9 +118,9 @@ public:
 
     // TODO: wrap with Angle.wrapUnsigned
     if (enemyRot.angle >= 180.f) {
-      enemyRot.angle -= 180.f;
+      enemyRot.angle -= 360.f;
     } else if (enemyRot.angle < -180.f) {
-      enemyRot.angle += 180.f;
+      enemyRot.angle += 360.f;
     }
 
     std::cout << "Starting Turn to " << angle << "\n";
@@ -175,9 +175,9 @@ public:
 
     // TODO: wrap with Angle.wrapUnsigned
     if (enemyRot.angle >= 180.f) {
-      enemyRot.angle -= 180.f;
+      enemyRot.angle -= 360.f;
     } else if (enemyRot.angle < -180.f) {
-      enemyRot.angle += 180.f;
+      enemyRot.angle += 360.f;
     }
   }
 
