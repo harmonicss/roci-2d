@@ -56,6 +56,7 @@ int main() {
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Fonts -
+  ///////////////////////////////////////////////////////////////////////////////
   sf::Font font;
   if (!font.openFromFile("../assets/fonts/FiraCodeNerdFont-Medium.ttf")) {
     std::cout << "Error loading font" << std::endl;
@@ -64,6 +65,7 @@ int main() {
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Textures -
+  ///////////////////////////////////////////////////////////////////////////////
   sf::Texture rociTexture, enemyTexture, bulletTexture;
 
   if (!rociTexture.loadFromFile("../assets/textures/roci.png")) {
@@ -86,6 +88,7 @@ int main() {
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Sounds -
+  ///////////////////////////////////////////////////////////////////////////////
   sf::SoundBuffer pdcFireSoundBuffer;
   if (!pdcFireSoundBuffer.loadFromFile("../assets/sounds/pdc.wav")) {
     std::cout << "Error loading sound" << std::endl;
@@ -102,6 +105,7 @@ int main() {
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Create Player Entity -
+  ///////////////////////////////////////////////////////////////////////////////
   Entity player = ecs.createEntity("Rocinante");
   ecs.addComponent(player, Position{{960, 540}});
   ecs.addComponent(player, Velocity{{0.f, 0.f}});
@@ -125,8 +129,9 @@ int main() {
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Create Enemy Entity -
+  ///////////////////////////////////////////////////////////////////////////////
   Entity enemy = ecs.createEntity("Enemy");
-  ecs.addComponent(enemy, Position{{300, -10000}});
+  ecs.addComponent(enemy, Position{{300, -8000}});
   ecs.addComponent(enemy, Velocity{{0.f, 0.f}});
   ecs.addComponent(enemy, Rotation{130.f});
   ecs.addComponent(enemy, Health{100});
@@ -147,7 +152,7 @@ int main() {
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Collision System, with lambda callback
-  //
+  ///////////////////////////////////////////////////////////////////////////////
   CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, [&ecs, &pdcHitSoundPlayer](Entity e1, Entity e2) {
     // Handle collision
     std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
@@ -188,11 +193,13 @@ int main() {
  
   ///////////////////////////////////////////////////////////////////////////////
   // Create Ballistics Factory
+  ///////////////////////////////////////////////////////////////////////////////
   BulletFactory bulletFactory(ecs, bulletTexture);
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Enemy AI
-  EnemyAI enemyAI(ecs, enemy);
+  ///////////////////////////////////////////////////////////////////////////////
+  EnemyAI enemyAI(ecs, enemy, bulletFactory, pdcFireSoundPlayer);
   
   // Set up worldview
   sf::FloatRect viewRect({0.f, 0.f}, {1920.f, 1080.f});
@@ -220,6 +227,7 @@ int main() {
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Events -
+  ///////////////////////////////////////////////////////////////////////////////
     while (const std::optional event = window.pollEvent()) {
 
       if (event->is<sf::Event::Closed>()) {
@@ -251,6 +259,7 @@ int main() {
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Physics: A->V->P -
+  ///////////////////////////////////////////////////////////////////////////////
     for (auto e : ecs.view<Velocity, Acceleration>()) {
       auto &vel = ecs.getComponent<Velocity>(e);
       auto &acc = ecs.getComponent<Acceleration>(e);
@@ -271,6 +280,7 @@ int main() {
     ///////////////////////////////////////////////////////////////////////////////
     // Keyboard and flip control
     // dont use events for the keyboard, check if currently pressed.
+  ///////////////////////////////////////////////////////////////////////////////
     if (flipControl.burning == true) {
       // burn deceleration to 0
       auto &acc = ecs.getComponent<Acceleration>(player);
@@ -294,7 +304,7 @@ int main() {
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
       // flip and decelerate
       // debounce the flip
-      // rotate to burn and reduce veclocity, may not be 180 if there is 
+      // rotate to burn and reduce velocity, may not be 180 if there is 
       // some lateral movement
       if (tt > flipControl.timeSinceFlipped + flipControl.cooldown) {
         std::cout << "Starting Flipping!\n";
@@ -373,6 +383,7 @@ int main() {
 
     ///////////////////////////////////////////////////////////////////////////////
     // Animate the flip
+    ///////////////////////////////////////////////////////////////////////////////
     if (flipControl.flipping) {
       auto &rot = ecs.getComponent<Rotation>(player);
       float diff = std::abs(flipControl.targetAngle - rot.angle);
@@ -408,6 +419,7 @@ int main() {
 
     ///////////////////////////////////////////////////////////////////////////////
     // Fire! NE PDC
+    ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q)) {
 
       auto &pdc1 = ecs.getComponent<Pdc1>(player);
@@ -426,6 +438,7 @@ int main() {
 
     ///////////////////////////////////////////////////////////////////////////////
     // Fire! NW PDC
+    ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
 
       auto &pdc2 = ecs.getComponent<Pdc2>(player);
@@ -443,13 +456,14 @@ int main() {
     }
 
     // Enemy AI
-    enemyAI.Update(dt);
+    enemyAI.Update(tt, dt);
 
     // Collision System - check for collisions
     collisionSystem.Update();
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Render -
+    ///////////////////////////////////////////////////////////////////////////////
     window.clear(sf::Color(7, 5, 8));
     u_int16_t screenWidth = window.getSize().x;
     u_int16_t screenHeight = window.getSize().y;
