@@ -131,6 +131,19 @@ void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::F
   yOffset += 20.f;
   pdctext.setPosition(pdcTextPosition);
   window.draw(pdctext);
+
+  // torpedo rounds
+  sf::Text torpedotext(font);
+  std::snprintf(bufx, sizeof(bufx), "%i", ecs.getComponent<TorpedoLauncher1>(e).rounds);
+  std::snprintf(bufy, sizeof(bufy), "%i", ecs.getComponent<TorpedoLauncher2>(e).rounds);
+  sf::String torpedoString = std::string("Torp1: ") + bufx + ", Torp2: " + bufy;
+  torpedotext.setString(torpedoString);
+  torpedotext.setCharacterSize(10);
+  torpedotext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
+  sf::Vector2f torpedoTextPosition = { 10.f, yOffset };
+  yOffset += 20.f;
+  torpedotext.setPosition(torpedoTextPosition);
+  window.draw(torpedotext);
 }
 
 void DrawShipNames (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font, float zoomFactor) {
@@ -167,42 +180,24 @@ void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& f
   float radius = 0.5f + (80.f / zoomFactor);
 
   // need to get all the missiles
-  std::vector<Entity> missiles = ecs.getEntitiesByName("Torpedo");
+  std::vector<Entity> torpedos = ecs.getEntitiesByName("Torpedo");
 
-  for (auto e : missiles) {
+  for (auto e : torpedos) {
 
     auto &ppos = ecs.getComponent<Position>(0);
-    auto &mpos = ecs.getComponent<Position>(e);
+    auto &tpos = ecs.getComponent<Position>(e);
 
     // draw a circle around the missile
     sf::CircleShape circle(radius);
     circle.setFillColor(sf::Color::Transparent);
     circle.setOutlineThickness(1.f);
     circle.setOutlineColor(sf::Color(sf::Color::Red));
-    circle.setOrigin(sf::Vector2f {radius, radius});
+    circle.setOrigin(sf::Vector2f(radius, radius));
 
     sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
-    sf::Vector2f mposRelative = mpos.value / zoomFactor;
+    sf::Vector2f mposRelative = tpos.value / zoomFactor;
 
     circle.setPosition(mposRelative + cameraOffset);
     window.draw(circle);
   }
-
-  // draw the name on the gui
-  #if 0
-  sf::Text nametext(font);
-  nametext.setString(ecs.getEntityName(e));
-  nametext.setCharacterSize(13);
-  nametext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-
-  // 0 == player
-  auto &ppos = ecs.getComponent<Position>(0);
-  auto &epos = ecs.getComponent<Position>(e);
-
-  sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
-  sf::Vector2f eposRelative = epos.value / zoomFactor;
-
-  nametext.setPosition(eposRelative + cameraOffset - sf::Vector2f(500.f / zoomFactor, 0.f));
-  window.draw(nametext);
-  #endif
 }

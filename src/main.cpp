@@ -231,7 +231,7 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // Create Enemy AI
   ///////////////////////////////////////////////////////////////////////////////
-  EnemyAI enemyAI(ecs, enemy, bulletFactory, pdcFireSoundPlayer);
+  EnemyAI enemyAI(ecs, enemy, bulletFactory, torpedoFactory, pdcFireSoundPlayer);
   
   // Set up worldview
   sf::FloatRect viewRect({0.f, 0.f}, {1920.f, 1080.f});
@@ -456,11 +456,7 @@ int main() {
 
       auto &pdc1 = ecs.getComponent<Pdc1>(player);
 
-      if (pdc1.rounds == 0) {
-        continue;
-      }
-
-      if (tt > pdc1.timeSinceFired + pdc1.cooldown) {
+      if (tt > pdc1.timeSinceFired + pdc1.cooldown && pdc1.rounds) {
         pdc1.timeSinceFired = tt;
         bulletFactory.fire<Pdc1>(player);
         pdc1.rounds--;
@@ -475,11 +471,7 @@ int main() {
 
       auto &pdc2 = ecs.getComponent<Pdc2>(player);
 
-      if (pdc2.rounds == 0) {
-        continue;
-      }
-
-      if (tt > pdc2.timeSinceFired + pdc2.cooldown) {
+      if (tt > pdc2.timeSinceFired + pdc2.cooldown && pdc2.rounds) {
         pdc2.timeSinceFired = tt;
         bulletFactory.fire<Pdc2>(player);
         pdcFireSoundPlayer.play();
@@ -488,21 +480,25 @@ int main() {
     }
 
     ///////////////////////////////////////////////////////////////////////////////
-    // Fire! Torpedo 1 
+    // Fire! Torpedo 1 & 2
     ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
 
-      auto &torpedo1 = ecs.getComponent<TorpedoLauncher1>(player);
+      auto &launcher1 = ecs.getComponent<TorpedoLauncher1>(player);
+      auto &launcher2 = ecs.getComponent<TorpedoLauncher2>(player);
 
-      if (torpedo1.rounds == 0) {
-        continue;
-      }
-
-      if (tt > torpedo1.timeSinceFired + torpedo1.cooldown) {
-        torpedo1.timeSinceFired = tt;
+      if (tt > launcher1.timeSinceFired + launcher1.cooldown && launcher1.rounds) {
+        launcher1.timeSinceFired = tt;
         torpedoFactory.fire<TorpedoLauncher1>(player);
+        // TODO: add torpedo sound
         pdcFireSoundPlayer.play();
-        torpedo1.rounds--;
+        launcher1.rounds--;
+      }
+      if (tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
+        launcher2.timeSinceFired = tt;
+        torpedoFactory.fire<TorpedoLauncher2>(player);
+        pdcFireSoundPlayer.play();
+        launcher2.rounds--;
       }
     }
 

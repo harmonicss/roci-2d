@@ -225,6 +225,7 @@ public:
     return result;
   }
 
+  // get all entities that have the given name i.e. all Bullets or Torpedos
   std::vector<Entity> getEntitiesByName(std::string ename) {
     return entityMgr.getEntitiesByName(ename);
   }

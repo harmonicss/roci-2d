@@ -79,7 +79,6 @@ public:
 
   template<typename Weapon>
   void fire(Entity firedby) {
-    std::cout << "Torpedo fired" << std::endl;
     Entity torpedo = ecs.createEntity("Torpedo");
  
     auto &launcher = ecs.getComponent<Weapon>(firedby);
@@ -88,23 +87,35 @@ public:
     auto prot = ecs.getComponent<Rotation>(firedby);
 
     // fire launcher out at an angle, convert to radians
+    // add an offset to fire on the left or right of the ship
     float dx = std::cos((prot.angle + launcher.firingAngle) * (M_PI / 180.f));
     float dy = std::sin((prot.angle + launcher.firingAngle) * (M_PI / 180.f));
 
+    // get a perpendicular vector to the ship. This is to create seperatation between the launchers. 
+    // points to the ship's right relative to the firing direction
+    float perp_dx = -dy;
+    float perp_dy = dx;
+
+    // adding a fudge factor to launch further away from the ship
+    float wx = ppos.value.x + dx * (launch_distance + 150.f) + perp_dx * launcher.firingOffset;
+    float wy = ppos.value.y + dy * (launch_distance + 150.f) + perp_dy * launcher.firingOffset;
+
     ecs.addComponent(
         torpedo, Velocity{{pvel.value.x + (dx * launcher.projectileSpeed),
-                          pvel.value.y + (dy * launcher.projectileSpeed)}});
-    ecs.addComponent(
-        torpedo, Position{{ppos.value.x + (dx * launch_distance),
-                           ppos.value.y + (dy * launch_distance)}});
+                           pvel.value.y + (dy * launcher.projectileSpeed)}});
+
+    // want launcher1 to be seperated from launcher2
+    ecs.addComponent(torpedo, Position{{wx, wy}}); 
+
     ecs.addComponent(torpedo, Rotation{prot.angle + launcher.firingAngle});
 
     // torpedo has good acceleration, about 200Gs in the Expanse.
     // plus the acceleration of the ship
     ecs.addComponent(torpedo, Acceleration{{(dx * launcher.projectileAccel),
                                             (dy * launcher.projectileAccel)}});
-
-    ecs.addComponent(torpedo, Collision{ShapeType::AABB, 1.25f, 1.25f, 0.f});
+     
+    // TODO: collision size is a guess atm
+    ecs.addComponent(torpedo, Collision{ShapeType::AABB, 80.0f, 30.f, 0.f});
 
     SpriteComponent sc{sf::Sprite(texture)};
     sf::Vector2f torpedoOrigin(texture.getSize().x / 2.f,

@@ -10,10 +10,11 @@
 class EnemyAI {
 
 public:
-  EnemyAI(Coordinator &ecs, Entity enemy, BulletFactory bulletFactory, sf::Sound pdcFireSoundPlayer ) : 
+  EnemyAI(Coordinator &ecs, Entity enemy, BulletFactory bulletFactory, TorpedoFactory torpedoFactory, sf::Sound pdcFireSoundPlayer ) : 
     ecs(ecs), 
     enemy(enemy),
     bulletFactory(bulletFactory),
+    torpedoFactory(torpedoFactory),
     pdcFireSoundPlayer(pdcFireSoundPlayer) {
   
     std::cout << "EnemyAI created" << std::endl;
@@ -34,25 +35,40 @@ public:
     // std::cout << "EnemyAI distance to player: " << dist << std::endl;
     // std::cout << "\nEnemyAI angle to player: " << atp << std::endl;
 
+    ///////////////////////////////////////////////////////////////////////////////
+    // - Ship State Machine -
+    ///////////////////////////////////////////////////////////////////////////////
     if (state == State::CLOSE) {
-      if (dist <= attack_pdc_distance) {
-        state = State::ATTACK_PDC;
-        std::cout << "EnemyAI state: ATTACK" << std::endl;
+      if (dist <= attack_torpedo_distance) {
+        state = State::ATTACK_TORPEDO;
+        std::cout << "EnemyAI state: ATTACK_TORPEDO" << std::endl;
       }
-    } else if (state == State::IDLE) {
-      if (dist < 50000.f) {
-        state = State::CLOSE;
-        std::cout << "EnemyAI state: CLOSE" << std::endl;
-      }
-    } else if (state == State::ATTACK_PDC) {
-      if (dist > attack_pdc_distance) {
+    }
+    else if (state == State::IDLE) {
+      if (dist < close_distance) {
         state = State::CLOSE;
         std::cout << "EnemyAI state: CLOSE" << std::endl;
       }
     }
+    else if (state == State::ATTACK_TORPEDO) {
+      if (dist < attack_pdc_distance) {
+        state = State::ATTACK_PDC;
+        std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
+      } 
+      else if (dist > attack_torpedo_distance) {
+        state = State::CLOSE;
+        std::cout << "EnemyAI state: CLOSE" << std::endl;
+      }
+    }
+    else if (state == State::ATTACK_PDC) {
+      if (dist > attack_pdc_distance) {
+        state = State::ATTACK_TORPEDO;
+        std::cout << "EnemyAI state: ATTACK_TORPEDO" << std::endl;
+      }
+    }
 
     ///////////////////////////////////////////////////////////////////////////////
-    // - Ship State Machine -
+    // - Ship Control -
     ///////////////////////////////////////////////////////////////////////////////
     if (state == State::CLOSE) {
       shipControl.targetPosition = playerPos.value;
@@ -70,6 +86,38 @@ public:
     else if (state == State::IDLE) {
       enemyAcc.value.x = 0.f;
       enemyAcc.value.y = 0.f;
+    }
+    else if (state == State::ATTACK_TORPEDO) {
+      auto &launcher1 = ecs.getComponent<TorpedoLauncher1>(enemy);
+      auto &launcher2 = ecs.getComponent<TorpedoLauncher2>(enemy);
+
+      // set accel to 0
+      // probably want to set a target velocity instead
+      enemyAcc.value.x = 0.f;
+      enemyAcc.value.y = 0.f;
+
+      // only want to turn the ship if we are not already turning, prevents jittering
+      if (shipControl.turning == false) {
+        startTurn(atp);
+      }
+
+      auto &enemyRot = ecs.getComponent<Rotation>(enemy);
+      float diff = atp - enemyRot.angle;
+
+      if (diff >= -05.f && diff <= +05.f) {
+        if (tt > launcher1.timeSinceFired + launcher1.cooldown && launcher1.rounds) {
+          launcher1.timeSinceFired = tt;
+          torpedoFactory.fire<TorpedoLauncher1>(enemy);
+          launcher1.rounds--;
+          std::cout << "EnemyAI firing TorpedoLauncher1" << std::endl;
+        }
+        if (tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
+          launcher2.timeSinceFired = tt;
+          torpedoFactory.fire<TorpedoLauncher2>(enemy);
+          launcher2.rounds--;
+          std::cout << "EnemyAI firing TorpedoLauncher2" << std::endl;
+        }
+      }
     }
     else if (state == State::ATTACK_PDC) {
 
@@ -138,15 +186,18 @@ public:
   Coordinator &ecs;
   Entity enemy;
   BulletFactory bulletFactory;
+  TorpedoFactory torpedoFactory;
   sf::Sound pdcFireSoundPlayer;
 
-  const float attack_pdc_distance = 8000.f;
+  const float close_distance          = 100000.f;
+  const float attack_pdc_distance     = 8000.f;
+  const float attack_torpedo_distance = 50000.f;
 
   enum class State {
     IDLE,
     CLOSE,
     ATTACK_PDC,
-    ATTACK_MISSILE,
+    ATTACK_TORPEDO,
     EVADE,
     FLEE
   };
