@@ -174,15 +174,33 @@ int main() {
     // cant capture player here, I know it is 0.
     if (e1 == 0 || e2 == 0) {
       auto &phealth = ecs.getComponent<Health>(0);
-      phealth.value -= 1;
-      pdcHitSoundPlayer.play();
+      std::string e1Name = ecs.getEntityName(e1);
+      std::string e2Name = ecs.getEntityName(e2);
+      if (e1Name == "Torpedo" || e2Name == "Torpedo") {
+        phealth.value -= ecs.getComponent<TorpedoLauncher1>(0).projectileDamage;
+      }
+      else { // bullet, can add railgun later
+        phealth.value -= ecs.getComponent<Pdc1>(0).projectileDamage;
+
+        // TODO: add torpedo sound
+        pdcHitSoundPlayer.play();
+      }
     }
  
     // enemy is 1
     if (e1 == 1 || e2 == 1) {
       auto &ehealth = ecs.getComponent<Health>(1);
-      ehealth.value -= 1;
-      pdcHitSoundPlayer.play();
+      std::string e1Name = ecs.getEntityName(e1);
+      std::string e2Name = ecs.getEntityName(e2);
+      if (e1Name == "Torpedo" || e2Name == "Torpedo") {
+        ehealth.value -= ecs.getComponent<TorpedoLauncher1>(1).projectileDamage;
+      }
+      else { // bullet, can add railgun later
+        ehealth.value -= ecs.getComponent<Pdc1>(1).projectileDamage;
+
+        // TODO: add torpedo sound
+        pdcHitSoundPlayer.play();
+      }
     }
 
     if (e1 > 1) {

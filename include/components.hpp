@@ -37,6 +37,7 @@ struct Pdc1 {
   float cooldown = 0.10f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 2000.f;
+  u_int32_t projectileDamage = 2;
   u_int32_t rounds = 100;
 };
 
@@ -45,6 +46,7 @@ struct Pdc2 {
   float cooldown = 0.10f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 2000.f;
+  u_int32_t projectileDamage = 2;
   u_int32_t rounds = 100;
 };
 
@@ -54,6 +56,7 @@ struct TorpedoLauncher1 {
   float timeSinceFired = 0.f;
   float projectileSpeed = 100.f;
   float projectileAccel = 1000.f;
+  u_int32_t projectileDamage = 200;
   u_int32_t rounds = 8;
 };
 
@@ -63,6 +66,7 @@ struct TorpedoLauncher2 {
   float timeSinceFired = 0.f;
   float projectileSpeed = 100.f;
   float projectileAccel = 1000.f;
+  u_int32_t projectileDamage = 200;
   u_int32_t rounds = 8;
 };
 
