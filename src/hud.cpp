@@ -152,6 +152,57 @@ void DrawShipNames (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Fo
   sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
   sf::Vector2f eposRelative = epos.value / zoomFactor;
 
+  // offset the name to the left of the ship
   nametext.setPosition(eposRelative + cameraOffset - sf::Vector2f(500.f / zoomFactor, 0.f));
   window.draw(nametext);
+}
+
+void DrawMissileOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& font, float zoomFactor) {
+
+  u_int16_t screenWidth = window.getSize().x;
+  u_int16_t screenHeight = window.getSize().y;
+  sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
+
+  // change the size of the circle based on the zoom factor
+  float radius = 0.5f + (80.f / zoomFactor);
+
+  // need to get all the missiles
+  std::vector<Entity> missiles = ecs.getEntitiesByName("Missile");
+
+  for (auto e : missiles) {
+
+    auto &ppos = ecs.getComponent<Position>(0);
+    auto &mpos = ecs.getComponent<Position>(e);
+
+    // draw a circle around the missile
+    sf::CircleShape circle(radius);
+    circle.setFillColor(sf::Color::Transparent);
+    circle.setOutlineThickness(1.f);
+    circle.setOutlineColor(sf::Color(sf::Color::Red));
+    circle.setOrigin(sf::Vector2f {radius, radius});
+
+    sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
+    sf::Vector2f mposRelative = mpos.value / zoomFactor;
+
+    circle.setPosition(mposRelative + cameraOffset);
+    window.draw(circle);
+  }
+
+  // draw the name on the gui
+  #if 0
+  sf::Text nametext(font);
+  nametext.setString(ecs.getEntityName(e));
+  nametext.setCharacterSize(13);
+  nametext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
+
+  // 0 == player
+  auto &ppos = ecs.getComponent<Position>(0);
+  auto &epos = ecs.getComponent<Position>(e);
+
+  sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
+  sf::Vector2f eposRelative = epos.value / zoomFactor;
+
+  nametext.setPosition(eposRelative + cameraOffset - sf::Vector2f(500.f / zoomFactor, 0.f));
+  window.draw(nametext);
+  #endif
 }

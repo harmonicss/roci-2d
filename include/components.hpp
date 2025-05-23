@@ -48,6 +48,24 @@ struct Pdc2 {
   u_int32_t rounds = 100;
 };
 
+struct Missile1 {
+  float firingAngle = 0;
+  float cooldown = 5.0;
+  float timeSinceFired = 0.f;
+  float projectileSpeed = 100.f;
+  float projectileAccel = 1000.f;
+  u_int32_t rounds = 8;
+};
+
+struct Missile2 {
+  float firingAngle = 0;
+  float cooldown = 5.0f;
+  float timeSinceFired = 0.f;
+  float projectileSpeed = 100.f;
+  float projectileAccel = 1000.f;
+  u_int32_t rounds = 8;
+};
+
 enum class ShapeType { AABB, Circle};
 
 // Describes the collision shape of an entity

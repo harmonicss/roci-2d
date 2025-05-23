@@ -30,7 +30,7 @@ protected:
 // use this as a temporary fix to stop bullets colliding with the ship that
 // fired it means the bullets start away from the ship, but live for this
 // for now
-const uint32_t bullet_launch_distance = 500;
+const uint32_t launch_distance = 500;
 
 class BulletFactory : public BallisticsFactory {
 public:
@@ -42,24 +42,24 @@ public:
   template<typename Weapon>
   void fire(Entity firedby) {
 
-    Entity bullet = ecs.createEntity();
+    Entity bullet = ecs.createEntity("Bullet");
  
-    auto &pdc1 = ecs.getComponent<Weapon>(firedby);
+    auto &pdc = ecs.getComponent<Weapon>(firedby);
     auto pvel = ecs.getComponent<Velocity>(firedby);
     auto ppos = ecs.getComponent<Position>(firedby);
     auto prot = ecs.getComponent<Rotation>(firedby);
 
-    // fire pdc 1 out at an angle, convert to radians
-    float dx = std::cos((prot.angle + pdc1.firingAngle) * (M_PI / 180.f));
-    float dy = std::sin((prot.angle + pdc1.firingAngle) * (M_PI / 180.f));
+    // fire pdc out at an angle, convert to radians
+    float dx = std::cos((prot.angle + pdc.firingAngle) * (M_PI / 180.f));
+    float dy = std::sin((prot.angle + pdc.firingAngle) * (M_PI / 180.f));
 
     ecs.addComponent(
-        bullet, Velocity{{pvel.value.x + (dx * pdc1.projectileSpeed),
-                          pvel.value.y + (dy * pdc1.projectileSpeed)}});
+        bullet, Velocity{{pvel.value.x + (dx * pdc.projectileSpeed),
+                          pvel.value.y + (dy * pdc.projectileSpeed)}});
     ecs.addComponent(
-        bullet, Position{{ppos.value.x + (dx * bullet_launch_distance),
-                          ppos.value.y + (dy * bullet_launch_distance)}});
-    ecs.addComponent(bullet, Rotation{prot.angle + pdc1.firingAngle});
+        bullet, Position{{ppos.value.x + (dx * launch_distance),
+                          ppos.value.y + (dy * launch_distance)}});
+    ecs.addComponent(bullet, Rotation{prot.angle + pdc.firingAngle});
     ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.25f, 0.25f, 0.f});
 
     SpriteComponent sc{sf::Sprite(texture)};
@@ -72,7 +72,7 @@ public:
 
 class MissileFactory : public BallisticsFactory {
 public:
-  MissileFactory(Coordinator &ecs, sf::Texture texture) : BallisticsFactory(ecs, texture) {
+  MissileFactory(Coordinator &ecs, sf::Texture &texture) : BallisticsFactory(ecs, texture) {
     std::cout << "MissileFactory created" << std::endl;
   }
   ~MissileFactory() override = default;
@@ -80,6 +80,37 @@ public:
   template<typename Weapon>
   void fire(Entity firedby) {
     std::cout << "Missile fired" << std::endl;
+    Entity missile = ecs.createEntity("Missile");
+ 
+    auto &launcher = ecs.getComponent<Weapon>(firedby);
+    auto pvel = ecs.getComponent<Velocity>(firedby);
+    auto ppos = ecs.getComponent<Position>(firedby);
+    auto prot = ecs.getComponent<Rotation>(firedby);
+
+    // fire launcher out at an angle, convert to radians
+    float dx = std::cos((prot.angle + launcher.firingAngle) * (M_PI / 180.f));
+    float dy = std::sin((prot.angle + launcher.firingAngle) * (M_PI / 180.f));
+
+    ecs.addComponent(
+        missile, Velocity{{pvel.value.x + (dx * launcher.projectileSpeed),
+                          pvel.value.y + (dy * launcher.projectileSpeed)}});
+    ecs.addComponent(
+        missile, Position{{ppos.value.x + (dx * launch_distance),
+                           ppos.value.y + (dy * launch_distance)}});
+    ecs.addComponent(missile, Rotation{prot.angle + launcher.firingAngle});
+
+    // missile has good acceleration, about 200Gs in the Expanse.
+    // plus the acceleration of the ship
+    ecs.addComponent(missile, Acceleration{{(dx * launcher.projectileAccel),
+                                            (dy * launcher.projectileAccel)}});
+
+    ecs.addComponent(missile, Collision{ShapeType::AABB, 1.25f, 1.25f, 0.f});
+
+    SpriteComponent sc{sf::Sprite(texture)};
+    sf::Vector2f missileOrigin(texture.getSize().x / 2.f,
+                              texture.getSize().y / 2.f);
+    sc.sprite.setOrigin(missileOrigin);
+    ecs.addComponent(missile, sc);
   }
 };
 

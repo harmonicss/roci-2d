@@ -31,8 +31,8 @@ public:
 
     float atp = angleToPlayer(enemyPos.value, playerPos.value);
 
-    std::cout << "EnemyAI distance to player: " << dist << std::endl;
-    std::cout << "\nEnemyAI angle to player: " << atp << std::endl;
+    // std::cout << "EnemyAI distance to player: " << dist << std::endl;
+    // std::cout << "\nEnemyAI angle to player: " << atp << std::endl;
 
     if (state == State::CLOSE) {
       if (dist <= attack_pdc_distance) {
@@ -98,7 +98,7 @@ public:
 
       if (shipControl.pdcBurst > 0) {
         // fire pdc, in attacking range
-        std::cout << "EnemyAI firing diff: " << diff << std::endl;
+        // std::cout << "EnemyAI firing diff: " << diff << std::endl;
         if (diff >= -55.f && diff <= -20.f) {
           auto &pdc1 = ecs.getComponent<Pdc1>(enemy);
           if (pdc1.rounds != 0 && shipControl.pdcBurst != 0) {
