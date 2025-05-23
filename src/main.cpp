@@ -22,7 +22,7 @@ extern void DrawSidebarText(sf::RenderWindow &window, Coordinator &ecs,
                             Entity player, sf::Font &font);
 extern void DrawShipNames(sf::RenderWindow &window, Coordinator &ecs, Entity e,
                           sf::Font &font, float zoomFactor);
-extern void DrawMissileOverlay(sf::RenderWindow &window, Coordinator &ecs,
+extern void DrawTorpedoOverlay(sf::RenderWindow &window, Coordinator &ecs,
                           sf::Font &font, float zoomFactor);
 
 // Flip 180 and burn to a stop
@@ -54,8 +54,8 @@ int main() {
   ecs.registerComponent<Health>();
   ecs.registerComponent<Pdc1>();
   ecs.registerComponent<Pdc2>();
-  ecs.registerComponent<Missile1>();
-  ecs.registerComponent<Missile2>();
+  ecs.registerComponent<TorpedoLauncher1>();
+  ecs.registerComponent<TorpedoLauncher2>();
   ecs.registerComponent<Collision>();
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -70,7 +70,7 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Textures -
   ///////////////////////////////////////////////////////////////////////////////
-  sf::Texture rociTexture, enemyTexture, bulletTexture, missileTexture;
+  sf::Texture rociTexture, enemyTexture, bulletTexture, torpedoTexture;
 
   if (!rociTexture.loadFromFile("../assets/textures/roci.png")) {
     std::cout << "Error loading texture" << std::endl;
@@ -90,7 +90,7 @@ int main() {
     return -1;
   }
 
-  if (!missileTexture.loadFromFile("../assets/textures/missile.png")) {
+  if (!torpedoTexture.loadFromFile("../assets/textures/torpedo.png")) {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
@@ -131,8 +131,8 @@ int main() {
   
   ecs.addComponent(player, Pdc1{ -45.f });
   ecs.addComponent(player, Pdc2{ +45.f });
-  ecs.addComponent(player, Missile1{});
-  ecs.addComponent(player, Missile2{});
+  ecs.addComponent(player, TorpedoLauncher1{});
+  ecs.addComponent(player, TorpedoLauncher2{});
   ecs.addComponent(
       player, Collision{ShapeType::AABB,
                         static_cast<float>(rociTexture.getSize().x) / 2 - 45,
@@ -156,8 +156,8 @@ int main() {
   }
   ecs.addComponent(enemy, Pdc1{ -45.f });
   ecs.addComponent(enemy, Pdc2{ +45.f });
-  ecs.addComponent(enemy, Missile1{});
-  ecs.addComponent(enemy, Missile2{});
+  ecs.addComponent(enemy, TorpedoLauncher1{});
+  ecs.addComponent(enemy, TorpedoLauncher2{});
   ecs.addComponent(
       enemy, Collision{ShapeType::AABB,
                        static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
@@ -208,7 +208,7 @@ int main() {
   // Create Ballistics Factory
   ///////////////////////////////////////////////////////////////////////////////
   BulletFactory bulletFactory(ecs, bulletTexture);
-  MissileFactory missileFactory(ecs, missileTexture);
+  TorpedoFactory torpedoFactory(ecs, torpedoTexture);
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Enemy AI
@@ -470,21 +470,21 @@ int main() {
     }
 
     ///////////////////////////////////////////////////////////////////////////////
-    // Fire! Missile 1 
+    // Fire! Torpedo 1 
     ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
 
-      auto &missile1 = ecs.getComponent<Missile1>(player);
+      auto &torpedo1 = ecs.getComponent<TorpedoLauncher1>(player);
 
-      if (missile1.rounds == 0) {
+      if (torpedo1.rounds == 0) {
         continue;
       }
 
-      if (tt > missile1.timeSinceFired + missile1.cooldown) {
-        missile1.timeSinceFired = tt;
-        missileFactory.fire<Missile1>(player);
+      if (tt > torpedo1.timeSinceFired + torpedo1.cooldown) {
+        torpedo1.timeSinceFired = tt;
+        torpedoFactory.fire<TorpedoLauncher1>(player);
         pdcFireSoundPlayer.play();
-        missile1.rounds--;
+        torpedo1.rounds--;
       }
     }
 
@@ -551,7 +551,7 @@ int main() {
     DrawSidebarText(window, ecs, enemy, font);
     DrawShipNames(window, ecs, enemy, font, zoomFactor);
     DrawShipNames(window, ecs, player, font, zoomFactor);
-    DrawMissileOverlay(window, ecs, font, zoomFactor);
+    DrawTorpedoOverlay(window, ecs, font, zoomFactor);
 
     // display everything
     window.display();

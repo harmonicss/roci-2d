@@ -157,7 +157,7 @@ void DrawShipNames (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Fo
   window.draw(nametext);
 }
 
-void DrawMissileOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& font, float zoomFactor) {
+void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& font, float zoomFactor) {
 
   u_int16_t screenWidth = window.getSize().x;
   u_int16_t screenHeight = window.getSize().y;
@@ -167,7 +167,7 @@ void DrawMissileOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& f
   float radius = 0.5f + (80.f / zoomFactor);
 
   // need to get all the missiles
-  std::vector<Entity> missiles = ecs.getEntitiesByName("Missile");
+  std::vector<Entity> missiles = ecs.getEntitiesByName("Torpedo");
 
   for (auto e : missiles) {
 

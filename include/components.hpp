@@ -48,7 +48,7 @@ struct Pdc2 {
   u_int32_t rounds = 100;
 };
 
-struct Missile1 {
+struct TorpedoLauncher1 {
   float firingAngle = 0;
   float cooldown = 5.0;
   float timeSinceFired = 0.f;
@@ -57,7 +57,7 @@ struct Missile1 {
   u_int32_t rounds = 8;
 };
 
-struct Missile2 {
+struct TorpedoLauncher2 {
   float firingAngle = 0;
   float cooldown = 5.0f;
   float timeSinceFired = 0.f;

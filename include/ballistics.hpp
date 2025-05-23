@@ -70,17 +70,17 @@ public:
   }
 };
 
-class MissileFactory : public BallisticsFactory {
+class TorpedoFactory : public BallisticsFactory {
 public:
-  MissileFactory(Coordinator &ecs, sf::Texture &texture) : BallisticsFactory(ecs, texture) {
-    std::cout << "MissileFactory created" << std::endl;
+  TorpedoFactory(Coordinator &ecs, sf::Texture &texture) : BallisticsFactory(ecs, texture) {
+    std::cout << "TorpedoFactory created" << std::endl;
   }
-  ~MissileFactory() override = default;
+  ~TorpedoFactory() override = default;
 
   template<typename Weapon>
   void fire(Entity firedby) {
-    std::cout << "Missile fired" << std::endl;
-    Entity missile = ecs.createEntity("Missile");
+    std::cout << "Torpedo fired" << std::endl;
+    Entity torpedo = ecs.createEntity("Torpedo");
  
     auto &launcher = ecs.getComponent<Weapon>(firedby);
     auto pvel = ecs.getComponent<Velocity>(firedby);
@@ -92,25 +92,25 @@ public:
     float dy = std::sin((prot.angle + launcher.firingAngle) * (M_PI / 180.f));
 
     ecs.addComponent(
-        missile, Velocity{{pvel.value.x + (dx * launcher.projectileSpeed),
+        torpedo, Velocity{{pvel.value.x + (dx * launcher.projectileSpeed),
                           pvel.value.y + (dy * launcher.projectileSpeed)}});
     ecs.addComponent(
-        missile, Position{{ppos.value.x + (dx * launch_distance),
+        torpedo, Position{{ppos.value.x + (dx * launch_distance),
                            ppos.value.y + (dy * launch_distance)}});
-    ecs.addComponent(missile, Rotation{prot.angle + launcher.firingAngle});
+    ecs.addComponent(torpedo, Rotation{prot.angle + launcher.firingAngle});
 
-    // missile has good acceleration, about 200Gs in the Expanse.
+    // torpedo has good acceleration, about 200Gs in the Expanse.
     // plus the acceleration of the ship
-    ecs.addComponent(missile, Acceleration{{(dx * launcher.projectileAccel),
+    ecs.addComponent(torpedo, Acceleration{{(dx * launcher.projectileAccel),
                                             (dy * launcher.projectileAccel)}});
 
-    ecs.addComponent(missile, Collision{ShapeType::AABB, 1.25f, 1.25f, 0.f});
+    ecs.addComponent(torpedo, Collision{ShapeType::AABB, 1.25f, 1.25f, 0.f});
 
     SpriteComponent sc{sf::Sprite(texture)};
-    sf::Vector2f missileOrigin(texture.getSize().x / 2.f,
+    sf::Vector2f torpedoOrigin(texture.getSize().x / 2.f,
                               texture.getSize().y / 2.f);
-    sc.sprite.setOrigin(missileOrigin);
-    ecs.addComponent(missile, sc);
+    sc.sprite.setOrigin(torpedoOrigin);
+    ecs.addComponent(torpedo, sc);
   }
 };
 
