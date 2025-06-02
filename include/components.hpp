@@ -3,6 +3,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <sys/types.h>
+#include "../include/ecs.hpp"
 
 // 2D Vector Alias
 using Vec2 = sf::Vector2f;
@@ -51,25 +52,25 @@ struct Pdc2 {
 };
 
 struct TorpedoLauncher1 {
-  float firingAngle = 0;
+  float firingAngle = -25.f;    // helps avoid collision
   float firingOffset = -100.f; // to create a seperation distance between launchers
   float cooldown = 5.0;
   float timeSinceFired = 0.f;
   float projectileSpeed = 100.f;
   float projectileAccel = 1000.f;
   u_int32_t projectileDamage = 200;
-  u_int32_t rounds = 8;
+  u_int32_t rounds = 2;
 };
 
 struct TorpedoLauncher2 {
-  float firingAngle = 0;
+  float firingAngle = 25.f;
   float firingOffset = 100.f;
   float cooldown = 5.0f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 100.f;
   float projectileAccel = 1000.f;
   u_int32_t projectileDamage = 200;
-  u_int32_t rounds = 8;
+  u_int32_t rounds = 2;
 };
 
 enum class ShapeType { AABB, Circle};
@@ -80,4 +81,9 @@ struct Collision {
   float halfWidth = 0.f;  // for AABB
   float halfHeight = 0.f; // for AABB
   float radius = 0.f;     // for Circle
+};
+
+// get a torpedo to target a ship, or a pdc to target a torpedo.
+struct Target {
+  Entity target;
 };

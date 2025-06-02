@@ -78,13 +78,15 @@ public:
   ~TorpedoFactory() override = default;
 
   template<typename Weapon>
-  void fire(Entity firedby) {
+  void fire(Entity firedby, Entity target) {
     Entity torpedo = ecs.createEntity("Torpedo");
  
     auto &launcher = ecs.getComponent<Weapon>(firedby);
     auto pvel = ecs.getComponent<Velocity>(firedby);
     auto ppos = ecs.getComponent<Position>(firedby);
     auto prot = ecs.getComponent<Rotation>(firedby);
+
+    ecs.addComponent(torpedo, Target{target});
 
     // fire launcher out at an angle, convert to radians
     // add an offset to fire on the left or right of the ship
@@ -113,7 +115,7 @@ public:
     // plus the acceleration of the ship
     ecs.addComponent(torpedo, Acceleration{{(dx * launcher.projectileAccel),
                                             (dy * launcher.projectileAccel)}});
-     
+
     // TODO: collision size is a guess atm
     ecs.addComponent(torpedo, Collision{ShapeType::AABB, 80.0f, 30.f, 0.f});
 

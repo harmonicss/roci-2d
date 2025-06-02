@@ -32,7 +32,7 @@ public:
 
     float atp = angleToPlayer(enemyPos.value, playerPos.value);
 
-    // std::cout << "EnemyAI distance to player: " << dist << std::endl;
+    std::cout << "EnemyAI distance to player: " << dist << std::endl;
     // std::cout << "\nEnemyAI angle to player: " << atp << std::endl;
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -80,6 +80,7 @@ public:
       }
 
       // accelerate towards the player, about 1G atm
+      // TODO: update to change acceleration based on distance
       enemyAcc.value.y = std::sin((enemyRot.angle) * (M_PI / 180.f)) * 5000.f * dt;
       enemyAcc.value.x = std::cos((enemyRot.angle) * (M_PI / 180.f)) * 5000.f * dt;
     }
@@ -107,13 +108,13 @@ public:
       if (diff >= -05.f && diff <= +05.f) {
         if (tt > launcher1.timeSinceFired + launcher1.cooldown && launcher1.rounds) {
           launcher1.timeSinceFired = tt;
-          torpedoFactory.fire<TorpedoLauncher1>(enemy);
+          torpedoFactory.fire<TorpedoLauncher1>(enemy, 0);
           launcher1.rounds--;
           std::cout << "EnemyAI firing TorpedoLauncher1" << std::endl;
         }
         if (tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
           launcher2.timeSinceFired = tt;
-          torpedoFactory.fire<TorpedoLauncher2>(enemy);
+          torpedoFactory.fire<TorpedoLauncher2>(enemy, 0);
           launcher2.rounds--;
           std::cout << "EnemyAI firing TorpedoLauncher2" << std::endl;
         }
@@ -156,7 +157,7 @@ public:
               pdc1.rounds--;
               shipControl.pdcBurst--;
               pdcFireSoundPlayer.play();
-              std::cout << "EnemyAI firing PDC1" << std::endl;
+              // std::cout << "EnemyAI firing PDC1" << std::endl;
             }
           }
         }
@@ -169,7 +170,7 @@ public:
               pdc2.rounds--;
               shipControl.pdcBurst--;
               pdcFireSoundPlayer.play();
-              std::cout << "EnemyAI firing PDC2" << std::endl;
+              // std::cout << "EnemyAI firing PDC2" << std::endl;
             }
           }
         }
@@ -189,9 +190,9 @@ public:
   TorpedoFactory torpedoFactory;
   sf::Sound pdcFireSoundPlayer;
 
-  const float close_distance          = 100000.f;
+  const float close_distance          = 1000000.f;
   const float attack_pdc_distance     = 8000.f;
-  const float attack_torpedo_distance = 50000.f;
+  const float attack_torpedo_distance = 900000.f;
 
   enum class State {
     IDLE,

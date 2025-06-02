@@ -3,6 +3,7 @@
 #include "../include/ecs.hpp"
 #include "../include/ballistics.hpp"
 #include "../include/enemyai.hpp"
+#include "../include/torpedoai.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -57,6 +58,7 @@ int main() {
   ecs.registerComponent<TorpedoLauncher1>();
   ecs.registerComponent<TorpedoLauncher2>();
   ecs.registerComponent<Collision>();
+  ecs.registerComponent<Target>();
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Fonts -
@@ -142,7 +144,7 @@ int main() {
   // - Create Enemy Entity -
   ///////////////////////////////////////////////////////////////////////////////
   Entity enemy = ecs.createEntity("Enemy");
-  ecs.addComponent(enemy, Position{{300, -8000}});
+  ecs.addComponent(enemy, Position{{300, -10000}});
   ecs.addComponent(enemy, Velocity{{0.f, 0.f}});
   ecs.addComponent(enemy, Rotation{130.f});
   ecs.addComponent(enemy, Health{100});
@@ -229,9 +231,10 @@ int main() {
   TorpedoFactory torpedoFactory(ecs, torpedoTexture);
 
   ///////////////////////////////////////////////////////////////////////////////
-  // Create Enemy AI
+  // Create Enemy and Torpedo AIs
   ///////////////////////////////////////////////////////////////////////////////
   EnemyAI enemyAI(ecs, enemy, bulletFactory, torpedoFactory, pdcFireSoundPlayer);
+  TorpedoAI torpedoAI(ecs);
   
   // Set up worldview
   sf::FloatRect viewRect({0.f, 0.f}, {1920.f, 1080.f});
@@ -489,21 +492,22 @@ int main() {
 
       if (tt > launcher1.timeSinceFired + launcher1.cooldown && launcher1.rounds) {
         launcher1.timeSinceFired = tt;
-        torpedoFactory.fire<TorpedoLauncher1>(player);
+        torpedoFactory.fire<TorpedoLauncher1>(player, enemy);
         // TODO: add torpedo sound
         pdcFireSoundPlayer.play();
         launcher1.rounds--;
       }
       if (tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
         launcher2.timeSinceFired = tt;
-        torpedoFactory.fire<TorpedoLauncher2>(player);
+        torpedoFactory.fire<TorpedoLauncher2>(player, enemy);
         pdcFireSoundPlayer.play();
         launcher2.rounds--;
       }
     }
 
-    // Enemy AI
+    // Enemy & Torpedo AIs
     enemyAI.Update(tt, dt);
+    torpedoAI.Update(tt, dt);
 
     // Collision System - check for collisions
     collisionSystem.Update();
