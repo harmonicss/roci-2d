@@ -118,7 +118,7 @@ int main() {
   // - Create Player Entity -
   ///////////////////////////////////////////////////////////////////////////////
   Entity player = ecs.createEntity("Rocinante");
-  ecs.addComponent(player, Position{{960, 540}});
+  ecs.addComponent(player, Position{{0, 0}});
   ecs.addComponent(player, Velocity{{0.f, 0.f}});
   ecs.addComponent(player, Rotation{0.f});
   ecs.addComponent(player, Health{100});
@@ -144,9 +144,9 @@ int main() {
   // - Create Enemy Entity -
   ///////////////////////////////////////////////////////////////////////////////
   Entity enemy = ecs.createEntity("Enemy");
-  ecs.addComponent(enemy, Position{{300, -10000}});
-  ecs.addComponent(enemy, Velocity{{0.f, 0.f}});
-  ecs.addComponent(enemy, Rotation{130.f});
+  ecs.addComponent(enemy, Position{{20000, 0}});
+  ecs.addComponent(enemy, Velocity{{100.f, 0.f}});
+  ecs.addComponent(enemy, Rotation{90.f});
   ecs.addComponent(enemy, Health{100});
   ecs.addComponent(enemy, Acceleration{{0.f, 0.f}});
   {
@@ -490,16 +490,16 @@ int main() {
       auto &launcher1 = ecs.getComponent<TorpedoLauncher1>(player);
       auto &launcher2 = ecs.getComponent<TorpedoLauncher2>(player);
 
-      if (tt > launcher1.timeSinceFired + launcher1.cooldown && launcher1.rounds) {
+      if (launcher1.timeSinceFired == 0.f || tt > launcher1.timeSinceFired + launcher1.cooldown && launcher1.rounds) {
         launcher1.timeSinceFired = tt;
         torpedoFactory.fire<TorpedoLauncher1>(player, enemy);
         // TODO: add torpedo sound
         pdcFireSoundPlayer.play();
         launcher1.rounds--;
       }
-      if (tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
+      if (launcher2.timeSinceFired == 0.f || tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
         launcher2.timeSinceFired = tt;
-        torpedoFactory.fire<TorpedoLauncher2>(player, enemy);
+        //torpedoFactory.fire<TorpedoLauncher2>(player, enemy);
         pdcFireSoundPlayer.play();
         launcher2.rounds--;
       }
