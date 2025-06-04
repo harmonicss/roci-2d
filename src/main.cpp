@@ -147,7 +147,7 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   Entity enemy = ecs.createEntity("Enemy");
   ecs.addComponent(enemy, Position{{20000, 0}});
-  ecs.addComponent(enemy, Velocity{{000.f, 0.f}});
+  ecs.addComponent(enemy, Velocity{{1000.f, 0.f}});
   ecs.addComponent(enemy, Rotation{90.f});
   ecs.addComponent(enemy, Health{100});
   ecs.addComponent(enemy, Acceleration{{0.f, 0.f}});

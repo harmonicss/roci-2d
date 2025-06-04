@@ -102,12 +102,12 @@ public:
       // apply a fudge factor for more acceleration
       //Acc_N *= 800.f;
 
-      // as this is lateral acceleration, we need to limit it to a reasonable value
-      if (Acc_N > 50000.f) {
-        Acc_N = 50000.f; // set a maximum acceleration 
+      // as this is lateral (thruster) acceleration, we need to limit it to a reasonable value
+      if (Acc_N > 5000.f) {
+        Acc_N = 5000.f; // set a maximum acceleration 
       }
-      else if (Acc_N < -50000.f) {
-        Acc_N = -50000.f; // set a minimum acceleration
+      else if (Acc_N < -5000.f) {
+        Acc_N = -5000.f; // set a minimum acceleration
       }
 
       std::cout << "TorpedoAI commanded lateral acceleration: " << Acc_N << "\n";
@@ -115,8 +115,9 @@ public:
       ////////////////////////////////////////////////////////////////////////////////////
       // resolve the acceleration perpendicular to the velocity vector of the torpedo
 
-      // lateral unit vector of torpedo
-      sf::Vector2f u_t = {std::cos(torpedoRot.angle), std::sin(torpedoRot.angle)};
+      // lateral unit vector of torpedo, in radians
+      sf::Vector2f u_t = { static_cast<float>(std::cos(torpedoRot.angle * (M_PI / 180.f))), 
+                           static_cast<float>(std::sin(torpedoRot.angle * (M_PI / 180.f))) };
 
       // "left" normal (rotate 90 degrees CCW) perpendicular vector
       sf::Vector2f perp_t = {-u_t.y, u_t.x};
@@ -144,7 +145,7 @@ public:
         std::cout << "TorpedoAI engine acceleration angle: 0\n";
 
       // set the total acceleration
-      torpedoAcc = a_engines; // + a_cmd;
+      torpedoAcc = a_engines + a_cmd;
 
       std::cout << "TorpedoAI commanded acceleration length: " << torpedoAcc.length() << "\n";
       if (torpedoAcc.length() > 0.f)

@@ -180,11 +180,11 @@ void DrawPlayerOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& fo
   sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
   auto &ppos = ecs.getComponent<Position>(0);
+  auto &pvel = ecs.getComponent<Velocity>(0);
 
   sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
 
-  // try a fixed vector for testing
-  //DrawVector(window, ecs, 0, ppos.value, sf::Vector2f{1000.f, 0.f}, cameraOffset, sf::Color::Green, zoomFactor);
+  DrawVector(window, ecs, 0, ppos.value, pvel.value, cameraOffset, sf::Color::Green, zoomFactor);
 }
 
 void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& font, float zoomFactor) {
@@ -204,7 +204,7 @@ void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& f
     auto &ppos = ecs.getComponent<Position>(0);
     auto &tpos = ecs.getComponent<Position>(e);
 
-    std::cout << "DrawTorpedoOverlay Torpedo Position: " << tpos.value.x << ", " << tpos.value.y << "\n";
+    //std::cout << "DrawTorpedoOverlay Torpedo Position: " << tpos.value.x << ", " << tpos.value.y << "\n";
 
     ///////////////////////////////////////////////////////////////////////////////
     // draw a circle around the missile
@@ -236,14 +236,14 @@ void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& f
 
 void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start, sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor) { 
 
-    std::cout << "\nDrawVectorStart: " << start.x << ", " << start.y << "\n";
-    std::cout << "DrawVectorEnd: " << end.x << ", " << end.y << "\n";
-    std::cout << "DrawVector Camera Offset: " << cameraOffset.x << ", " << cameraOffset.y << "\n";
+    // std::cout << "\nDrawVectorStart: " << start.x << ", " << start.y << "\n";
+    // std::cout << "DrawVectorEnd: " << end.x << ", " << end.y << "\n";
+    // std::cout << "DrawVector Camera Offset: " << cameraOffset.x << ", " << cameraOffset.y << "\n";
 
     // compute the direction and length of the arrow shaft
 
     float length = std::hypot(end.x, end.y);
-    std::cout << "DrawVector Length: " << length << "\n";
+    // std::cout << "DrawVector Length: " << length << "\n";
 
     length = length / zoomFactor; // scale length with zoom factor
 
@@ -251,7 +251,10 @@ void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector
       return; // don't draw if the length is too small
 
     float thickness = 40.f / zoomFactor; // make it thinner with zoom
- 
+
+    if (thickness < 1.f)
+      thickness = 1.f; // don't let it get too thin
+  
     // create a rectangle of size (length x thickness)
     sf::RectangleShape arrow(sf::Vector2f(length, thickness));
 
@@ -265,9 +268,6 @@ void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector
 
     // rotate to match the direction of the arrow
     float angle = std::atan2(end.y, end.x) * (180.f / M_PI);
-
-    std::cout << "DrawVector Angle Degrees: " << angle << "\n";
-    std::cout << "DrawVector Angle Radians: " << std::atan2(end.y, end.x) << "\n";
 
     arrow.setRotation(sf::degrees(angle));
 
