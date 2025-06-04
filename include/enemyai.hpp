@@ -32,7 +32,7 @@ public:
 
     float atp = angleToPlayer(enemyPos.value, playerPos.value);
 
-    std::cout << "EnemyAI distance to player: " << dist << std::endl;
+    // std::cout << "EnemyAI distance to player: " << dist << std::endl;
     // std::cout << "\nEnemyAI angle to player: " << atp << std::endl;
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -108,13 +108,15 @@ public:
       if (diff >= -05.f && diff <= +05.f) {
         if (tt > launcher1.timeSinceFired + launcher1.cooldown && launcher1.rounds) {
           launcher1.timeSinceFired = tt;
-          torpedoFactory.fire<TorpedoLauncher1>(enemy, 0);
+          // disable torpedo whilst testing the ai
+          //torpedoFactory.fire<TorpedoLauncher1>(enemy, 0);
           launcher1.rounds--;
           std::cout << "EnemyAI firing TorpedoLauncher1" << std::endl;
         }
         if (tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
           launcher2.timeSinceFired = tt;
-          torpedoFactory.fire<TorpedoLauncher2>(enemy, 0);
+          // disable torpedo whilst testing the ai
+          // torpedoFactory.fire<TorpedoLauncher2>(enemy, 0);
           launcher2.rounds--;
           std::cout << "EnemyAI firing TorpedoLauncher2" << std::endl;
         }

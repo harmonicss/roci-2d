@@ -82,16 +82,16 @@ public:
     Entity torpedo = ecs.createEntity("Torpedo");
  
     auto &launcher = ecs.getComponent<Weapon>(firedby);
-    auto pvel = ecs.getComponent<Velocity>(firedby);
-    auto ppos = ecs.getComponent<Position>(firedby);
-    auto prot = ecs.getComponent<Rotation>(firedby);
+    auto svel = ecs.getComponent<Velocity>(firedby); // s for source
+    auto spos = ecs.getComponent<Position>(firedby);
+    auto srot = ecs.getComponent<Rotation>(firedby);
 
     ecs.addComponent(torpedo, Target{target});
 
     // fire launcher out at an angle, convert to radians
     // add an offset to fire on the left or right of the ship
-    float dx = std::cos((prot.angle + launcher.firingAngle) * (M_PI / 180.f));
-    float dy = std::sin((prot.angle + launcher.firingAngle) * (M_PI / 180.f));
+    float dx = std::cos((srot.angle + launcher.firingAngle) * (M_PI / 180.f));
+    float dy = std::sin((srot.angle + launcher.firingAngle) * (M_PI / 180.f));
 
     // get a perpendicular vector to the ship. This is to create seperatation between the launchers. 
     // points to the ship's right relative to the firing direction
@@ -99,17 +99,17 @@ public:
     float perp_dy = dx;
 
     // adding a fudge factor to launch further away from the ship
-    float wx = ppos.value.x + dx * (launch_distance + 150.f) + perp_dx * launcher.firingOffset;
-    float wy = ppos.value.y + dy * (launch_distance + 150.f) + perp_dy * launcher.firingOffset;
+    float wx = spos.value.x + dx * (launch_distance + 150.f) + perp_dx * launcher.firingOffset;
+    float wy = spos.value.y + dy * (launch_distance + 150.f) + perp_dy * launcher.firingOffset;
 
     ecs.addComponent(
-        torpedo, Velocity{{pvel.value.x + (dx * launcher.projectileSpeed),
-                           pvel.value.y + (dy * launcher.projectileSpeed)}});
+        torpedo, Velocity{{svel.value.x + (dx * launcher.projectileSpeed),
+                           svel.value.y + (dy * launcher.projectileSpeed)}});
 
     // want launcher1 to be seperated from launcher2
     ecs.addComponent(torpedo, Position{{wx, wy}}); 
 
-    ecs.addComponent(torpedo, Rotation{prot.angle + launcher.firingAngle});
+    ecs.addComponent(torpedo, Rotation{srot.angle + launcher.firingAngle});
 
     // torpedo has good acceleration, about 200Gs in the Expanse.
     // plus the acceleration of the ship

@@ -24,7 +24,9 @@ extern void DrawSidebarText(sf::RenderWindow &window, Coordinator &ecs,
 extern void DrawShipNames(sf::RenderWindow &window, Coordinator &ecs, Entity e,
                           sf::Font &font, float zoomFactor);
 extern void DrawTorpedoOverlay(sf::RenderWindow &window, Coordinator &ecs,
-                          sf::Font &font, float zoomFactor);
+                               sf::Font &font, float zoomFactor);
+extern void DrawPlayerOverlay(sf::RenderWindow &window, Coordinator &ecs,
+                              sf::Font &font, float zoomFactor);
 
 // Flip 180 and burn to a stop
 struct FlipBurnControl {
@@ -145,7 +147,7 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   Entity enemy = ecs.createEntity("Enemy");
   ecs.addComponent(enemy, Position{{20000, 0}});
-  ecs.addComponent(enemy, Velocity{{100.f, 0.f}});
+  ecs.addComponent(enemy, Velocity{{000.f, 0.f}});
   ecs.addComponent(enemy, Rotation{90.f});
   ecs.addComponent(enemy, Health{100});
   ecs.addComponent(enemy, Acceleration{{0.f, 0.f}});
@@ -553,7 +555,10 @@ int main() {
         sc.sprite.setPosition(screenCentre);
       } else {
         auto &playerpos = ecs.getComponent<Position>(player);
+
+        // not sure if zoomFactor is needed here, seems to work without
         sf::Vector2f cameraOffset = screenCentre - playerpos.value;
+        // sf::Vector2f cameraOffset = screenCentre - (playerpos.value / zoomFactor);
         sc.sprite.setPosition(pos.value + cameraOffset);
       }
 
@@ -570,6 +575,7 @@ int main() {
     DrawShipNames(window, ecs, enemy, font, zoomFactor);
     DrawShipNames(window, ecs, player, font, zoomFactor);
     DrawTorpedoOverlay(window, ecs, font, zoomFactor);
+    DrawPlayerOverlay(window, ecs, font, zoomFactor);
 
     // display everything
     window.display();

@@ -56,10 +56,10 @@ struct TorpedoLauncher1 {
   float firingOffset = -100.f; // to create a seperation distance between launchers
   float cooldown = 5.0;
   float timeSinceFired = 0.f;
-  float projectileSpeed = 100.f;
-  float projectileAccel = 1000.f;
+  float projectileSpeed = 0.f; // change back to 100.f
+  float projectileAccel = 0001.f;
   u_int32_t projectileDamage = 200;
-  u_int32_t rounds = 2;
+  u_int32_t rounds = 8;
 };
 
 struct TorpedoLauncher2 {
@@ -67,10 +67,10 @@ struct TorpedoLauncher2 {
   float firingOffset = 100.f;
   float cooldown = 5.0f;
   float timeSinceFired = 0.f;
-  float projectileSpeed = 100.f;
-  float projectileAccel = 1000.f;
+  float projectileSpeed = 0.f;
+  float projectileAccel = 0001.f;
   u_int32_t projectileDamage = 200;
-  u_int32_t rounds = 2;
+  u_int32_t rounds = 8;
 };
 
 enum class ShapeType { AABB, Circle};
