@@ -19,7 +19,7 @@ public:
   void Update(float tt, float dt) {
 
     // need to get all the torpedos, find their targets and turn towards them
-    // FIX: watch out for pdcs that have a target aswell. 
+    // FIX: watch out for pdcs that have a target aswell. Maybe create pdcTarget?
     for (auto &torpedo :
          ecs.view<Position, Velocity, Acceleration, Rotation, Target>()) {
 

@@ -501,7 +501,7 @@ int main() {
       }
       if (launcher2.timeSinceFired == 0.f || tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
         launcher2.timeSinceFired = tt;
-        //torpedoFactory.fire<TorpedoLauncher2>(player, enemy);
+        torpedoFactory.fire<TorpedoLauncher2>(player, enemy);
         pdcFireSoundPlayer.play();
         launcher2.rounds--;
       }
