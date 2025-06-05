@@ -102,6 +102,7 @@ public:
     float wx = spos.value.x + dx * (launch_distance + 150.f) + perp_dx * launcher.firingOffset;
     float wy = spos.value.y + dy * (launch_distance + 150.f) + perp_dy * launcher.firingOffset;
 
+    // the velocity of the torpedo is the velocity of the launcher plus the projectile speed
     ecs.addComponent(
         torpedo, Velocity{{svel.value.x + (dx * launcher.projectileSpeed),
                            svel.value.y + (dy * launcher.projectileSpeed)}});
@@ -111,8 +112,7 @@ public:
 
     ecs.addComponent(torpedo, Rotation{srot.angle + launcher.firingAngle});
 
-    // torpedo has good acceleration, about 200Gs in the Expanse.
-    // plus the acceleration of the ship
+    // accelerate the torpedo out
     ecs.addComponent(torpedo, Acceleration{{(dx * launcher.projectileAccel),
                                             (dy * launcher.projectileAccel)}});
 

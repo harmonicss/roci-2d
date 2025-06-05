@@ -174,12 +174,13 @@ int main() {
     // Handle collision
     std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
 
+    std::string e1Name = ecs.getEntityName(e1);
+    std::string e2Name = ecs.getEntityName(e2);
+
     // Damage the health of the entities
     // cant capture player here, I know it is 0.
     if (e1 == 0 || e2 == 0) {
       auto &phealth = ecs.getComponent<Health>(0);
-      std::string e1Name = ecs.getEntityName(e1);
-      std::string e2Name = ecs.getEntityName(e2);
       if (e1Name == "Torpedo" || e2Name == "Torpedo") {
         phealth.value -= ecs.getComponent<TorpedoLauncher1>(0).projectileDamage;
       }
@@ -194,8 +195,6 @@ int main() {
     // enemy is 1
     if (e1 == 1 || e2 == 1) {
       auto &ehealth = ecs.getComponent<Health>(1);
-      std::string e1Name = ecs.getEntityName(e1);
-      std::string e2Name = ecs.getEntityName(e2);
       if (e1Name == "Torpedo" || e2Name == "Torpedo") {
         ehealth.value -= ecs.getComponent<TorpedoLauncher1>(1).projectileDamage;
       }
@@ -205,6 +204,11 @@ int main() {
         // TODO: add torpedo sound
         pdcHitSoundPlayer.play();
       }
+    }
+
+    // bullets cant collide with each other, so only destroy if they hit the player or enemy
+    if (e1Name == "Bullet" && e2Name == "Bullet") {
+      return;
     }
 
     if (e1 > 1) {
@@ -409,6 +413,12 @@ int main() {
         auto &rot = ecs.getComponent<Rotation>(player);
         acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
         acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
+ 
+        // limit the acceleration to a maximum value, I am assuming 100 = 1G
+        // this is a bit arbitrary, but it is a good starting point, as I am limiting 
+        // the maximum accel in x and y, rather than limiting the length of the vector
+        acc.value.x = std::clamp(acc.value.x, -1000.f, 1000.f);
+        acc.value.y = std::clamp(acc.value.y, -1000.f, 1000.f);
       }
       else {
         // turn off acceleration if a acceleration key is not pressed

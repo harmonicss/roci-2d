@@ -203,6 +203,7 @@ void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& f
 
     auto &ppos = ecs.getComponent<Position>(0);
     auto &tpos = ecs.getComponent<Position>(e);
+    auto &trot = ecs.getComponent<Rotation>(e);
 
     //std::cout << "DrawTorpedoOverlay Torpedo Position: " << tpos.value.x << ", " << tpos.value.y << "\n";
 
@@ -222,15 +223,16 @@ void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& f
     window.draw(circle);
 
     ///////////////////////////////////////////////////////////////////////////////
-    // draw the vector of the acceleration
+    // draw the vector of the acceleration, velocity and rotation
     ///////////////////////////////////////////////////////////////////////////////
-
     DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Acceleration>(e).value, cameraOffset, sf::Color::Red, zoomFactor);
     DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Velocity>(e).value, cameraOffset, sf::Color::Green, zoomFactor);
 
-    // try a fixed vector for testing
-    //DrawVector(window, ecs, e, tpos.value, sf::Vector2f{1000.f, 0.f}, cameraOffset, sf::Color::Green, zoomFactor);
-
+    float radians = trot.angle * (M_PI / 180.f);
+ 
+    DrawVector(window, ecs, e, tpos.value,
+               sf::Vector2f{std::cos(radians) * 10000.f, 
+               std::sin(radians) * 10000.f}, cameraOffset, sf::Color::Blue, zoomFactor);
   }
 }
 
@@ -246,6 +248,7 @@ void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector
     // std::cout << "DrawVector Length: " << length << "\n";
 
     length = length / zoomFactor; // scale length with zoom factor
+    length *= 2;
 
     if (length < 1.f)
       return; // don't draw if the length is too small

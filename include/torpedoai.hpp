@@ -18,6 +18,8 @@ public:
 
   void Update(float tt, float dt) {
 
+    float const max_lateral_accel = 1000.f; // maximum lateral acceleration (thrusters) for torpedos
+    
     // need to get all the torpedos, find their targets and turn towards them
     // FIX: watch out for pdcs that have a target aswell. Maybe create pdcTarget?
     for (auto &torpedo :
@@ -36,7 +38,8 @@ public:
       // get the angle to the target
       float att = angleToTarget(torpedoPos.value, targetPos.value);
  
-      std::cout << "\nTorpedoAI torpedo position: " << torpedoPos.value.x << ", " << torpedoPos.value.y << "\n";
+      std::cout << "\nTorpedoAI Entity: " << torpedo << "\n";
+      std::cout << "TorpedoAI torpedo position: " << torpedoPos.value.x << ", " << torpedoPos.value.y << "\n";
       std::cout << "TorpedoAI angle to target: " << att << "\n";
       std::cout << "TorpedoAI torpedo angle: " << torpedoRot.angle << "\n";
 
@@ -81,7 +84,6 @@ public:
 
       std::cout << "TorpedoAI dot_att: " << dot_att << "\n";
 
-
       ////////////////////////////////////////////////////////////////////////////////////
       // Compute closing velocity
       // Vc = -Vrt . unit vector in the direction of L, take the original vector and divide it by
@@ -99,18 +101,25 @@ public:
       // and Vc is the closing speed
       float Acc_N = 3.f * Vc * std::abs(dot_att); // N = 3 is a common value
 
-      // apply a fudge factor for more acceleration
-      //Acc_N *= 800.f;
-
-      // as this is lateral (thruster) acceleration, we need to limit it to a reasonable value
-      if (Acc_N > 5000.f) {
-        Acc_N = 5000.f; // set a maximum acceleration 
-      }
-      else if (Acc_N < -5000.f) {
-        Acc_N = -5000.f; // set a minimum acceleration
-      }
-
       std::cout << "TorpedoAI commanded lateral acceleration: " << Acc_N << "\n";
+
+      float Rem_Acc_N = 0.f;
+ 
+      // as this is lateral (thruster) acceleration, we need to limit it to a reasonable value
+      if (Acc_N > max_lateral_accel) {
+        Rem_Acc_N = Acc_N - max_lateral_accel; 
+        Rem_Acc_N = std::min(Rem_Acc_N, max_lateral_accel);
+        Acc_N = max_lateral_accel;
+      }
+      else if (Acc_N < -max_lateral_accel) {
+        Rem_Acc_N = Acc_N + max_lateral_accel;
+        Rem_Acc_N = std::min(Rem_Acc_N,  -max_lateral_accel);
+        Acc_N = -max_lateral_accel;
+      }
+
+      // convert the remaining lateral acceleration into a heading rate
+      // the remaining lateral acceleration after thrust to be applied to the turn
+      std::cout << "TorpedoAI remaining lateral acceleration: " << Rem_Acc_N << "\n";
 
       ////////////////////////////////////////////////////////////////////////////////////
       // resolve the acceleration perpendicular to the velocity vector of the torpedo
@@ -133,10 +142,28 @@ public:
         std::cout << "TorpedoAI lateral acceleration angle: " << a_cmd.angle().asDegrees() << "\n";
       else 
         std::cout << "TorpedoAI lateral acceleration angle: 0\n";
- 
+
+      float engine_accel = 0.f;
+
+      // dont accelerate if we are facing the wrong way, this help prevent torpedo misses 
+      // that have too much velocity from accelerating away from the target.
+      // This also stops deceleration, but no way to get the torpedo to decelerate and then 
+      // reengage. 
+#if 0
+      if (torpedoRot.angle >= att - 5.f && torpedoRot.angle <= att + 5.f) {
+      } else {
+        engine_accel = 0.f;
+        std::cout << "TorpedoAI not accelerating, angle to target: " << att << ", torpedo angle: " << torpedoRot.angle << "\n";
+      }
+#else
+      // not sure how to get the launcher acceleration, so copy for now
+      engine_accel = 2000.f;
+#endif
+
+
       // apply continuous engine thrust, convert to radians
-      sf::Vector2f a_engines = { static_cast<float>(std::cos(torpedoRot.angle * (M_PI / 180.f)) * 1000.f),
-                                 static_cast<float>(std::sin(torpedoRot.angle * (M_PI / 180.f)) * 1000.f) };
+      sf::Vector2f a_engines = { static_cast<float>(std::cos(torpedoRot.angle * (M_PI / 180.f)) * engine_accel),
+                                 static_cast<float>(std::sin(torpedoRot.angle * (M_PI / 180.f)) * engine_accel) };
 
       std::cout << "TorpedoAI engine acceleration length: " << a_engines.length() << "\n";
       if (a_engines.length() > 0.f) 
@@ -144,8 +171,30 @@ public:
       else 
         std::cout << "TorpedoAI engine acceleration angle: 0\n";
 
-      // set the total acceleration
+
+      // apply the sign from the dot lambda
+      Rem_Acc_N *= (dot_att < 0.f) ? -1.f : 1.f;
+
+      // convert remaining lateral acceleration to a heading rate
+      // hopefully the speed is always non-zero
+      float omega = Rem_Acc_N / torpedoVel.length();
+
+#if 0
+      // apply the acceleration
+      // the we have to perform a course change (as we are way out, probably just mssed), then stop the acceleration
+      if (omega > 0.01f || omega < -0.01f) {
+        // just use the thrusters 
+        torpedoAcc = a_cmd;
+        std::cout << "TorpedoAI using thrusters only, omega: " << omega << "\n";
+      }
+      else {
+        // full power
+        torpedoAcc = a_engines + a_cmd;
+        std::cout << "TorpedoAI using engines and thrusters, omega: " << omega << "\n";
+      }
+#else
       torpedoAcc = a_engines + a_cmd;
+#endif
 
       std::cout << "TorpedoAI commanded acceleration length: " << torpedoAcc.length() << "\n";
       if (torpedoAcc.length() > 0.f)
@@ -153,9 +202,25 @@ public:
       else 
         std::cout << "TorpedoAI commanded acceleration angle: 0\n";
 
-      // turn towards the target
+      // convert to degrees per second
+      omega = omega * (180.f / M_PI);
+      omega *= 10.f; 
+
+      // limit the heading rate to a maximum 
+      // this might be causing some jumping round of the direction
+      if (omega > 40.f) {
+        omega = 40.f;
+      } else if (omega < -40.f) {
+        omega = -40.f; 
+      }
+
+      std::cout << "TorpedoAI lateral heading rate: " << omega << "\n";
+
+      // turn towards the target, also apply extra turn from the lateral thrust.
       if (torpedoControl.turning == false) {
-        startTurn(att, torpedo, target);
+        // startTurn(att, torpedo, target);
+        // not really sure why subtraction works, maybe I get the sign wrong somewhere
+        startTurn(att - omega, torpedo, target);
       }
 
       // perform the turn
