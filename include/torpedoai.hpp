@@ -211,7 +211,7 @@ public:
       if (omega > 40.f) {
         omega = 40.f;
       } else if (omega < -40.f) {
-        omega = -40.f; 
+        omega = -40.f;
       }
 
       std::cout << "TorpedoAI lateral heading rate: " << omega << "\n";

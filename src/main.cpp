@@ -4,6 +4,7 @@
 #include "../include/ballistics.hpp"
 #include "../include/enemyai.hpp"
 #include "../include/torpedoai.hpp"
+#include "../include/targeting.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -206,7 +207,7 @@ int main() {
       }
     }
 
-    // bullets cant collide with each other, so only destroy if they hit the player or enemy
+    // bullets cant collide with each other, so only destroy if they hit the player or enemy or torpedo
     if (e1Name == "Bullet" && e2Name == "Bullet") {
       return;
     }
@@ -216,6 +217,7 @@ int main() {
       ecs.removeComponent<Position>(e1);
       ecs.removeComponent<Rotation>(e1);
       ecs.removeComponent<Collision>(e1);
+      ecs.removeComponent<Target>(e1);
       ecs.removeComponent<SpriteComponent>(e1);
       ecs.destroyEntity(e1);
     }
@@ -225,6 +227,7 @@ int main() {
       ecs.removeComponent<Position>(e2);
       ecs.removeComponent<Rotation>(e2);
       ecs.removeComponent<Collision>(e2);
+      ecs.removeComponent<Target>(e2);
       ecs.removeComponent<SpriteComponent>(e2);
       ecs.destroyEntity(e2);
     }
@@ -241,7 +244,10 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   EnemyAI enemyAI(ecs, enemy, bulletFactory, torpedoFactory, pdcFireSoundPlayer);
   TorpedoAI torpedoAI(ecs);
-  
+
+  // Create PDC Targeting System
+  PdcTarget pdcTarget(ecs, player);
+
   // Set up worldview
   sf::FloatRect viewRect({0.f, 0.f}, {1920.f, 1080.f});
   sf::View worldview(viewRect);
@@ -520,6 +526,9 @@ int main() {
     // Enemy & Torpedo AIs
     enemyAI.Update(tt, dt);
     torpedoAI.Update(tt, dt);
+
+    // pdc Targeting System for player
+    pdcTarget.Update(tt, dt);
 
     // Collision System - check for collisions
     collisionSystem.Update();

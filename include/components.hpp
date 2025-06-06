@@ -42,6 +42,7 @@ struct Pdc1 {
   float projectileSpeed = 2000.f;
   u_int32_t projectileDamage = 2;
   u_int32_t rounds = 100;
+  Entity target; // target for the PDC, can be a ship or a torpedo
 };
 
 struct Pdc2 {
@@ -53,6 +54,7 @@ struct Pdc2 {
   float projectileSpeed = 2000.f;
   u_int32_t projectileDamage = 2;
   u_int32_t rounds = 100;
+  Entity target; // target for the PDC, can be a ship or a torpedo
 };
 
 struct TorpedoLauncher1 {
