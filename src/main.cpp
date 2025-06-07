@@ -40,6 +40,13 @@ struct FlipBurnControl {
   RotationDirection rotationDir = RotationDirection::CLOCKWISE; 
 };
 
+// use this to control the pdc targeting
+enum class State {
+  ATTACK_PDC, 
+  DEFENCE_PDC,
+};
+
+
 int main() {
 
   auto window = sf::RenderWindow(sf::VideoMode({1920u, 1080u}), "Rocinante",
@@ -47,6 +54,8 @@ int main() {
   window.setFramerateLimit(60);
 
   FlipBurnControl flipControl;
+
+  State state = State::DEFENCE_PDC;
 
   // - ECS Setup -
   Coordinator ecs;
@@ -134,8 +143,8 @@ int main() {
     ecs.addComponent(player, SpriteComponent{sc});
   }
   
-  ecs.addComponent(player, Pdc1{ -45.f });
-  ecs.addComponent(player, Pdc2{ +45.f });
+  ecs.addComponent(player, Pdc1{});
+  ecs.addComponent(player, Pdc2{});
   ecs.addComponent(player, TorpedoLauncher1{});
   ecs.addComponent(player, TorpedoLauncher2{});
   ecs.addComponent(
@@ -148,7 +157,7 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   Entity enemy = ecs.createEntity("Enemy");
   ecs.addComponent(enemy, Position{{20000, 0}});
-  ecs.addComponent(enemy, Velocity{{1000.f, 0.f}});
+  ecs.addComponent(enemy, Velocity{{0.f, 0.f}});
   ecs.addComponent(enemy, Rotation{90.f});
   ecs.addComponent(enemy, Health{100});
   ecs.addComponent(enemy, Acceleration{{0.f, 0.f}});
@@ -159,8 +168,8 @@ int main() {
     sc.sprite.setOrigin(enemyOrigin);
     ecs.addComponent(enemy, sc);
   }
-  ecs.addComponent(enemy, Pdc1{ -45.f });
-  ecs.addComponent(enemy, Pdc2{ +45.f });
+  ecs.addComponent(enemy, Pdc1{});
+  ecs.addComponent(enemy, Pdc2{});
   ecs.addComponent(enemy, TorpedoLauncher1{});
   ecs.addComponent(enemy, TorpedoLauncher2{});
   ecs.addComponent(
@@ -172,11 +181,15 @@ int main() {
   // Create Collision System, with lambda callback
   ///////////////////////////////////////////////////////////////////////////////
   CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, [&ecs, &pdcHitSoundPlayer](Entity e1, Entity e2) {
-    // Handle collision
-    std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
-
     std::string e1Name = ecs.getEntityName(e1);
     std::string e2Name = ecs.getEntityName(e2);
+
+    // bullets cant collide with each other, so only destroy if they hit the player or enemy or torpedo
+    if (e1Name == "Bullet" && e2Name == "Bullet") {
+      return;
+    }
+
+    std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
 
     // Damage the health of the entities
     // cant capture player here, I know it is 0.
@@ -207,10 +220,6 @@ int main() {
       }
     }
 
-    // bullets cant collide with each other, so only destroy if they hit the player or enemy or torpedo
-    if (e1Name == "Bullet" && e2Name == "Bullet") {
-      return;
-    }
 
     if (e1 > 1) {
       ecs.removeComponent<Velocity>(e1);
@@ -245,8 +254,8 @@ int main() {
   EnemyAI enemyAI(ecs, enemy, bulletFactory, torpedoFactory, pdcFireSoundPlayer);
   TorpedoAI torpedoAI(ecs);
 
-  // Create PDC Targeting System
-  PdcTarget pdcTarget(ecs, player);
+  // Create PDC Targeting System for player
+  PdcTarget pdcTarget(ecs, player, bulletFactory, pdcFireSoundPlayer);
 
   // Set up worldview
   sf::FloatRect viewRect({0.f, 0.f}, {1920.f, 1080.f});
@@ -364,9 +373,9 @@ int main() {
         if (vel.length() == 0.f) {
           std::cout << "Flip correctionAngle: 0\n";
           flipControl.targetAngle = rot.angle + 180.f;
-          if (flipControl.targetAngle >= 360.f) {
+          if (flipControl.targetAngle >= 180.f) {
             flipControl.targetAngle -= 360.f;
-          } else if (flipControl.targetAngle < 0.f) {
+          } else if (flipControl.targetAngle < -180.f) {
             flipControl.targetAngle += 360.f;
           }
           flipControl.rotationDir = FlipBurnControl::RotationDirection::CLOCKWISE;
@@ -377,14 +386,14 @@ int main() {
           std::cout << "Flip correctionAngle: " << correctionAngle.asDegrees() << "\n";
           flipControl.targetAngle = correctionAngle.asDegrees() - 180.f;
           float diff = std::abs(flipControl.targetAngle - rot.angle);
-          if (diff > 180.f) {
+          if (diff > 0.f) {
             flipControl.rotationDir = FlipBurnControl::RotationDirection::CLOCKWISE;
           } else {
             flipControl.rotationDir = FlipBurnControl::RotationDirection::COUNTERCLOCKWISE;
           }
-          if (flipControl.targetAngle >= 360.f) {
+          if (flipControl.targetAngle >= 180.f) {
             flipControl.targetAngle -= 360.f;
-          } else if (flipControl.targetAngle < 0.f) {
+          } else if (flipControl.targetAngle < -180.f) {
             flipControl.targetAngle += 360.f;
           }
           std::cout << "Flip target angle: " << flipControl.targetAngle << "\n";
@@ -396,9 +405,9 @@ int main() {
         // rotate left
         auto &rot = ecs.getComponent<Rotation>(player);
         rot.angle -= (window.getSize().x / 500.f);
-        if (rot.angle >= 360.f) {
+        if (rot.angle >= 180.f) {
           rot.angle -= 360.f;
-        } else if (rot.angle < 0.f) {
+        } else if (rot.angle < -180.f) {
           rot.angle += 360.f;
         }
       }
@@ -406,9 +415,9 @@ int main() {
         // rotate right
         auto &rot = ecs.getComponent<Rotation>(player);
         rot.angle += (window.getSize().x / 500.f);
-        if (rot.angle >= 360.f) {
+        if (rot.angle >= 180.f) {
           rot.angle -= 360.f;
-        } else if (rot.angle < 0.f) {
+        } else if (rot.angle < -180.f) {
           rot.angle += 360.f;
         }
       }
@@ -456,9 +465,9 @@ int main() {
       }
 
       // TODO: wrap with Angle.wrapUnsigned
-      if (rot.angle >= 360.f) {
+      if (rot.angle >= 180.f) {
         rot.angle -= 360.f;
-      } else if (rot.angle < 0.f) {
+      } else if (rot.angle < -180.f) {
         rot.angle += 360.f;
       }
       std::cout << "New angle:     " << rot.angle << "\n";
@@ -470,34 +479,26 @@ int main() {
       }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////
-    // Fire! NE PDC
-    ///////////////////////////////////////////////////////////////////////////////
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q)) {
-
-      auto &pdc1 = ecs.getComponent<Pdc1>(player);
-
-      if (tt > pdc1.timeSinceFired + pdc1.cooldown && pdc1.rounds) {
-        pdc1.timeSinceFired = tt;
-        bulletFactory.fire<Pdc1>(player);
-        pdc1.rounds--;
-        pdcFireSoundPlayer.play();
-      }
+    // target all pdcs if attacking enemy
+    if (state == State::ATTACK_PDC) {
+      // target the player
+      pdcTarget.aquireTargets(enemy);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
-    // Fire! NW PDC
+    // Fire! Attacking PDCs
     ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
+      state = State::ATTACK_PDC;
+      pdcTarget.pdcAttack(tt);
+    }
 
-      auto &pdc2 = ecs.getComponent<Pdc2>(player);
-
-      if (tt > pdc2.timeSinceFired + pdc2.cooldown && pdc2.rounds) {
-        pdc2.timeSinceFired = tt;
-        bulletFactory.fire<Pdc2>(player);
-        pdcFireSoundPlayer.play();
-        pdc2.rounds--;
-      }
+    ///////////////////////////////////////////////////////////////////////////////
+    // Fire! Defensive PDCs
+    ///////////////////////////////////////////////////////////////////////////////
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) {
+      state = State::DEFENCE_PDC;
+      pdcTarget.pdcDefendTorpedo(tt, dt);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -510,14 +511,14 @@ int main() {
 
       if (launcher1.timeSinceFired == 0.f || tt > launcher1.timeSinceFired + launcher1.cooldown && launcher1.rounds) {
         launcher1.timeSinceFired = tt;
-        torpedoFactory.fire<TorpedoLauncher1>(player, enemy);
+        torpedoFactory.fireone<TorpedoLauncher1>(player, enemy);
         // TODO: add torpedo sound
         pdcFireSoundPlayer.play();
         launcher1.rounds--;
       }
       if (launcher2.timeSinceFired == 0.f || tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
         launcher2.timeSinceFired = tt;
-        torpedoFactory.fire<TorpedoLauncher2>(player, enemy);
+        torpedoFactory.fireone<TorpedoLauncher2>(player, enemy);
         pdcFireSoundPlayer.play();
         launcher2.rounds--;
       }
@@ -527,8 +528,6 @@ int main() {
     enemyAI.Update(tt, dt);
     torpedoAI.Update(tt, dt);
 
-    // pdc Targeting System for player
-    pdcTarget.Update(tt, dt);
 
     // Collision System - check for collisions
     collisionSystem.Update();

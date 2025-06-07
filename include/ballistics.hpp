@@ -40,7 +40,7 @@ public:
   ~BulletFactory() override = default;
 
   template<typename Weapon>
-  void fire(Entity firedby) {
+  void fireone(Entity firedby) {
 
     Entity bullet = ecs.createEntity("Bullet");
  
@@ -78,7 +78,7 @@ public:
   ~TorpedoFactory() override = default;
 
   template<typename Weapon>
-  void fire(Entity firedby, Entity target) {
+  void fireone(Entity firedby, Entity target) {
     Entity torpedo = ecs.createEntity("Torpedo");
  
     auto &launcher = ecs.getComponent<Weapon>(firedby);

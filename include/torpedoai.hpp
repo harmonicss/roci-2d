@@ -1,5 +1,4 @@
 #pragma once
-#include "ballistics.hpp"
 #include "components.hpp"
 #include "ecs.hpp"
 #include <SFML/Audio.hpp>
@@ -7,21 +6,41 @@
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
 #include <iostream>
+#include <ostream>
+
+#undef TORPEDO_AI_DEBUG
+
+#if !defined(TORPEDO_AI_DEBUG)
+// a streambuf that does nothing, used to redirect cout to a null stream
+struct NullBuffer : std::streambuf {
+  int overflow(int c) override { return c; } // do nothing
+};
+
+static NullBuffer nullBuffer; // global null buffer to use for cout
+static std::ostream nullStream(&nullBuffer); // global null stream to use for cout
+
+#define TORPEDO_DEBUG nullStream
+
+#else
+
+#define TORPEDO_DEBUG std::cout
+
+#endif
+
 
 class TorpedoAI {
 
 public:
   TorpedoAI(Coordinator &ecs) : ecs(ecs) {
-    std::cout << "TorpedoAI created" << std::endl;
+    TORPEDO_DEBUG << "TorpedoAI created" << std::endl;
   }
   ~TorpedoAI() = default;
 
   void Update(float tt, float dt) {
 
     float const max_lateral_accel = 1000.f; // maximum lateral acceleration (thrusters) for torpedos
-    
+ 
     // need to get all the torpedos, find their targets and turn towards them
-    // FIX: watch out for pdcs that have a target aswell. Maybe create pdcTarget?
     for (auto &torpedo :
          ecs.view<Position, Velocity, Acceleration, Rotation, Target>()) {
 
@@ -37,28 +56,28 @@ public:
 
       // get the angle to the target
       float att = angleToTarget(torpedoPos.value, targetPos.value);
- 
-      std::cout << "\nTorpedoAI Entity: " << torpedo << "\n";
-      std::cout << "TorpedoAI torpedo position: " << torpedoPos.value.x << ", " << torpedoPos.value.y << "\n";
-      std::cout << "TorpedoAI angle to target: " << att << "\n";
-      std::cout << "TorpedoAI torpedo angle: " << torpedoRot.angle << "\n";
+
+      TORPEDO_DEBUG << "\nTorpedoAI Entity: " << torpedo << "\n";
+      TORPEDO_DEBUG << "TorpedoAI torpedo position: " << torpedoPos.value.x << ", " << torpedoPos.value.y << "\n";
+      TORPEDO_DEBUG << "TorpedoAI angle to target: " << att << "\n";
+      TORPEDO_DEBUG << "TorpedoAI torpedo angle: " << torpedoRot.angle << "\n";
 
       if (torpedoVel.x == 0.f && torpedoVel.y == 0.f) {
-        std::cout << "Torpedo Velocity: " << 0 << "\n";
+        TORPEDO_DEBUG << "Torpedo Velocity: " << 0 << "\n";
       }
       else {
-        std::cout << "Torpedo Velocity: " << torpedoVel.length() << ", angle: " << torpedoVel.angle().asDegrees() << "\n";
+        TORPEDO_DEBUG << "Torpedo Velocity: " << torpedoVel.length() << ", angle: " << torpedoVel.angle().asDegrees() << "\n";
       }
 
       if (torpedoAcc.x == 0.f && torpedoVel.y == 0.f) {
-        std::cout << "Torpedo Acc: " << 0 << "\n";
+        TORPEDO_DEBUG << "Torpedo Acc: " << 0 << "\n";
       }
       else {
-        std::cout << "Torpedo Acc: " << torpedoAcc.length() << ", angle: " << torpedoAcc.angle().asDegrees() << "\n";
+        TORPEDO_DEBUG << "Torpedo Acc: " << torpedoAcc.length() << ", angle: " << torpedoAcc.angle().asDegrees() << "\n";
       }
 
       float dist = distance(torpedoPos.value, targetPos.value);
-      std::cout << "TorpedoAI distance to target: " << dist << "\n";
+      TORPEDO_DEBUG << "TorpedoAI distance to target: " << dist << "\n";
 
       ////////////////////////////////////////////////////////////////////////////////////
       // Use 2D proportional navigation to calculate the angle and acceleration needed 
@@ -70,7 +89,7 @@ public:
 
       // relative velocity
       sf::Vector2f v_rel = targetVel - torpedoVel;
-      std::cout << "TorpedoAI relative speed: " << v_rel.length() << "\n";
+      TORPEDO_DEBUG << "TorpedoAI relative speed: " << v_rel.length() << "\n";
 
       ////////////////////////////////////////////////////////////////////////////////////
       // Line of sight (angle to target) angular rate is the derivative of the angle
@@ -82,7 +101,7 @@ public:
         // direct kinematic control
         dot_att = (p_rel.x * v_rel.y - p_rel.y * v_rel.x) / (p_rel.x * p_rel.x + p_rel.y * p_rel.y);
 
-      std::cout << "TorpedoAI dot_att: " << dot_att << "\n";
+      TORPEDO_DEBUG << "TorpedoAI dot_att: " << dot_att << "\n";
 
       ////////////////////////////////////////////////////////////////////////////////////
       // Compute closing velocity
@@ -92,7 +111,7 @@ public:
 
       float Vc = -v_rel.x * los_unit_vector.x - v_rel.y * los_unit_vector.y;
 
-      std::cout << "TorpedoAI closing speed: " << Vc << "\n";
+      TORPEDO_DEBUG << "TorpedoAI closing speed: " << Vc << "\n";
 
       ////////////////////////////////////////////////////////////////////////////////////
       // Proportional navigation commanded lateral acceleration
@@ -101,7 +120,7 @@ public:
       // and Vc is the closing speed
       float Acc_N = 3.f * Vc * std::abs(dot_att); // N = 3 is a common value
 
-      std::cout << "TorpedoAI commanded lateral acceleration: " << Acc_N << "\n";
+      TORPEDO_DEBUG << "TorpedoAI commanded lateral acceleration: " << Acc_N << "\n";
 
       float Rem_Acc_N = 0.f;
  
@@ -119,7 +138,7 @@ public:
 
       // convert the remaining lateral acceleration into a heading rate
       // the remaining lateral acceleration after thrust to be applied to the turn
-      std::cout << "TorpedoAI remaining lateral acceleration: " << Rem_Acc_N << "\n";
+      TORPEDO_DEBUG << "TorpedoAI remaining lateral acceleration: " << Rem_Acc_N << "\n";
 
       ////////////////////////////////////////////////////////////////////////////////////
       // resolve the acceleration perpendicular to the velocity vector of the torpedo
@@ -137,11 +156,11 @@ public:
       // new acceleration command needed for lateral movement (thrusters)
       sf::Vector2f a_cmd = perp_t * (sign * Acc_N);
 
-      std::cout << "TorpedoAI lateral acceleration length: " << a_cmd.length() << "\n";
+      TORPEDO_DEBUG << "TorpedoAI lateral acceleration length: " << a_cmd.length() << "\n";
       if (a_cmd.length() > 0.f) 
-        std::cout << "TorpedoAI lateral acceleration angle: " << a_cmd.angle().asDegrees() << "\n";
+        TORPEDO_DEBUG << "TorpedoAI lateral acceleration angle: " << a_cmd.angle().asDegrees() << "\n";
       else 
-        std::cout << "TorpedoAI lateral acceleration angle: 0\n";
+        TORPEDO_DEBUG << "TorpedoAI lateral acceleration angle: 0\n";
 
       float engine_accel = 0.f;
 
@@ -153,7 +172,7 @@ public:
       if (torpedoRot.angle >= att - 5.f && torpedoRot.angle <= att + 5.f) {
       } else {
         engine_accel = 0.f;
-        std::cout << "TorpedoAI not accelerating, angle to target: " << att << ", torpedo angle: " << torpedoRot.angle << "\n";
+        TORPEDO_DEBUG << "TorpedoAI not accelerating, angle to target: " << att << ", torpedo angle: " << torpedoRot.angle << "\n";
       }
 #else
       // not sure how to get the launcher acceleration, so copy for now
@@ -165,11 +184,11 @@ public:
       sf::Vector2f a_engines = { static_cast<float>(std::cos(torpedoRot.angle * (M_PI / 180.f)) * engine_accel),
                                  static_cast<float>(std::sin(torpedoRot.angle * (M_PI / 180.f)) * engine_accel) };
 
-      std::cout << "TorpedoAI engine acceleration length: " << a_engines.length() << "\n";
+      TORPEDO_DEBUG << "TorpedoAI engine acceleration length: " << a_engines.length() << "\n";
       if (a_engines.length() > 0.f) 
-        std::cout << "TorpedoAI engine acceleration angle: " << a_engines.angle().asDegrees() << "\n";
+        TORPEDO_DEBUG << "TorpedoAI engine acceleration angle: " << a_engines.angle().asDegrees() << "\n";
       else 
-        std::cout << "TorpedoAI engine acceleration angle: 0\n";
+        TORPEDO_DEBUG << "TorpedoAI engine acceleration angle: 0\n";
 
 
       // apply the sign from the dot lambda
@@ -185,22 +204,22 @@ public:
       if (omega > 0.01f || omega < -0.01f) {
         // just use the thrusters 
         torpedoAcc = a_cmd;
-        std::cout << "TorpedoAI using thrusters only, omega: " << omega << "\n";
+        TORPEDO_DEBUG << "TorpedoAI using thrusters only, omega: " << omega << "\n";
       }
       else {
         // full power
         torpedoAcc = a_engines + a_cmd;
-        std::cout << "TorpedoAI using engines and thrusters, omega: " << omega << "\n";
+        TORPEDO_DEBUG << "TorpedoAI using engines and thrusters, omega: " << omega << "\n";
       }
 #else
       torpedoAcc = a_engines + a_cmd;
 #endif
 
-      std::cout << "TorpedoAI commanded acceleration length: " << torpedoAcc.length() << "\n";
+      TORPEDO_DEBUG << "TorpedoAI commanded acceleration length: " << torpedoAcc.length() << "\n";
       if (torpedoAcc.length() > 0.f)
-        std::cout << "TorpedoAI commanded acceleration angle: " << torpedoAcc.angle().asDegrees() << "\n";
+        TORPEDO_DEBUG << "TorpedoAI commanded acceleration angle: " << torpedoAcc.angle().asDegrees() << "\n";
       else 
-        std::cout << "TorpedoAI commanded acceleration angle: 0\n";
+        TORPEDO_DEBUG << "TorpedoAI commanded acceleration angle: 0\n";
 
       // convert to degrees per second
       omega = omega * (180.f / M_PI);
@@ -214,7 +233,7 @@ public:
         omega = -40.f;
       }
 
-      std::cout << "TorpedoAI lateral heading rate: " << omega << "\n";
+      TORPEDO_DEBUG << "TorpedoAI lateral heading rate: " << omega << "\n";
 
       // turn towards the target, also apply extra turn from the lateral thrust.
       if (torpedoControl.turning == false) {
@@ -266,7 +285,7 @@ private:
       torpedoRot.angle += 360.f;
     }
 
-    std::cout << "Starting Turn to " << atp << "\n";
+    TORPEDO_DEBUG << "Starting Turn to " << atp << "\n";
 
     float diff = torpedoControl.targetAngle - torpedoRot.angle;
 
@@ -299,21 +318,21 @@ private:
       diff -= 360.f;
     }
  
-    std::cout << "Performing Turn to " << torpedoControl.targetAngle << ", Diff " << diff << " current angle " << torpedoRot.angle << "\n";
+    TORPEDO_DEBUG << "Performing Turn to " << torpedoControl.targetAngle << ", Diff " << diff << " current angle " << torpedoRot.angle << "\n";
 
     // some leeway to ensure we stop
     if (diff >= -20.f && diff <= 20.f) {
       torpedoRot.angle = torpedoControl.targetAngle;
       torpedoControl.turning = false;
-      std::cout << "Turn complete to " << torpedoControl.targetAngle << "\n";
+      TORPEDO_DEBUG << "Turn complete to " << torpedoControl.targetAngle << "\n";
     } 
     else if (torpedoControl.rotationDir == TorpedoControl::RotationDirection::CLOCKWISE) {
       torpedoRot.angle += 15.f; //(window.getSize().x / 100.f);
-      std::cout << "Clockwise turn to " << torpedoRot.angle << "\n";
+      TORPEDO_DEBUG << "Clockwise turn to " << torpedoRot.angle << "\n";
     }
     else {
       torpedoRot.angle -= 15.f; //(window.getSize().x / 100.f);
-      std::cout << "CounterClockwise turn to " << torpedoRot.angle << "\n";
+      TORPEDO_DEBUG << "CounterClockwise turn to " << torpedoRot.angle << "\n";
     }
 
     // TODO: wrap with Angle.wrapUnsigned

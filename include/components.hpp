@@ -32,34 +32,46 @@ struct Health {
   unsigned int value = 100;
 };
 
+enum class PdcFireMode { BURST, CONTINUOUS };
+
 // Point Defense Cannon
 struct Pdc1 {
+  PdcFireMode fireMode = PdcFireMode::BURST;
   float firingAngle;
-  float minFiringAngle = -170.f; // not quite behind the ship
+  float minFiringAngle = -170.f;     // not quite behind the ship
   float maxFiringAngle = 10.f;
   float cooldown = 0.10f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 2000.f;
   u_int32_t projectileDamage = 2;
   u_int32_t rounds = 100;
-  Entity target; // target for the PDC, can be a ship or a torpedo
+  Entity target;                     // target for the PDC, can be a ship or a torpedo
+  uint32_t pdcBurst = 0;             // number of rounds fired in the burst
+  uint32_t maxPdcBurst = 15;
+  float timeSinceBurst = 0.f;
+  float pdcBurstCooldown = 4.f;
 };
 
 struct Pdc2 {
+  PdcFireMode fireMode = PdcFireMode::BURST;
   float firingAngle;
-  float minFiringAngle = -10.f; // just past the front of the ship 
+  float minFiringAngle = -10.f;      // just past the front of the ship 
   float maxFiringAngle = 170.f;
   float cooldown = 0.10f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 2000.f;
   u_int32_t projectileDamage = 2;
   u_int32_t rounds = 100;
-  Entity target; // target for the PDC, can be a ship or a torpedo
+  Entity target;                     // target for the PDC, can be a ship or a torpedo
+  uint32_t pdcBurst = 0;             // number of rounds fired in the burst
+  uint32_t maxPdcBurst = 15;
+  float timeSinceBurst = 0.f;
+  float pdcBurstCooldown = 4.f;
 };
 
 struct TorpedoLauncher1 {
-  float firingAngle = -35.f;    // helps avoid collision
-  float firingOffset = -100.f; // to create a seperation distance between launchers
+  float firingAngle = -35.f;         // helps avoid collision
+  float firingOffset = -100.f;       // to create a seperation distance between launchers
   float cooldown = 5.0;
   float timeSinceFired = 0.f;
   float projectileSpeed = 500.f; 

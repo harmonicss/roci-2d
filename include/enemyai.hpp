@@ -2,6 +2,7 @@
 #include "components.hpp"
 #include "ecs.hpp"
 #include "ballistics.hpp"
+#include "targeting.hpp"
 #include <iostream>
 #include <cmath>
 #include <SFML/Graphics.hpp>
@@ -10,13 +11,14 @@
 class EnemyAI {
 
 public:
-  EnemyAI(Coordinator &ecs, Entity enemy, BulletFactory bulletFactory, TorpedoFactory torpedoFactory, sf::Sound pdcFireSoundPlayer ) : 
+  EnemyAI(Coordinator &ecs, Entity enemy, BulletFactory bulletFactory, TorpedoFactory torpedoFactory, sf::Sound pdcFireSoundPlayer) :
     ecs(ecs), 
     enemy(enemy),
     bulletFactory(bulletFactory),
     torpedoFactory(torpedoFactory),
-    pdcFireSoundPlayer(pdcFireSoundPlayer) {
-  
+    pdcFireSoundPlayer(pdcFireSoundPlayer),
+    pdcTarget(ecs, enemy, bulletFactory, pdcFireSoundPlayer) {
+
     std::cout << "EnemyAI created" << std::endl;
   }
   ~EnemyAI() = default;
@@ -24,6 +26,7 @@ public:
   void Update(float tt, float dt)  {
     // update state based on player distance
     auto &enemyPos = ecs.getComponent<Position>(enemy);
+    auto &enemyVel = ecs.getComponent<Velocity>(enemy);
     auto &enemyAcc = ecs.getComponent<Acceleration>(enemy);
     auto &enemyRot = ecs.getComponent<Rotation>(enemy);
     auto &playerPos = ecs.getComponent<Position>(0);
@@ -35,42 +38,71 @@ public:
     // std::cout << "EnemyAI distance to player: " << dist << std::endl;
     // std::cout << "\nEnemyAI angle to player: " << atp << std::endl;
 
+
+
     ///////////////////////////////////////////////////////////////////////////////
     // - Ship State Machine -
     ///////////////////////////////////////////////////////////////////////////////
-    if (state == State::CLOSE) {
-      if (dist <= attack_torpedo_distance) {
-        state = State::ATTACK_TORPEDO;
-        std::cout << "EnemyAI state: ATTACK_TORPEDO" << std::endl;
-      }
+    if (pdcTarget.pdcTorpedoThreatDetect()) {
+      state = State::DEFENCE_PDC;
+      std::cout << "EnemyAI state: DEFENCE_PDC" << std::endl;
     }
-    else if (state == State::IDLE) {
-      if (dist < close_distance) {
-        state = State::CLOSE;
-        std::cout << "EnemyAI state: CLOSE" << std::endl;
+    else
+    {
+      if (state == State::DEFENCE_PDC) {
+        // if we are in defence mode, we want to stop defending if there are no threats
+        std::cout << "EnemyAI state: no threats, switching to IDLE" << std::endl;
+        state = State::IDLE;
       }
-    }
-    else if (state == State::ATTACK_TORPEDO) {
-      if (dist < attack_pdc_distance) {
-        state = State::ATTACK_PDC;
-        std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
-      } 
-      else if (dist > attack_torpedo_distance) {
-        state = State::CLOSE;
-        std::cout << "EnemyAI state: CLOSE" << std::endl;
+      else if (state == State::CLOSE) {
+        if (dist <= attack_torpedo_distance) {
+          state = State::ATTACK_TORPEDO;
+          std::cout << "EnemyAI state: ATTACK_TORPEDO" << std::endl;
+        }
       }
-    }
-    else if (state == State::ATTACK_PDC) {
-      if (dist > attack_pdc_distance) {
-        state = State::ATTACK_TORPEDO;
-        std::cout << "EnemyAI state: ATTACK_TORPEDO" << std::endl;
+      else if (state == State::IDLE) {
+        if (dist < close_distance) {
+          state = State::CLOSE;
+          std::cout << "EnemyAI state: CLOSE" << std::endl;
+        }
+      }
+      else if (state == State::ATTACK_TORPEDO) {
+        if (dist < attack_pdc_distance) {
+          state = State::ATTACK_PDC;
+          std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
+        } 
+        else if (dist > attack_torpedo_distance) {
+          state = State::CLOSE;
+          std::cout << "EnemyAI state: CLOSE" << std::endl;
+        }
+      }
+      else if (state == State::ATTACK_PDC) {
+        if (dist > attack_pdc_distance) {
+          state = State::ATTACK_TORPEDO;
+          std::cout << "EnemyAI state: ATTACK_TORPEDO" << std::endl;
+        }
       }
     }
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Ship Control -
     ///////////////////////////////////////////////////////////////////////////////
-    if (state == State::CLOSE) {
+    if (state == State::DEFENCE_PDC) {
+      // set accel to 0
+      // probably want to set a target velocity instead
+      enemyAcc.value.x = 0.f;
+      enemyAcc.value.y = 0.f;
+
+      // only want to turn the ship if we are not already turning, prevents jittering
+      // turn to player for now
+      if (shipControl.turning == false) {
+        startTurn(atp);
+      }
+
+      // aquire the nearest torpedo and fire the PDCs
+      pdcTarget.pdcDefendTorpedo(tt, dt);
+    }
+    else if (state == State::CLOSE) {
       shipControl.targetPosition = playerPos.value;
       //shipControl.targetAcceleration = enemyAcc.value;
      
@@ -105,17 +137,23 @@ public:
       auto &enemyRot = ecs.getComponent<Rotation>(enemy);
       float diff = atp - enemyRot.angle;
 
+      if (diff >= 180.f) {
+        diff -= 360.f;
+      } else if (diff < -180.f) {
+        diff += 360.f;
+      }
+
       // fire when facing the player, +/- 5 degrees
       if (diff >= -05.f && diff <= +05.f) {
         if (tt > launcher1.timeSinceFired + launcher1.cooldown && launcher1.rounds) {
           launcher1.timeSinceFired = tt;
-          torpedoFactory.fire<TorpedoLauncher1>(enemy, 0);
+          torpedoFactory.fireone<TorpedoLauncher1>(enemy, 0);
           launcher1.rounds--;
           std::cout << "EnemyAI firing TorpedoLauncher1" << std::endl;
         }
         if (tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
           launcher2.timeSinceFired = tt;
-          torpedoFactory.fire<TorpedoLauncher2>(enemy, 0);
+          torpedoFactory.fireone<TorpedoLauncher2>(enemy, 0);
           launcher2.rounds--;
           std::cout << "EnemyAI firing TorpedoLauncher2" << std::endl;
         }
@@ -125,6 +163,13 @@ public:
 
       auto &enemyRot = ecs.getComponent<Rotation>(enemy);
       float diff = atp - enemyRot.angle;
+
+      if (diff >= 180.f) {
+        diff -= 360.f;
+      } else if (diff < -180.f) {
+        diff += 360.f;
+      }
+
       // playing with setting the heading to an offsest for pdc fire and to avoid collisions
       // +/- 45 degrees will miss if the player is moving, so try 35
       // probably need to take into account target velocity instead for targeting
@@ -137,45 +182,22 @@ public:
       }
 
       // set accel to 0
-      // probably want to set a target velocity instead
       enemyAcc.value.x = 0.f;
       enemyAcc.value.y = 0.f; 
+      
+#if 0
+      // set a target velocity instead
+      enemyVel.value.y = std::sin((enemyRot.angle) * (M_PI / 180.f)) * 1000.f;
+      enemyVel.value.x = std::cos((enemyRot.angle) * (M_PI / 180.f)) * 1000.f; 
+#else 
+      enemyVel.value.y = 0.f;
+      enemyVel.value.x = 0.f;
+#endif
 
-      if (tt > shipControl.timeSinceBurst + shipControl.pdcBusrtCooldown) {
-        shipControl.timeSinceBurst = tt;
-        shipControl.pdcBurst = 15;
-      }
-
-      if (shipControl.pdcBurst > 0) {
-        // fire pdc, in attacking range
-        // std::cout << "EnemyAI firing diff: " << diff << std::endl;
-        if (diff >= -55.f && diff <= -20.f) {
-          auto &pdc1 = ecs.getComponent<Pdc1>(enemy);
-          if (pdc1.rounds != 0 && shipControl.pdcBurst != 0) {
-            if (tt > pdc1.timeSinceFired + pdc1.cooldown) {
-              pdc1.timeSinceFired = tt;
-              bulletFactory.fire<Pdc1>(enemy);
-              pdc1.rounds--;
-              shipControl.pdcBurst--;
-              pdcFireSoundPlayer.play();
-              // std::cout << "EnemyAI firing PDC1" << std::endl;
-            }
-          }
-        }
-        else if (diff >= 20.f && diff <= 55.f) {
-          auto &pdc2 = ecs.getComponent<Pdc2>(enemy);
-          if (pdc2.rounds != 0 && shipControl.pdcBurst != 0) {
-            if (tt > pdc2.timeSinceFired + pdc2.cooldown) {
-              pdc2.timeSinceFired = tt;
-              bulletFactory.fire<Pdc2>(enemy);
-              pdc2.rounds--;
-              shipControl.pdcBurst--;
-              pdcFireSoundPlayer.play();
-              // std::cout << "EnemyAI firing PDC2" << std::endl;
-            }
-          }
-        }
-      }
+      // for now, attack the player. 
+      // Could additional evasive maneuvers later.
+      pdcTarget.aquireTargets(0);
+      pdcTarget.pdcAttack(tt);
     }
  
     // perform the turn
@@ -190,6 +212,7 @@ public:
   BulletFactory bulletFactory;
   TorpedoFactory torpedoFactory;
   sf::Sound pdcFireSoundPlayer;
+  PdcTarget pdcTarget;
 
   const float close_distance          = 1000000.f;
   const float attack_pdc_distance     = 8000.f;
@@ -199,6 +222,7 @@ public:
     IDLE,
     CLOSE,
     ATTACK_PDC,
+    DEFENCE_PDC,
     ATTACK_TORPEDO,
     EVADE,
     FLEE
@@ -210,9 +234,6 @@ public:
     bool turning = false;
     bool burning = false;
     float targetAngle = 0.f;
-    uint32_t pdcBurst = 0;
-    float timeSinceBurst = 0.f;
-    float pdcBusrtCooldown = 4.f;
     sf::Vector2f targetPosition;
     sf::Vector2f targetAcceleration;
     enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE };
