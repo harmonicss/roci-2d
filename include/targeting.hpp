@@ -120,7 +120,7 @@ public:
     pdc1.target = target;
     pdc2.target = target;
 
-    std::cout << "PdcTarget set target: " << target << "\n";
+    // std::cout << "PdcTarget set target: " << target << "\n";
   }
 
   // Target the PDCs at target
@@ -150,7 +150,7 @@ public:
       //   rotatedAngle += 360.f;
       // }
 
-      std::cout << "\nPdcTarget angle to target: " << att << "\n";
+      // std::cout << "\nPdcTarget angle to target: " << att << "\n";
 
       // estimate a targeting angle based on the target's velocity
       // use a simple prediction based on the target's velocity and distance
@@ -166,18 +166,18 @@ public:
       // fudge factor for time to impact, as the change in angle is minimal
       timeToImpact *= 1.00f;
 
-      std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
+      // std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
 
       // Predict the target's position based on our relative velocity
       // and the time to impact
 
       // compute relative velocity
       sf::Vector2f relativeVel = targetVel.value - entityVel.value;
-      std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
-
+      // std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
+ 
       sf::Vector2f predictedTargetPos = distanceVector + (relativeVel * timeToImpact);
-      std::cout << "PdcTarget target position: " 
-                << targetPos.value.x << ", " << targetPos.value.y << "\n";
+      // std::cout << "PdcTarget target position: " 
+      //           << targetPos.value.x << ", " << targetPos.value.y << "\n";
 
       // aim at a guessed future position
       // - entityPos.value for the enemy? Not for player 
@@ -185,11 +185,11 @@ public:
 
       float guessAngle = guessDir.angle().asDegrees();
 
-      std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
+      // std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
 
       // now that we have the guess angle, we need to adjust it based on the entity's rotation
-      att = guessAngle - entityRot.angle;
-      // att = guessAngle;
+      //att = guessAngle - entityRot.angle;
+      att = guessAngle;
 
       if (att >= 180.f) {
         att -= 360.f;
@@ -197,7 +197,7 @@ public:
         att += 360.f;
       }
 
-      std::cout << "PdcTarget final rotated angle: " << att << "\n";
+      // std::cout << "PdcTarget final absolute angle: " << att << "\n";
 
       pdc1.firingAngle = att;
       pdc2.firingAngle = att;
@@ -206,12 +206,48 @@ public:
   // fire the PDC if it is ready and target in arc
   void firePdc1Burst(Entity source, float tt) {
     auto &pdc = ecs.getComponent<Pdc1>(source);
+    auto &entityRot = ecs.getComponent<Rotation>(source);
+
+    // rotate the firing angle based on the entity's rotation
+    float rotatedMinAngle = pdc.minFiringAngle - entityRot.angle;
+    float rotatedMaxAngle = pdc.maxFiringAngle - entityRot.angle;
+    float rotatedFiringAngle = pdc.firingAngle - entityRot.angle;
+
+    if (rotatedMinAngle >= 180.f) {
+      rotatedMinAngle -= 360.f;
+    } else if (rotatedMinAngle < -180.f) {
+      rotatedMinAngle += 360.f;
+    }
+
+    if (rotatedMaxAngle >= 180.f) {
+      rotatedMaxAngle -= 360.f;
+    } else if (rotatedMaxAngle < -180.f) {
+      rotatedMaxAngle += 360.f;
+    }
+
+    if (rotatedFiringAngle >= 180.f) {
+      rotatedFiringAngle -= 360.f;
+    } else if (rotatedFiringAngle < -180.f) {
+      rotatedFiringAngle += 360.f;
+    }
+
+    // min and max angles could be the wrong way around, so check
+    if (rotatedMinAngle > rotatedMaxAngle) {
+      std::swap(rotatedMinAngle, rotatedMaxAngle);
+    }
+
+    std::cout << "PDC1 rotated firing angle: " << rotatedFiringAngle
+              << " absolute firing angle: " << pdc.firingAngle
+              << " entity rotation angle: " << entityRot.angle
+              << " rotated min: " << rotatedMinAngle
+              << " rotated max: " << rotatedMaxAngle
+              << " source: " << source << "\n";
 
     // check if the torpedo is within the firing angle of the PDCs
     // TODO: would be good to rotate the pdcs over time
-    if (pdc.firingAngle >= pdc.minFiringAngle && pdc.firingAngle <= pdc.maxFiringAngle) {
+    if (isInRange(rotatedFiringAngle, rotatedMinAngle, rotatedMaxAngle)) {
 
-      if (tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
+      if (pdc.timeSinceBurst == 0 || tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
         pdc.timeSinceBurst = tt;
         pdc.pdcBurst = pdc.maxPdcBurst;
       }
@@ -223,19 +259,59 @@ public:
           pdc.rounds--;
           pdc.pdcBurst--;
           pdcFireSoundPlayer.play();
-          std::cout << "PDC1 FIRING angle: " << pdc.firingAngle << " target: " << pdc.target 
-                    << " fired from : " << source << "\n";
+          std::cout << "PDC1 FIRING!" << "\n";
         }
       }
+    }
+    else {
+      std::cout << "PDC1 not firing, rotated angle out of range: " 
+                << rotatedFiringAngle << " min: " << rotatedMinAngle 
+                << " max: " << rotatedMaxAngle << "\n";
     }
   }
 
   void firePdc2Burst(Entity source, float tt) {
     auto &pdc = ecs.getComponent<Pdc2>(source);
+    auto &entityRot = ecs.getComponent<Rotation>(source);
 
-    if (pdc.firingAngle >= pdc.minFiringAngle && pdc.firingAngle <= pdc.maxFiringAngle) {
+    // rotate the firing angle based on the entity's rotation
+    float rotatedMinAngle = pdc.minFiringAngle - entityRot.angle;
+    float rotatedMaxAngle = pdc.maxFiringAngle - entityRot.angle;
+    float rotatedFiringAngle = pdc.firingAngle - entityRot.angle;
 
-      if (tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
+    if (rotatedMinAngle >= 180.f) {
+      rotatedMinAngle -= 360.f;
+    } else if (rotatedMinAngle < -180.f) {
+      rotatedMinAngle += 360.f;
+    }
+
+    if (rotatedMaxAngle >= 180.f) {
+      rotatedMaxAngle -= 360.f;
+    } else if (rotatedMaxAngle < -180.f) {
+      rotatedMaxAngle += 360.f;
+    }
+
+    if (rotatedFiringAngle >= 180.f) {
+      rotatedFiringAngle -= 360.f;
+    } else if (rotatedFiringAngle < -180.f) {
+      rotatedFiringAngle += 360.f;
+    }
+
+    // min and max angles could be the wrong way around, so check
+    if (rotatedMinAngle > rotatedMaxAngle) {
+      std::swap(rotatedMinAngle, rotatedMaxAngle);
+    }
+
+    std::cout << "PDC2 rotated firing angle: " << rotatedFiringAngle
+              << " absolute firing angle: " << pdc.firingAngle
+              << " entity rotation angle: " << entityRot.angle
+              << " rotated min: " << rotatedMinAngle
+              << " rotated max: " << rotatedMaxAngle
+              << " source:" << source << "\n";
+
+    if (isInRange(rotatedFiringAngle, rotatedMinAngle, rotatedMaxAngle)) {
+
+      if (pdc.timeSinceBurst == 0 || tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
         pdc.timeSinceBurst = tt;
         pdc.pdcBurst = pdc.maxPdcBurst;
       }
@@ -247,10 +323,14 @@ public:
           pdc.rounds--;
           pdc.pdcBurst--;
           pdcFireSoundPlayer.play();
-          std::cout << "PDC2 FIRING angle: " << pdc.firingAngle << " target: " << pdc.target 
-                    << " fired from : " << source << "\n";
+          std::cout << "PDC2 FIRING!" << "\n";
         }
       }
+    }
+    else {
+      std::cout << "PDC2 not firing, rotated angle out of range: " 
+                << rotatedFiringAngle << " min: " << rotatedMinAngle 
+                << " max: " << rotatedMaxAngle << "\n";
     }
   }
 
@@ -272,5 +352,13 @@ private:
     float radians = std::atan2(target.y - source.y, target.x - source.x);
 
     return (radians * 180.f) / M_PI;
+  }
+
+  inline bool isInRange(float angle, float minAngle, float maxAngle) {
+    if (minAngle > maxAngle) {
+      // wrap around case
+      return angle >= minAngle || angle <= maxAngle;
+    }
+    return angle >= minAngle && angle <= maxAngle;
   }
 };

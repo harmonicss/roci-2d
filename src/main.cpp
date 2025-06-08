@@ -404,7 +404,8 @@ int main() {
       if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
         // rotate left
         auto &rot = ecs.getComponent<Rotation>(player);
-        rot.angle -= (window.getSize().x / 500.f);
+        //rot.angle -= (window.getSize().x / 500.f);
+        rot.angle -= 180.f * dt;
         if (rot.angle >= 180.f) {
           rot.angle -= 360.f;
         } else if (rot.angle < -180.f) {
@@ -414,7 +415,8 @@ int main() {
       else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
         // rotate right
         auto &rot = ecs.getComponent<Rotation>(player);
-        rot.angle += (window.getSize().x / 500.f);
+        // rot.angle += (window.getSize().x / 500.f);
+        rot.angle += 180.f * dt;
         if (rot.angle >= 180.f) {
           rot.angle -= 360.f;
         } else if (rot.angle < -180.f) {

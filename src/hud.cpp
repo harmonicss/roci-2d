@@ -206,6 +206,8 @@ void DrawPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float
   auto &pdc1 = ecs.getComponent<Pdc1>(0);
   auto &pdc2 = ecs.getComponent<Pdc2>(0);
 
+  // firing angle is as absolute, not rotataed angle
+  
   // float pdc1Angle = prot.angle + pdc1.firingAngle;
   float pdc1Angle = pdc1.firingAngle;
   // float pdc2Angle = prot.angle + pdc2.firingAngle;
