@@ -105,15 +105,27 @@ public:
 
     std::cout << "\nPdcTarget nearest torpedo: " << nearestTorpedo << "\n";
     std::cout << "PdcTarget nearest torpedo distance: " << nearestTorpedoDist << "\n";
-
-    aquireTargets(nearestTorpedo);
+ 
+    setTarget(nearestTorpedo);
+    aquireTargets();
     firePdc1Burst(e, tt);
     firePdc2Burst(e, tt);
   }
 
+  void setTarget(Entity target) {
+    // set the target for the PDCs
+    auto &pdc1 = ecs.getComponent<Pdc1>(e);
+    auto &pdc2 = ecs.getComponent<Pdc2>(e);
+
+    pdc1.target = target;
+    pdc2.target = target;
+
+    std::cout << "PdcTarget set target: " << target << "\n";
+  }
+
   // Target the PDCs at target
   // TODO: move the pdcs for spread
-  void aquireTargets (Entity target) {
+  void aquireTargets () {
 
     // update the target for the PDCs
     //TODO: investigate as this will get all pdc entities, not correct?
@@ -121,63 +133,74 @@ public:
       auto &pdc1 = ecs.getComponent<Pdc1>(e);
       auto &pdc2 = ecs.getComponent<Pdc2>(e);
 
-      auto &targetPos = ecs.getComponent<Position>(target);
-      auto &targetVel = ecs.getComponent<Velocity>(target);
+      auto &targetPos = ecs.getComponent<Position>(pdc1.target); // what about pdc2 different target?
+      auto &targetVel = ecs.getComponent<Velocity>(pdc1.target);
       auto &entityPos = ecs.getComponent<Position>(e);
       auto &entityRot = ecs.getComponent<Rotation>(e);
+      auto &entityVel = ecs.getComponent<Velocity>(e);
 
       // get the angle to the nearest torpedo
       float att = angleToTarget(entityPos.value, targetPos.value);
 
       // get rotated firing angle based on the entity's rotation
-      float rotatedAngle = att - entityRot.angle;
-      if (rotatedAngle >= 180.f) {
-        rotatedAngle -= 360.f;
-      } else if (rotatedAngle < -180.f) {
-        rotatedAngle += 360.f;
-      }
+      // float rotatedAngle = att - entityRot.angle;
+      // if (rotatedAngle >= 180.f) {
+      //   rotatedAngle -= 360.f;
+      // } else if (rotatedAngle < -180.f) {
+      //   rotatedAngle += 360.f;
+      // }
 
-      std::cout << "\nPdcTarget rotated angle to target: " << rotatedAngle << "\n";
+      std::cout << "\nPdcTarget angle to target: " << att << "\n";
 
       // estimate a targeting angle based on the target's velocity
       // use a simple prediction based on the target's velocity and distance
-      // TODO: This doesnt work if the target is head on
+      // TODO: This doesnt work there is a sign wrong somewhere
       sf::Vector2f distanceVector = targetPos.value - entityPos.value;
 
       float distance = distanceVector.length();
 
       // estimate the time to impact based on the distance and target velocity
       // trim it down to prevent overshooting
-      float timeToImpact = distance / pdc1.projectileSpeed / 100;
+      float timeToImpact = distance / pdc1.projectileSpeed;
+
+      // fudge factor for time to impact, as the change in angle is minimal
+      timeToImpact *= 1.00f;
 
       std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
 
-      // Predict the target's position based on its velocity
-      sf::Vector2f predictedTargetPos = targetPos.value + 
-        (targetVel.value * timeToImpact);
+      // Predict the target's position based on our relative velocity
+      // and the time to impact
+
+      // compute relative velocity
+      sf::Vector2f relativeVel = targetVel.value - entityVel.value;
+      std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
+
+      sf::Vector2f predictedTargetPos = distanceVector + (relativeVel * timeToImpact);
+      std::cout << "PdcTarget target position: " 
+                << targetPos.value.x << ", " << targetPos.value.y << "\n";
 
       // aim at a guessed future position
+      // - entityPos.value for the enemy? Not for player 
       sf::Vector2f guessDir = predictedTargetPos.normalized();
 
       float guessAngle = guessDir.angle().asDegrees();
 
       std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
 
-      rotatedAngle = rotatedAngle + guessAngle;
+      // now that we have the guess angle, we need to adjust it based on the entity's rotation
+      att = guessAngle - entityRot.angle;
+      // att = guessAngle;
 
-      if (rotatedAngle >= 180.f) {
-        rotatedAngle -= 360.f;
-      } else if (rotatedAngle < -180.f) {
-        rotatedAngle += 360.f;
+      if (att >= 180.f) {
+        att -= 360.f;
+      } else if (att < -180.f) {
+        att += 360.f;
       }
 
-      std::cout << "PdcTarget final rotated angle: " << rotatedAngle << "\n";
+      std::cout << "PdcTarget final rotated angle: " << att << "\n";
 
-      pdc1.firingAngle = rotatedAngle;
-      pdc2.firingAngle = rotatedAngle;
-      pdc1.target = target;
-      pdc2.target = target;
-    //}
+      pdc1.firingAngle = att;
+      pdc2.firingAngle = att;
   }
 
   // fire the PDC if it is ready and target in arc
@@ -187,8 +210,6 @@ public:
     // check if the torpedo is within the firing angle of the PDCs
     // TODO: would be good to rotate the pdcs over time
     if (pdc.firingAngle >= pdc.minFiringAngle && pdc.firingAngle <= pdc.maxFiringAngle) {
-      std::cout << "PdcTarget PDC1 FIRING angle: " << pdc.firingAngle << "\n";
-      std::cout << "PdcTarget PDC1 target: " << pdc.target << "\n";
 
       if (tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
         pdc.timeSinceBurst = tt;
@@ -202,7 +223,8 @@ public:
           pdc.rounds--;
           pdc.pdcBurst--;
           pdcFireSoundPlayer.play();
-          std::cout << "PDC fired from entity: " << source << "\n";
+          std::cout << "PDC1 FIRING angle: " << pdc.firingAngle << " target: " << pdc.target 
+                    << " fired from : " << source << "\n";
         }
       }
     }
@@ -211,9 +233,7 @@ public:
   void firePdc2Burst(Entity source, float tt) {
     auto &pdc = ecs.getComponent<Pdc2>(source);
 
-      if (pdc.firingAngle >= pdc.minFiringAngle && pdc.firingAngle <= pdc.maxFiringAngle) {
-        std::cout << "PdcTarget PDC2 FIRING angle: " << pdc.firingAngle << "\n";
-        std::cout << "PdcTarget PDC2 target: " << pdc.target << "\n";
+    if (pdc.firingAngle >= pdc.minFiringAngle && pdc.firingAngle <= pdc.maxFiringAngle) {
 
       if (tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
         pdc.timeSinceBurst = tt;
@@ -227,7 +247,8 @@ public:
           pdc.rounds--;
           pdc.pdcBurst--;
           pdcFireSoundPlayer.play();
-          std::cout << "PDC fired from entity: " << source << "\n";
+          std::cout << "PDC2 FIRING angle: " << pdc.firingAngle << " target: " << pdc.target 
+                    << " fired from : " << source << "\n";
         }
       }
     }

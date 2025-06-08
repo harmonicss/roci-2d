@@ -37,7 +37,7 @@ enum class PdcFireMode { BURST, CONTINUOUS };
 // Point Defense Cannon
 struct Pdc1 {
   PdcFireMode fireMode = PdcFireMode::BURST;
-  float firingAngle;
+  float firingAngle;                 // not rotatated
   float minFiringAngle = -170.f;     // not quite behind the ship
   float maxFiringAngle = 10.f;
   float cooldown = 0.10f;

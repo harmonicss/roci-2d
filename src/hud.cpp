@@ -206,15 +206,17 @@ void DrawPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float
   auto &pdc1 = ecs.getComponent<Pdc1>(0);
   auto &pdc2 = ecs.getComponent<Pdc2>(0);
 
-  float pdc1Angle = prot.angle + pdc1.firingAngle;
-  float pdc2Angle = prot.angle + pdc2.firingAngle;
+  // float pdc1Angle = prot.angle + pdc1.firingAngle;
+  float pdc1Angle = pdc1.firingAngle;
+  // float pdc2Angle = prot.angle + pdc2.firingAngle;
+  float pdc2Angle = pdc2.firingAngle;
 
   // create a vector for the pdc1 firing angle
-  sf::Vector2f pdc1Vector = {static_cast<float>(std::cos((pdc1Angle) * (M_PI / 180.f)) * 1000.f), 
-                             static_cast<float>(std::sin((pdc1Angle) * (M_PI / 180.f)) * 1000.f)};
+  sf::Vector2f pdc1Vector = {static_cast<float>(std::cos((pdc1Angle) * (M_PI / 180.f)) * 5000.f), 
+                             static_cast<float>(std::sin((pdc1Angle) * (M_PI / 180.f)) * 5000.f)};
 
-  sf::Vector2f pdc2Vector = {static_cast<float>(std::cos((pdc2Angle) * (M_PI / 180.f)) * 1000.f), 
-                             static_cast<float>(std::sin((pdc2Angle) * (M_PI / 180.f)) * 1000.f)};
+  sf::Vector2f pdc2Vector = {static_cast<float>(std::cos((pdc2Angle) * (M_PI / 180.f)) * 5000.f), 
+                             static_cast<float>(std::sin((pdc2Angle) * (M_PI / 180.f)) * 5000.f)};
 
   DrawVector(window, ecs, 0, ppos.value, pdc1Vector, cameraOffset, sf::Color::Magenta, zoomFactor);
   DrawVector(window, ecs, 0, ppos.value, pdc2Vector, cameraOffset, sf::Color::Cyan, zoomFactor);

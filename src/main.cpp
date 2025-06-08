@@ -156,7 +156,7 @@ int main() {
   // - Create Enemy Entity -
   ///////////////////////////////////////////////////////////////////////////////
   Entity enemy = ecs.createEntity("Enemy");
-  ecs.addComponent(enemy, Position{{20000, 0}});
+  ecs.addComponent(enemy, Position{{0, -8000.f}});
   ecs.addComponent(enemy, Velocity{{0.f, 0.f}});
   ecs.addComponent(enemy, Rotation{90.f});
   ecs.addComponent(enemy, Health{100});
@@ -479,10 +479,11 @@ int main() {
       }
     }
 
-    // target all pdcs if attacking enemy
+    // target all pdcs if attacking enemy, this updates the display of pdc target heading
     if (state == State::ATTACK_PDC) {
       // target the player
-      pdcTarget.aquireTargets(enemy);
+      pdcTarget.setTarget(enemy);
+      pdcTarget.aquireTargets();
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -490,6 +491,8 @@ int main() {
     ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
       state = State::ATTACK_PDC;
+      pdcTarget.setTarget(enemy);
+      pdcTarget.aquireTargets(); // re-aquire targets for the PDCs, to update targeting
       pdcTarget.pdcAttack(tt);
     }
 

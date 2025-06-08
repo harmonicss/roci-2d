@@ -196,7 +196,8 @@ public:
 
       // for now, attack the player. 
       // Could additional evasive maneuvers later.
-      pdcTarget.aquireTargets(0);
+      pdcTarget.setTarget(0);
+      pdcTarget.aquireTargets();
       pdcTarget.pdcAttack(tt);
     }
  
