@@ -42,7 +42,7 @@ struct Pdc1 {
   float maxFiringAngle = 10.f;
   float cooldown = 0.10f;
   float timeSinceFired = 0.f;
-  float projectileSpeed = 2000.f;
+  float projectileSpeed = 5000.f;
   u_int32_t projectileDamage = 2;
   u_int32_t rounds = 100;
   Entity target;                     // target for the PDC, can be a ship or a torpedo
@@ -59,7 +59,7 @@ struct Pdc2 {
   float maxFiringAngle = 170.f;
   float cooldown = 0.10f;
   float timeSinceFired = 0.f;
-  float projectileSpeed = 2000.f;
+  float projectileSpeed = 5000.f;
   u_int32_t projectileDamage = 2;
   u_int32_t rounds = 100;
   Entity target;                     // target for the PDC, can be a ship or a torpedo
