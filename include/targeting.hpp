@@ -143,19 +143,10 @@ public:
       // get the angle to the nearest torpedo
       float att = angleToTarget(entityPos.value, targetPos.value);
 
-      // get rotated firing angle based on the entity's rotation
-      // float rotatedAngle = att - entityRot.angle;
-      // if (rotatedAngle >= 180.f) {
-      //   rotatedAngle -= 360.f;
-      // } else if (rotatedAngle < -180.f) {
-      //   rotatedAngle += 360.f;
-      // }
-
       // std::cout << "\nPdcTarget angle to target: " << att << "\n";
 
       // estimate a targeting angle based on the target's velocity
       // use a simple prediction based on the target's velocity and distance
-      // TODO: This doesnt work there is a sign wrong somewhere
       sf::Vector2f distanceVector = targetPos.value - entityPos.value;
 
       float distance = distanceVector.length();
@@ -188,15 +179,7 @@ public:
 
       // std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
 
-      // now that we have the guess angle, we need to adjust it based on the entity's rotation
-      //att = guessAngle - entityRot.angle;
-      att = guessAngle;
-
-      if (att >= 180.f) {
-        att -= 360.f;
-      } else if (att < -180.f) {
-        att += 360.f;
-      }
+      att = normalizeAngle(guessAngle);
 
       // std::cout << "PdcTarget final absolute angle: " << att << "\n";
 
@@ -209,27 +192,21 @@ public:
     auto &pdc = ecs.getComponent<Pdc1>(source);
     auto &entityRot = ecs.getComponent<Rotation>(source);
 
-    // Normalize angles
-    float headingAngle = normalizeAngle(entityRot.angle);
-    float desiredFiringAngle = normalizeAngle(pdc.firingAngle);
-
     // calculate angular difference relative to the front of the ship
-    float relativeFiringAngle = normalizeAngle(desiredFiringAngle - headingAngle);
-
-    // calculate the min and max angles in ship relative frame
-    float relativeMinAngle = normalizeAngle(pdc.minFiringAngle);
-    float relativeMaxAngle = normalizeAngle(pdc.maxFiringAngle);
+    // all other angles are relative to the front of the ship aswell, this keeps
+    // all angles in relation to the ship's rotation
+    float relativeFiringAngle = normalizeAngle(pdc.firingAngle - entityRot.angle);
 
     std::cout << "PDC1 relative firing angle: " << relativeFiringAngle
               << " absolute firing angle: " << pdc.firingAngle
               << " entity rotation angle: " << entityRot.angle
-              << " relative min: " << relativeMinAngle
-              << " relative max: " << relativeMaxAngle
+              << " relative min: " << pdc.minFiringAngle
+              << " relative max: " << pdc.maxFiringAngle
               << " source: " << source << "\n";
 
     // check if the target is within the firing angle of the PDCs
     // TODO: would be good to rotate the pdcs over time
-    if (isInRange(relativeFiringAngle, relativeMinAngle, relativeMaxAngle)) {
+    if (isInRange(relativeFiringAngle, pdc.minFiringAngle, pdc.maxFiringAngle)) {
 
       if (pdc.timeSinceBurst == 0 || tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
         pdc.timeSinceBurst = tt;
@@ -248,9 +225,9 @@ public:
       }
     }
     else {
-      std::cout << "PDC1 not firing, relative angle out of range: " 
-                << relativeFiringAngle << " min: " << relativeMinAngle 
-                << " max: " << relativeMaxAngle << "\n";
+      std::cout << "PDC1 not firing, relative angle: " << relativeFiringAngle 
+                << " is out or range. min: " << pdc.minFiringAngle 
+                << " max: " << pdc.maxFiringAngle << "\n";
     }
   }
 
@@ -258,25 +235,19 @@ public:
     auto &pdc = ecs.getComponent<Pdc2>(source);
     auto &entityRot = ecs.getComponent<Rotation>(source);
 
-    // Normalize angles
-    float headingAngle = normalizeAngle(entityRot.angle);
-    float desiredFiringAngle = normalizeAngle(pdc.firingAngle);
-
     // calculate angular difference relative to the front of the ship
-    float relativeFiringAngle = normalizeAngle(desiredFiringAngle - headingAngle);
-
-    // calculate angular difference relative to the front of the ship
-    float relativeMinAngle = normalizeAngle(pdc.minFiringAngle);
-    float relativeMaxAngle = normalizeAngle(pdc.maxFiringAngle);
+    // all other angles are relative to the front of the ship aswell, this keeps
+    // all angles in relation to the ship's rotation
+    float relativeFiringAngle = normalizeAngle(pdc.firingAngle - entityRot.angle);
 
     std::cout << "PDC2 relative firing angle: " << relativeFiringAngle
               << " absolute firing angle: " << pdc.firingAngle
               << " entity rotation angle: " << entityRot.angle
-              << " relative min: " << relativeMinAngle
-              << " relative max: " << relativeMaxAngle
+              << " relative min: " << pdc.minFiringAngle
+              << " relative max: " << pdc.maxFiringAngle
               << " source:" << source << "\n";
 
-    if (isInRange(relativeFiringAngle, relativeMinAngle, relativeMaxAngle)) {
+    if (isInRange(relativeFiringAngle, pdc.minFiringAngle, pdc.maxFiringAngle)) {
 
       if (pdc.timeSinceBurst == 0 || tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
         pdc.timeSinceBurst = tt;
@@ -295,9 +266,9 @@ public:
       }
     }
     else {
-      std::cout << "PDC2 not firing, relative angle out of range: " 
-                << relativeFiringAngle << " min: " << relativeMinAngle 
-                << " max: " << relativeMaxAngle << "\n";
+      std::cout << "PDC2 not firing, relative angle: " << relativeFiringAngle 
+                << " is out or range. min: " << pdc.minFiringAngle 
+                << " max: " << pdc.maxFiringAngle << "\n";
     }
   }
 
@@ -307,27 +278,4 @@ private:
   BulletFactory bulletFactory;
   sf::Sound pdcFireSoundPlayer;
 
-  inline float length(sf::Vector2f v) {
-    return std::sqrt(v.x * v.x + v.y * v.y);
-  }
-
-  inline float distance(sf::Vector2f source, sf::Vector2f target) {
-    return length(target - source);
-  }
-
-  inline float angleToTarget(sf::Vector2f source, sf::Vector2f target) {
-    float radians = std::atan2(target.y - source.y, target.x - source.x);
-
-    return (radians * 180.f) / M_PI;
-  }
-
-#if 0 // moved to utils.hpp
-  inline bool isInRange(float angle, float minAngle, float maxAngle) {
-    if (minAngle > maxAngle) {
-      // wrap around case
-      return angle >= minAngle || angle <= maxAngle;
-    }
-    return angle >= minAngle && angle <= maxAngle;
-  }
-#endif
 };

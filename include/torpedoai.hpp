@@ -1,6 +1,7 @@
 #pragma once
 #include "components.hpp"
 #include "ecs.hpp"
+#include "utils.hpp"
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -343,17 +344,4 @@ private:
     }
   }
 
-  inline float length(sf::Vector2f v) {
-    return std::sqrt(v.x * v.x + v.y * v.y);
-  }
-
-  inline float distance(sf::Vector2f source, sf::Vector2f target) {
-    return length(target - source);
-  }
-
-  inline float angleToTarget(sf::Vector2f source, sf::Vector2f target) {
-    float radians = std::atan2(target.y - source.y, target.x - source.x);
-
-    return (radians * 180.f) / M_PI;
-  }
 };

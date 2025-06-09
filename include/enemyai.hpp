@@ -3,6 +3,7 @@
 #include "ecs.hpp"
 #include "ballistics.hpp"
 #include "targeting.hpp"
+#include "utils.hpp"
 #include <iostream>
 #include <cmath>
 #include <SFML/Graphics.hpp>
@@ -33,7 +34,7 @@ public:
 
     float dist = distance(enemyPos.value, playerPos.value);
 
-    float atp = angleToPlayer(enemyPos.value, playerPos.value);
+    float atp = angleToTarget(enemyPos.value, playerPos.value);
 
     // std::cout << "EnemyAI distance to player: " << dist << std::endl;
     // std::cout << "\nEnemyAI angle to player: " << atp << std::endl;
@@ -310,20 +311,6 @@ public:
     } else if (enemyRot.angle < -180.f) {
       enemyRot.angle += 360.f;
     }
-  }
-
-  inline float length(sf::Vector2f v) {
-    return std::sqrt(v.x * v.x + v.y * v.y);
-  }
-
-  inline float distance(sf::Vector2f source, sf::Vector2f target) {
-    return length(target - source);
-  }
-
-  inline float angleToPlayer(sf::Vector2f source, sf::Vector2f target) {
-    float radians = std::atan2(target.y - source.y, target.x - source.x);
-
-    return (radians * 180.f) / M_PI;
   }
 };
 
