@@ -514,14 +514,14 @@ int main() {
       auto &launcher1 = ecs.getComponent<TorpedoLauncher1>(player);
       auto &launcher2 = ecs.getComponent<TorpedoLauncher2>(player);
 
-      if (launcher1.timeSinceFired == 0.f || tt > launcher1.timeSinceFired + launcher1.cooldown && launcher1.rounds) {
+      if ((launcher1.timeSinceFired == 0.f || tt > launcher1.timeSinceFired + launcher1.cooldown) && launcher1.rounds) {
         launcher1.timeSinceFired = tt;
         torpedoFactory.fireone<TorpedoLauncher1>(player, enemy);
         // TODO: add torpedo sound
         pdcFireSoundPlayer.play();
         launcher1.rounds--;
       }
-      if (launcher2.timeSinceFired == 0.f || tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
+      if ((launcher2.timeSinceFired == 0.f || tt > launcher2.timeSinceFired + launcher2.cooldown) && launcher2.rounds) {
         launcher2.timeSinceFired = tt;
         torpedoFactory.fireone<TorpedoLauncher2>(player, enemy);
         pdcFireSoundPlayer.play();
