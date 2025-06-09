@@ -40,7 +40,7 @@ public:
   ~BulletFactory() override = default;
 
   template<typename Weapon>
-  void fireone(Entity firedby) {
+  void fireone(Entity firedby, float timeFired) {
 
     Entity bullet = ecs.createEntity("Bullet");
  
@@ -65,12 +65,32 @@ public:
                           ppos.value.y + (dy * launch_distance)}});
     ecs.addComponent(bullet, Rotation{pdc.firingAngle});
     ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.25f, 0.25f, 0.f});
+    ecs.addComponent(bullet, TimeFired{timeFired});
 
     SpriteComponent sc{sf::Sprite(texture)};
     sf::Vector2f bulletOrigin(texture.getSize().x / 2.f,
                               texture.getSize().y / 2.f);
     sc.sprite.setOrigin(bulletOrigin);
     ecs.addComponent(bullet, sc);
+  }
+
+  void Update(float tt) {
+    // This method can be used to update the bullet factory 
+    // to remove bullets that have been fired for too long
+    for (auto &entity : ecs.view<TimeFired>()) {
+      auto &timeFired = ecs.getComponent<TimeFired>(entity);
+
+      if (tt - timeFired.value > 30.0f) {
+        ecs.removeComponent<Velocity>(entity);
+        ecs.removeComponent<Position>(entity);
+        ecs.removeComponent<Rotation>(entity);
+        ecs.removeComponent<Collision>(entity);
+        ecs.removeComponent<TimeFired>(entity);
+        ecs.removeComponent<SpriteComponent>(entity);
+        ecs.destroyEntity(entity);
+        std::cout << "Bullet " << entity << " removed" << std::endl;
+      }
+    }
   }
 };
 

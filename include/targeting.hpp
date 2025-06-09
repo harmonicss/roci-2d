@@ -168,7 +168,7 @@ public:
 
     // compute relative velocity
     sf::Vector2f relativeVel = targetVel.value - entityVel.value;
-    // std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
+     std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
 
     sf::Vector2f predictedTargetPos = distanceVector + (relativeVel * timeToImpact);
     // std::cout << "PdcTarget target position: " 
@@ -235,7 +235,7 @@ public:
       if (pdc.pdcBurst > 0 && pdc.rounds) {
         if (tt > pdc.timeSinceFired + pdc.cooldown) {
           pdc.timeSinceFired = tt;
-          bulletFactory.fireone<Pdc1>(source);
+          bulletFactory.fireone<Pdc1>(source, tt);
           pdc.rounds--;
           pdc.pdcBurst--;
           pdcFireSoundPlayer.play();

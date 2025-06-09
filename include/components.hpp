@@ -32,6 +32,10 @@ struct Health {
   unsigned int value = 100;
 };
 
+struct TimeFired {
+  float value = 0.f; // time in seconds
+};
+
 enum class PdcFireMode { BURST, CONTINUOUS };
 
 // Point Defense Cannon

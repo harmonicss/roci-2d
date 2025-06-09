@@ -71,6 +71,7 @@ int main() {
   ecs.registerComponent<TorpedoLauncher2>();
   ecs.registerComponent<Collision>();
   ecs.registerComponent<Target>();
+  ecs.registerComponent<TimeFired>();
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Fonts -
@@ -156,7 +157,7 @@ int main() {
   // - Create Enemy Entity -
   ///////////////////////////////////////////////////////////////////////////////
   Entity enemy = ecs.createEntity("Enemy");
-  ecs.addComponent(enemy, Position{{0, -8000.f}});
+  ecs.addComponent(enemy, Position{{0, -18000.f}});
   ecs.addComponent(enemy, Velocity{{0.f, 0.f}});
   ecs.addComponent(enemy, Rotation{90.f});
   ecs.addComponent(enemy, Health{100});
@@ -228,6 +229,8 @@ int main() {
       ecs.removeComponent<Collision>(e1);
       ecs.removeComponent<Target>(e1);
       ecs.removeComponent<SpriteComponent>(e1);
+      if (e1Name == "Bullet") 
+        ecs.removeComponent<TimeFired>(e1);
       ecs.destroyEntity(e1);
     }
 
@@ -238,6 +241,8 @@ int main() {
       ecs.removeComponent<Collision>(e2);
       ecs.removeComponent<Target>(e2);
       ecs.removeComponent<SpriteComponent>(e2);
+      if (e2Name == "Bullet") 
+        ecs.removeComponent<TimeFired>(e2);
       ecs.destroyEntity(e2);
     }
   });
@@ -532,7 +537,7 @@ int main() {
     // Enemy & Torpedo AIs
     enemyAI.Update(tt, dt);
     torpedoAI.Update(tt, dt);
-
+    bulletFactory.Update(tt); // remove bullets that have been fired for too long
 
     // Collision System - check for collisions
     collisionSystem.Update();
