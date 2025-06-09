@@ -1,5 +1,6 @@
 #include "../include/components.hpp"
 #include "../include/ecs.hpp"
+#include "../include/utils.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -11,7 +12,9 @@
 #include <string>
 #include <sys/types.h>
 
-void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start, sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor);
+void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
+                sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor, float thickness);
+
 void DrawPdcOverlay(sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor);
 
 void DrawHUD(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font) {
@@ -186,7 +189,7 @@ void DrawPlayerOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& fo
 
   sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
 
-  DrawVector(window, ecs, 0, ppos.value, pvel.value, cameraOffset, sf::Color::Green, zoomFactor);
+  DrawVector(window, ecs, 0, ppos.value, pvel.value, cameraOffset, sf::Color::Green, zoomFactor, 40.f);
 
   DrawPdcOverlay(window, ecs, 0, zoomFactor);
 }
@@ -198,30 +201,63 @@ void DrawPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float
   u_int16_t screenHeight = window.getSize().y;
   sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
-  auto &ppos = ecs.getComponent<Position>(0);
-  auto prot = ecs.getComponent<Rotation>(0);
+  auto &ppos = ecs.getComponent<Position>(e);
+  auto prot = ecs.getComponent<Rotation>(e);
 
   sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
 
-  auto &pdc1 = ecs.getComponent<Pdc1>(0);
-  auto &pdc2 = ecs.getComponent<Pdc2>(0);
+  auto &pdc1 = ecs.getComponent<Pdc1>(e);
+  auto &pdc2 = ecs.getComponent<Pdc2>(e);
 
   // firing angle is as absolute, not rotataed angle
-  
-  // float pdc1Angle = prot.angle + pdc1.firingAngle;
-  float pdc1Angle = pdc1.firingAngle;
-  // float pdc2Angle = prot.angle + pdc2.firingAngle;
-  float pdc2Angle = pdc2.firingAngle;
-
   // create a vector for the pdc1 firing angle
-  sf::Vector2f pdc1Vector = {static_cast<float>(std::cos((pdc1Angle) * (M_PI / 180.f)) * 5000.f), 
-                             static_cast<float>(std::sin((pdc1Angle) * (M_PI / 180.f)) * 5000.f)};
+  sf::Vector2f pdc1Vector = {static_cast<float>(std::cos((pdc1.firingAngle) * (M_PI / 180.f)) * 1000.f),
+                             static_cast<float>(std::sin((pdc1.firingAngle) * (M_PI / 180.f)) * 1000.f)};
 
-  sf::Vector2f pdc2Vector = {static_cast<float>(std::cos((pdc2Angle) * (M_PI / 180.f)) * 5000.f), 
-                             static_cast<float>(std::sin((pdc2Angle) * (M_PI / 180.f)) * 5000.f)};
+  sf::Vector2f pdc2Vector = {static_cast<float>(std::cos((pdc2.firingAngle) * (M_PI / 180.f)) * 1000.f),
+                             static_cast<float>(std::sin((pdc2.firingAngle) * (M_PI / 180.f)) * 1000.f)};
 
-  DrawVector(window, ecs, 0, ppos.value, pdc1Vector, cameraOffset, sf::Color::Magenta, zoomFactor);
-  DrawVector(window, ecs, 0, ppos.value, pdc2Vector, cameraOffset, sf::Color::Cyan, zoomFactor);
+  DrawVector(window, ecs, e, ppos.value, pdc1Vector, cameraOffset, sf::Color::Red, zoomFactor, 20.f);
+  DrawVector(window, ecs, e, ppos.value, pdc2Vector, cameraOffset, sf::Color::Green, zoomFactor, 20.f);
+
+  sf::Color darkRed(156, 0, 0);
+  sf::Color lightRed(150, 110, 110);
+  sf::Color darkGreen(52, 156, 0);
+  sf::Color lightGreen(123, 150, 110);
+
+  // draw the min and max angles for the pdc1
+  // Normalize angles
+  float headingAngle = normalizeAngle(prot.angle);
+
+  // calculate angular difference relative to the front of the ship
+  float absoluteFiringAngle = normalizeAngle(pdc1.firingAngle);
+
+  float rotatedMinAngle = normalizeAngle(pdc1.minFiringAngle + prot.angle);
+  float rotatedMaxAngle = normalizeAngle(pdc1.maxFiringAngle + prot.angle);
+
+  sf::Vector2f pdc1MinVector = {static_cast<float>(std::cos((rotatedMinAngle) * (M_PI / 180.f)) * 500.f),
+                                static_cast<float>(std::sin((rotatedMinAngle) * (M_PI / 180.f)) * 500.f)};
+
+  sf::Vector2f pdc1MaxVector = {static_cast<float>(std::cos((rotatedMaxAngle) * (M_PI / 180.f)) * 500.f),
+                                static_cast<float>(std::sin((rotatedMaxAngle) * (M_PI / 180.f)) * 500.f)};
+
+  DrawVector(window, ecs, e, ppos.value, pdc1MinVector, cameraOffset, lightRed, zoomFactor, 10.f);
+  DrawVector(window, ecs, e, ppos.value, pdc1MaxVector, cameraOffset, darkRed, zoomFactor, 10.f);
+
+  // pdc2 min and max angles
+  // NOTE: this does show pdc2 min and max backwards, but live with this for now
+
+  rotatedMinAngle = normalizeAngle(pdc2.minFiringAngle + prot.angle);
+  rotatedMaxAngle = normalizeAngle(pdc2.maxFiringAngle + prot.angle);
+
+  sf::Vector2f pdc2MinVector = {static_cast<float>(std::cos((rotatedMinAngle) * (M_PI / 180.f)) * 500.f),
+                                static_cast<float>(std::sin((rotatedMinAngle) * (M_PI / 180.f)) * 500.f)};
+
+  sf::Vector2f pdc2MaxVector = {static_cast<float>(std::cos((rotatedMaxAngle) * (M_PI / 180.f)) * 500.f),
+                                static_cast<float>(std::sin((rotatedMaxAngle) * (M_PI / 180.f)) * 500.f)};
+
+  DrawVector(window, ecs, e, ppos.value, pdc2MinVector, cameraOffset, lightGreen, zoomFactor, 10.f);
+  DrawVector(window, ecs, e, ppos.value, pdc2MaxVector, cameraOffset, darkGreen, zoomFactor, 10.f);
 }
 
 void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& font, float zoomFactor) {
@@ -262,18 +298,19 @@ void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& f
     ///////////////////////////////////////////////////////////////////////////////
     // draw the vector of the acceleration, velocity and rotation
     ///////////////////////////////////////////////////////////////////////////////
-    DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Acceleration>(e).value, cameraOffset, sf::Color::Red, zoomFactor);
-    DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Velocity>(e).value, cameraOffset, sf::Color::Green, zoomFactor);
+    DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Acceleration>(e).value, cameraOffset, sf::Color::Red, zoomFactor, 20.f);
+    DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Velocity>(e).value, cameraOffset, sf::Color::Green, zoomFactor, 20.f);
 
     float radians = trot.angle * (M_PI / 180.f);
  
     DrawVector(window, ecs, e, tpos.value,
                sf::Vector2f{std::cos(radians) * 10000.f, 
-               std::sin(radians) * 10000.f}, cameraOffset, sf::Color::Blue, zoomFactor);
+               std::sin(radians) * 10000.f}, cameraOffset, sf::Color::Blue, zoomFactor, 30.f);
   }
 }
 
-void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start, sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor) { 
+void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
+                sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor, float thickness) {
 
     // std::cout << "\nDrawVectorStart: " << start.x << ", " << start.y << "\n";
     // std::cout << "DrawVectorEnd: " << end.x << ", " << end.y << "\n";
@@ -290,7 +327,7 @@ void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector
     if (length < 1.f)
       return; // don't draw if the length is too small
 
-    float thickness = 40.f / zoomFactor; // make it thinner with zoom
+    thickness = thickness / zoomFactor; // make it thinner with zoom
 
     if (thickness < 1.f)
       thickness = 1.f; // don't let it get too thin

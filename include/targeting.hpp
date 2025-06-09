@@ -2,6 +2,7 @@
 #include "ecs.hpp"
 #include "ballistics.hpp"
 #include "components.hpp"
+#include "utils.hpp"
 #include <cmath>
 #include <SFML/Audio.hpp>
 
@@ -208,44 +209,27 @@ public:
     auto &pdc = ecs.getComponent<Pdc1>(source);
     auto &entityRot = ecs.getComponent<Rotation>(source);
 
-    // rotate the firing angle based on the entity's rotation
-    float rotatedMinAngle = pdc.minFiringAngle - entityRot.angle;
-    float rotatedMaxAngle = pdc.maxFiringAngle - entityRot.angle;
-    float rotatedFiringAngle = pdc.firingAngle - entityRot.angle;
+    // Normalize angles
+    float headingAngle = normalizeAngle(entityRot.angle);
+    float desiredFiringAngle = normalizeAngle(pdc.firingAngle);
 
-    if (rotatedMinAngle >= 180.f) {
-      rotatedMinAngle -= 360.f;
-    } else if (rotatedMinAngle < -180.f) {
-      rotatedMinAngle += 360.f;
-    }
+    // calculate angular difference relative to the front of the ship
+    float relativeFiringAngle = normalizeAngle(desiredFiringAngle - headingAngle);
 
-    if (rotatedMaxAngle >= 180.f) {
-      rotatedMaxAngle -= 360.f;
-    } else if (rotatedMaxAngle < -180.f) {
-      rotatedMaxAngle += 360.f;
-    }
+    // calculate the min and max angles in ship relative frame
+    float relativeMinAngle = normalizeAngle(pdc.minFiringAngle);
+    float relativeMaxAngle = normalizeAngle(pdc.maxFiringAngle);
 
-    if (rotatedFiringAngle >= 180.f) {
-      rotatedFiringAngle -= 360.f;
-    } else if (rotatedFiringAngle < -180.f) {
-      rotatedFiringAngle += 360.f;
-    }
-
-    // min and max angles could be the wrong way around, so check
-    if (rotatedMinAngle > rotatedMaxAngle) {
-      std::swap(rotatedMinAngle, rotatedMaxAngle);
-    }
-
-    std::cout << "PDC1 rotated firing angle: " << rotatedFiringAngle
+    std::cout << "PDC1 relative firing angle: " << relativeFiringAngle
               << " absolute firing angle: " << pdc.firingAngle
               << " entity rotation angle: " << entityRot.angle
-              << " rotated min: " << rotatedMinAngle
-              << " rotated max: " << rotatedMaxAngle
+              << " relative min: " << relativeMinAngle
+              << " relative max: " << relativeMaxAngle
               << " source: " << source << "\n";
 
-    // check if the torpedo is within the firing angle of the PDCs
+    // check if the target is within the firing angle of the PDCs
     // TODO: would be good to rotate the pdcs over time
-    if (isInRange(rotatedFiringAngle, rotatedMinAngle, rotatedMaxAngle)) {
+    if (isInRange(relativeFiringAngle, relativeMinAngle, relativeMaxAngle)) {
 
       if (pdc.timeSinceBurst == 0 || tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
         pdc.timeSinceBurst = tt;
@@ -264,9 +248,9 @@ public:
       }
     }
     else {
-      std::cout << "PDC1 not firing, rotated angle out of range: " 
-                << rotatedFiringAngle << " min: " << rotatedMinAngle 
-                << " max: " << rotatedMaxAngle << "\n";
+      std::cout << "PDC1 not firing, relative angle out of range: " 
+                << relativeFiringAngle << " min: " << relativeMinAngle 
+                << " max: " << relativeMaxAngle << "\n";
     }
   }
 
@@ -274,42 +258,25 @@ public:
     auto &pdc = ecs.getComponent<Pdc2>(source);
     auto &entityRot = ecs.getComponent<Rotation>(source);
 
-    // rotate the firing angle based on the entity's rotation
-    float rotatedMinAngle = pdc.minFiringAngle - entityRot.angle;
-    float rotatedMaxAngle = pdc.maxFiringAngle - entityRot.angle;
-    float rotatedFiringAngle = pdc.firingAngle - entityRot.angle;
+    // Normalize angles
+    float headingAngle = normalizeAngle(entityRot.angle);
+    float desiredFiringAngle = normalizeAngle(pdc.firingAngle);
 
-    if (rotatedMinAngle >= 180.f) {
-      rotatedMinAngle -= 360.f;
-    } else if (rotatedMinAngle < -180.f) {
-      rotatedMinAngle += 360.f;
-    }
+    // calculate angular difference relative to the front of the ship
+    float relativeFiringAngle = normalizeAngle(desiredFiringAngle - headingAngle);
 
-    if (rotatedMaxAngle >= 180.f) {
-      rotatedMaxAngle -= 360.f;
-    } else if (rotatedMaxAngle < -180.f) {
-      rotatedMaxAngle += 360.f;
-    }
+    // calculate angular difference relative to the front of the ship
+    float relativeMinAngle = normalizeAngle(pdc.minFiringAngle);
+    float relativeMaxAngle = normalizeAngle(pdc.maxFiringAngle);
 
-    if (rotatedFiringAngle >= 180.f) {
-      rotatedFiringAngle -= 360.f;
-    } else if (rotatedFiringAngle < -180.f) {
-      rotatedFiringAngle += 360.f;
-    }
-
-    // min and max angles could be the wrong way around, so check
-    if (rotatedMinAngle > rotatedMaxAngle) {
-      std::swap(rotatedMinAngle, rotatedMaxAngle);
-    }
-
-    std::cout << "PDC2 rotated firing angle: " << rotatedFiringAngle
+    std::cout << "PDC2 relative firing angle: " << relativeFiringAngle
               << " absolute firing angle: " << pdc.firingAngle
               << " entity rotation angle: " << entityRot.angle
-              << " rotated min: " << rotatedMinAngle
-              << " rotated max: " << rotatedMaxAngle
+              << " relative min: " << relativeMinAngle
+              << " relative max: " << relativeMaxAngle
               << " source:" << source << "\n";
 
-    if (isInRange(rotatedFiringAngle, rotatedMinAngle, rotatedMaxAngle)) {
+    if (isInRange(relativeFiringAngle, relativeMinAngle, relativeMaxAngle)) {
 
       if (pdc.timeSinceBurst == 0 || tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
         pdc.timeSinceBurst = tt;
@@ -328,9 +295,9 @@ public:
       }
     }
     else {
-      std::cout << "PDC2 not firing, rotated angle out of range: " 
-                << rotatedFiringAngle << " min: " << rotatedMinAngle 
-                << " max: " << rotatedMaxAngle << "\n";
+      std::cout << "PDC2 not firing, relative angle out of range: " 
+                << relativeFiringAngle << " min: " << relativeMinAngle 
+                << " max: " << relativeMaxAngle << "\n";
     }
   }
 
@@ -354,6 +321,7 @@ private:
     return (radians * 180.f) / M_PI;
   }
 
+#if 0 // moved to utils.hpp
   inline bool isInRange(float angle, float minAngle, float maxAngle) {
     if (minAngle > maxAngle) {
       // wrap around case
@@ -361,4 +329,5 @@ private:
     }
     return angle >= minAngle && angle <= maxAngle;
   }
+#endif
 };
