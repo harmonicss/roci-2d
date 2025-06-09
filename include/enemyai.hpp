@@ -136,13 +136,7 @@ public:
       }
 
       auto &enemyRot = ecs.getComponent<Rotation>(enemy);
-      float diff = atp - enemyRot.angle;
-
-      if (diff >= 180.f) {
-        diff -= 360.f;
-      } else if (diff < -180.f) {
-        diff += 360.f;
-      }
+      float diff = normalizeAngle(atp - enemyRot.angle);
 
       // fire when facing the player, +/- 5 degrees
       if (diff >= -05.f && diff <= +05.f) {

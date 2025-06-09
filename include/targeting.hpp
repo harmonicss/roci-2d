@@ -51,7 +51,7 @@ public:
     }
 
     // no torpedos in range
-    if (nearestTorpedoDist > 10000.f) {
+    if (nearestTorpedoDist > torpedoThreatRange) {
       std::cout << "PdcTarget no torpedos in range\n";
       return false; 
     }
@@ -62,8 +62,8 @@ public:
 
   // targeting has alredy been done
   void pdcAttack(float tt) {
-    firePdc1Burst(e, tt);
-    firePdc2Burst(e, tt);
+    firePdc1Burst(e, tt, 0.25f);
+    firePdc2Burst(e, tt, 0.25f);
   }
 
   // target incoming torpedos
@@ -99,7 +99,7 @@ public:
     }
 
     // no torpedos in range
-    if (nearestTorpedoDist > 100000.f) {
+    if (nearestTorpedoDist > torpedoThreatRange) {
       std::cout << "PdcTarget no torpedos in range\n";
       return; 
     }
@@ -109,8 +109,8 @@ public:
  
     setTarget(nearestTorpedo);
     aquireTargets();
-    firePdc1Burst(e, tt);
-    firePdc2Burst(e, tt);
+    firePdc1Burst(e, tt, 2.0f); // larger burstSpread to hit torps
+    firePdc2Burst(e, tt, 2.0f);
   }
 
   void setTarget(Entity target) {
@@ -131,64 +131,64 @@ public:
     // update the target for the PDCs
     //TODO: investigate as this will get all pdc entities, not correct?
     // for (auto &pdc : ecs.view<Pdc1, Pdc2>()) {
-      auto &pdc1 = ecs.getComponent<Pdc1>(e);
-      auto &pdc2 = ecs.getComponent<Pdc2>(e);
+    auto &pdc1 = ecs.getComponent<Pdc1>(e);
+    auto &pdc2 = ecs.getComponent<Pdc2>(e);
 
-      auto &targetPos = ecs.getComponent<Position>(pdc1.target); // what about pdc2 different target?
-      auto &targetVel = ecs.getComponent<Velocity>(pdc1.target);
-      auto &entityPos = ecs.getComponent<Position>(e);
-      auto &entityRot = ecs.getComponent<Rotation>(e);
-      auto &entityVel = ecs.getComponent<Velocity>(e);
+    auto &targetPos = ecs.getComponent<Position>(pdc1.target); // what about pdc2 different target?
+    auto &targetVel = ecs.getComponent<Velocity>(pdc1.target);
+    auto &entityPos = ecs.getComponent<Position>(e);
+    auto &entityRot = ecs.getComponent<Rotation>(e);
+    auto &entityVel = ecs.getComponent<Velocity>(e);
 
-      // get the angle to the nearest torpedo
-      float att = angleToTarget(entityPos.value, targetPos.value);
+    // get the angle to the nearest torpedo
+    float att = angleToTarget(entityPos.value, targetPos.value);
 
-      // std::cout << "\nPdcTarget angle to target: " << att << "\n";
+    // std::cout << "\nPdcTarget angle to target: " << att << "\n";
 
-      // estimate a targeting angle based on the target's velocity
-      // use a simple prediction based on the target's velocity and distance
-      sf::Vector2f distanceVector = targetPos.value - entityPos.value;
+    // estimate a targeting angle based on the target's velocity
+    // use a simple prediction based on the target's velocity and distance
+    sf::Vector2f distanceVector = targetPos.value - entityPos.value;
 
-      float distance = distanceVector.length();
+    float distance = distanceVector.length();
 
-      // estimate the time to impact based on the distance and target velocity
-      // trim it down to prevent overshooting
-      float timeToImpact = distance / pdc1.projectileSpeed;
+    // estimate the time to impact based on the distance and target velocity
+    float timeToImpact = distance / pdc1.projectileSpeed;
 
-      // fudge factor for time to impact, as the change in angle is minimal
-      timeToImpact *= 1.00f;
+    // fudge factor for time to impact, as the change in angle is minimal
+    timeToImpact *= 1.00f;
 
-      // std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
+    // std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
 
-      // Predict the target's position based on our relative velocity
-      // and the time to impact
+    // for a fast moving target, we need to set to a maximum time to impact,
+    // or else for a torpedo the vector will pass through us.
+    timeToImpact = std::min(timeToImpact, 1.5f);
 
-      // compute relative velocity
-      sf::Vector2f relativeVel = targetVel.value - entityVel.value;
-      // std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
- 
-      sf::Vector2f predictedTargetPos = distanceVector + (relativeVel * timeToImpact);
-      // std::cout << "PdcTarget target position: " 
-      //           << targetPos.value.x << ", " << targetPos.value.y << "\n";
+    // Predict the target's position based on our relative velocity
+    // and the time to impact
 
-      // aim at a guessed future position
-      // - entityPos.value for the enemy? Not for player 
-      sf::Vector2f guessDir = predictedTargetPos.normalized();
+    // compute relative velocity
+    sf::Vector2f relativeVel = targetVel.value - entityVel.value;
+    // std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
 
-      float guessAngle = guessDir.angle().asDegrees();
+    sf::Vector2f predictedTargetPos = distanceVector + (relativeVel * timeToImpact);
+    // std::cout << "PdcTarget target position: " 
+    //           << targetPos.value.x << ", " << targetPos.value.y << "\n";
 
-      // std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
+    // aim at a guessed future position
+    sf::Vector2f guessDir = predictedTargetPos.normalized();
 
-      att = normalizeAngle(guessAngle);
+    float guessAngle = guessDir.angle().asDegrees();
+    // std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
 
-      // std::cout << "PdcTarget final absolute angle: " << att << "\n";
+    att = normalizeAngle(guessAngle);
+    // std::cout << "PdcTarget final absolute angle: " << att << "\n";
 
-      pdc1.firingAngle = att;
-      pdc2.firingAngle = att;
+    pdc1.firingAngle = att;
+    pdc2.firingAngle = att;
   }
 
   // fire the PDC if it is ready and target in arc
-  void firePdc1Burst(Entity source, float tt) {
+  void firePdc1Burst(Entity source, float tt, float burstSpread) {
     auto &pdc = ecs.getComponent<Pdc1>(source);
     auto &entityRot = ecs.getComponent<Rotation>(source);
 
@@ -196,6 +196,15 @@ public:
     // all other angles are relative to the front of the ship aswell, this keeps
     // all angles in relation to the ship's rotation
     float relativeFiringAngle = normalizeAngle(pdc.firingAngle - entityRot.angle);
+
+    // spread the burst fire angle (beter chance of hitting torpedos and accelerating targets)
+
+    // cycle the burst through +/- burstSpread
+    pdc.burstSpreadAngle = burstSpread * std::sin(tt * 10.f); // oscillate between -burstSpread and +burstSpread
+    std::cout << "PDC1 burst spread angle: " << pdc.burstSpreadAngle << "\n";
+
+    // dont worry about a few degrees past the min or max
+    pdc.firingAngle += pdc.burstSpreadAngle;
 
     std::cout << "PDC1 relative firing angle: " << relativeFiringAngle
               << " absolute firing angle: " << pdc.firingAngle
@@ -231,7 +240,7 @@ public:
     }
   }
 
-  void firePdc2Burst(Entity source, float tt) {
+  void firePdc2Burst(Entity source, float tt, float burstSpread) {
     auto &pdc = ecs.getComponent<Pdc2>(source);
     auto &entityRot = ecs.getComponent<Rotation>(source);
 
@@ -240,6 +249,14 @@ public:
     // all angles in relation to the ship's rotation
     float relativeFiringAngle = normalizeAngle(pdc.firingAngle - entityRot.angle);
 
+    // spread the burst fire angle (beter chance of hitting torpedos and accelerating targets)
+
+    // cycle the burst through +/- burstSpread
+    pdc.burstSpreadAngle = burstSpread * std::sin(tt * 10.f); // oscillate between -burstSpread and +burstSpread
+    std::cout << "PDC2 burst spread angle: " << pdc.burstSpreadAngle << "\n";
+
+    // dont worry about a few degrees past the min or max
+    pdc.firingAngle += pdc.burstSpreadAngle;
     std::cout << "PDC2 relative firing angle: " << relativeFiringAngle
               << " absolute firing angle: " << pdc.firingAngle
               << " entity rotation angle: " << entityRot.angle
@@ -278,4 +295,5 @@ private:
   BulletFactory bulletFactory;
   sf::Sound pdcFireSoundPlayer;
 
+  float torpedoThreatRange = 50000.f; // distance in pixels to consider a torpedo a threat
 };

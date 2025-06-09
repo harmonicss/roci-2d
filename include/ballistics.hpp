@@ -53,7 +53,7 @@ public:
     // float dx = std::cos((prot.angle + pdc.firingAngle) * (M_PI / 180.f));
     // float dy = std::sin((prot.angle + pdc.firingAngle) * (M_PI / 180.f));
 
-    // the firing angle is an abosolute angle, so we need to use it directly
+    // the firing angle is an absolute angle, so we need to use it directly
     float dx = std::cos((pdc.firingAngle) * (M_PI / 180.f));
     float dy = std::sin((pdc.firingAngle) * (M_PI / 180.f));
 
