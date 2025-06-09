@@ -187,9 +187,18 @@ public:
     pdc2.firingAngle = att;
   }
 
-  // fire the PDC if it is ready and target in arc
   void firePdc1Burst(Entity source, float tt, float burstSpread) {
-    auto &pdc = ecs.getComponent<Pdc1>(source);
+    firePdcBurst<Pdc1>(source, tt, burstSpread, "PDC1");
+  }
+
+  void firePdc2Burst(Entity source, float tt, float burstSpread) {
+    firePdcBurst<Pdc2>(source, tt, burstSpread, "PDC2");
+  }
+
+  // fire the PDC if it is ready and target in arc
+  template<typename Pdc>
+  void firePdcBurst(Entity source, float tt, float burstSpread, const std::string &pdcName) {
+    auto &pdc = ecs.getComponent<Pdc>(source);
     auto &entityRot = ecs.getComponent<Rotation>(source);
 
     // calculate angular difference relative to the front of the ship
@@ -206,7 +215,8 @@ public:
     // dont worry about a few degrees past the min or max
     pdc.firingAngle += pdc.burstSpreadAngle;
 
-    std::cout << "PDC1 relative firing angle: " << relativeFiringAngle
+    std::cout << pdcName
+              << " relative firing angle: " << relativeFiringAngle
               << " absolute firing angle: " << pdc.firingAngle
               << " entity rotation angle: " << entityRot.angle
               << " relative min: " << pdc.minFiringAngle
@@ -229,65 +239,18 @@ public:
           pdc.rounds--;
           pdc.pdcBurst--;
           pdcFireSoundPlayer.play();
-          std::cout << "PDC1 FIRING!" << "\n";
+          std::cout << pdcName << " FIRING!" << "\n";
         }
       }
     }
     else {
-      std::cout << "PDC1 not firing, relative angle: " << relativeFiringAngle 
+      std::cout << pdcName
+                << " not firing, relative angle: " << relativeFiringAngle 
                 << " is out or range. min: " << pdc.minFiringAngle 
                 << " max: " << pdc.maxFiringAngle << "\n";
     }
   }
 
-  void firePdc2Burst(Entity source, float tt, float burstSpread) {
-    auto &pdc = ecs.getComponent<Pdc2>(source);
-    auto &entityRot = ecs.getComponent<Rotation>(source);
-
-    // calculate angular difference relative to the front of the ship
-    // all other angles are relative to the front of the ship aswell, this keeps
-    // all angles in relation to the ship's rotation
-    float relativeFiringAngle = normalizeAngle(pdc.firingAngle - entityRot.angle);
-
-    // spread the burst fire angle (beter chance of hitting torpedos and accelerating targets)
-
-    // cycle the burst through +/- burstSpread
-    pdc.burstSpreadAngle = burstSpread * std::sin(tt * 10.f); // oscillate between -burstSpread and +burstSpread
-    std::cout << "PDC2 burst spread angle: " << pdc.burstSpreadAngle << "\n";
-
-    // dont worry about a few degrees past the min or max
-    pdc.firingAngle += pdc.burstSpreadAngle;
-    std::cout << "PDC2 relative firing angle: " << relativeFiringAngle
-              << " absolute firing angle: " << pdc.firingAngle
-              << " entity rotation angle: " << entityRot.angle
-              << " relative min: " << pdc.minFiringAngle
-              << " relative max: " << pdc.maxFiringAngle
-              << " source:" << source << "\n";
-
-    if (isInRange(relativeFiringAngle, pdc.minFiringAngle, pdc.maxFiringAngle)) {
-
-      if (pdc.timeSinceBurst == 0 || tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
-        pdc.timeSinceBurst = tt;
-        pdc.pdcBurst = pdc.maxPdcBurst;
-      }
-
-      if (pdc.pdcBurst > 0 && pdc.rounds) {
-        if (tt > pdc.timeSinceFired + pdc.cooldown) {
-          pdc.timeSinceFired = tt;
-          bulletFactory.fireone<Pdc2>(source);
-          pdc.rounds--;
-          pdc.pdcBurst--;
-          pdcFireSoundPlayer.play();
-          std::cout << "PDC2 FIRING!" << "\n";
-        }
-      }
-    }
-    else {
-      std::cout << "PDC2 not firing, relative angle: " << relativeFiringAngle 
-                << " is out or range. min: " << pdc.minFiringAngle 
-                << " max: " << pdc.maxFiringAngle << "\n";
-    }
-  }
 
 private:
   Coordinator &ecs;
