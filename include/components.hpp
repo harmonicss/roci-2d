@@ -37,36 +37,38 @@ enum class PdcFireMode { BURST, CONTINUOUS };
 // Point Defense Cannon
 struct Pdc1 {
   PdcFireMode fireMode = PdcFireMode::BURST;
-  float firingAngle;                 // not rotatated
+  float firingAngle;                 // absolute, relative to the front of the ship and not rotatated
+  float burstSpreadAngle;            // absolute small angle to spread the burst
   float minFiringAngle = -170.f;     // not quite behind the ship
   float maxFiringAngle = 10.f;
-  float cooldown = 0.10f;
+  float cooldown = 0.02f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 5000.f;
   u_int32_t projectileDamage = 2;
-  u_int32_t rounds = 100;
+  u_int32_t rounds = 600;
   Entity target;                     // target for the PDC, can be a ship or a torpedo
   uint32_t pdcBurst = 0;             // number of rounds fired in the burst
-  uint32_t maxPdcBurst = 15;
+  uint32_t maxPdcBurst = 20;
   float timeSinceBurst = 0.f;
-  float pdcBurstCooldown = 4.f;
+  float pdcBurstCooldown = 1.f;
 };
 
 struct Pdc2 {
   PdcFireMode fireMode = PdcFireMode::BURST;
   float firingAngle;
+  float burstSpreadAngle;            // absolute small angle to spread the burst
   float minFiringAngle = -10.f;      // just past the front of the ship 
   float maxFiringAngle = 170.f;
-  float cooldown = 0.10f;
+  float cooldown = 0.02f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 5000.f;
   u_int32_t projectileDamage = 2;
-  u_int32_t rounds = 100;
+  u_int32_t rounds = 600;
   Entity target;                     // target for the PDC, can be a ship or a torpedo
   uint32_t pdcBurst = 0;             // number of rounds fired in the burst
-  uint32_t maxPdcBurst = 15;
+  uint32_t maxPdcBurst = 20;
   float timeSinceBurst = 0.f;
-  float pdcBurstCooldown = 4.f;
+  float pdcBurstCooldown = 1.f;
 };
 
 struct TorpedoLauncher1 {
@@ -88,7 +90,7 @@ struct TorpedoLauncher2 {
   float projectileSpeed = 500.f;
   float projectileAccel = 1000.f;
   u_int32_t projectileDamage = 200;
-  u_int32_t rounds = 8;
+  u_int32_t rounds = 0;
 };
 
 enum class ShapeType { AABB, Circle};
