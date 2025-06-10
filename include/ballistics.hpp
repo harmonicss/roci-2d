@@ -64,7 +64,7 @@ public:
         bullet, Position{{ppos.value.x + (dx * launch_distance),
                           ppos.value.y + (dy * launch_distance)}});
     ecs.addComponent(bullet, Rotation{pdc.firingAngle});
-    ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.25f, 0.25f, 0.f});
+    ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.5f, 0.5f, 0.f});
     ecs.addComponent(bullet, TimeFired{timeFired});
 
     SpriteComponent sc{sf::Sprite(texture)};
