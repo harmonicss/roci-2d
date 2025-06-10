@@ -37,6 +37,7 @@ public:
   }
   ~TorpedoAI() = default;
 
+  // Update Torpedo Targeting
   void Update(float tt, float dt) {
 
     float const max_lateral_accel = 1000.f; // maximum lateral acceleration (thrusters) for torpedos

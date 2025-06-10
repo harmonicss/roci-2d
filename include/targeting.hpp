@@ -100,8 +100,8 @@ public:
 
     // no torpedos in range
     if (nearestTorpedoDist > torpedoThreatRange) {
-      std::cout << "PdcTarget no torpedos in range\n";
-      return; 
+      // std::cout << "PdcTarget no torpedos in range\n";
+      return;
     }
 
     std::cout << "\nPdcTarget nearest torpedo: " << nearestTorpedo << "\n";
@@ -125,7 +125,6 @@ public:
   }
 
   // Target the PDCs at target
-  // TODO: move the pdcs for spread
   void aquireTargets () {
 
     // update the target for the PDCs
@@ -142,7 +141,6 @@ public:
 
     // get the angle to the nearest torpedo
     float att = angleToTarget(entityPos.value, targetPos.value);
-
     // std::cout << "\nPdcTarget angle to target: " << att << "\n";
 
     // estimate a targeting angle based on the target's velocity
@@ -160,8 +158,9 @@ public:
     // std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
 
     // for a fast moving target, we need to set to a maximum time to impact,
-    // or else for a torpedo the vector will pass through us.
-    timeToImpact = std::min(timeToImpact, 1.5f);
+    // or else for a torpedo the vector will pass through us and our guess
+    // angle will flip
+    timeToImpact = std::clamp(timeToImpact, 0.f, 0.5f);
 
     // Predict the target's position based on our relative velocity
     // and the time to impact
@@ -169,7 +168,7 @@ public:
     // compute relative velocity
     sf::Vector2f relativeVel = targetVel.value - entityVel.value;
      std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
-
+ 
     sf::Vector2f predictedTargetPos = distanceVector + (relativeVel * timeToImpact);
     // std::cout << "PdcTarget target position: " 
     //           << targetPos.value.x << ", " << targetPos.value.y << "\n";
@@ -257,6 +256,8 @@ private:
   Entity e;        // player or enemy that is using the pdcs
   BulletFactory bulletFactory;
   sf::Sound pdcFireSoundPlayer;
-
-  float torpedoThreatRange = 50000.f; // distance in pixels to consider a torpedo a threat
+  
+  // distance in pixels to consider a torpedo a threat.
+  // has to be close enough for pdcs to track it 
+  float torpedoThreatRange = 16000.f;
 };
