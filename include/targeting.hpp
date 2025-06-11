@@ -87,6 +87,9 @@ public:
 
       float dist = distance(myPos.value, torpedoPos.value);
 
+      // add each torpedo into the map, which is ordered by distance
+      torpedoTargetDistances[dist] = torpedo;
+
       if (dist < nearestTorpedoDist) {
         nearestTorpedoDist = dist;
         nearestTorpedo = torpedo;
@@ -107,17 +110,66 @@ public:
     std::cout << "\nPdcTarget nearest torpedo: " << nearestTorpedo << "\n";
     std::cout << "PdcTarget nearest torpedo distance: " << nearestTorpedoDist << "\n";
  
-    setTarget(nearestTorpedo);
+    // get the closest two (for now) torpedos
+    int count = 0;
+    for (auto &torpedo : torpedoTargetDistances) {
+      if (count >= 2) {
+        break; // only target the two closest torpedos
+      }
+      count++;
+
+      // get the torpedo entity
+      Entity tt = torpedo.second;
+      std::cout << "PdcTarget targeting index : " << count << " torpedo entity: " << tt << "\n";
+
+      // set the target for the PDCs
+      addTarget(tt);
+    }
+
+    // setTarget(nearestTorpedo);
     aquireTargets();
     firePdc1Burst(e, tt, 2.0f); // larger burstSpread to hit torps
     firePdc2Burst(e, tt, 2.0f);
   }
 
-  void setTarget(Entity target) {
-    // set the target for the PDCs
+  // add a target to the targeting list and assign the target to the appropriate PDCs
+  // TODO: not sure if I maintain a simple list of the two targets, or try to assign them 
+  // here. The problem is that I need to assign targets to the pdcs, if there is one target
+  // then assign them both. But with two I need to assign them seperately. 
+  // I really need a way to grab all the pdcs on a ship, as the Donnager has about 40 pdcs. 
+  void addTarget(Entity target) {
+
+    auto &entityRot = ecs.getComponent<Rotation>(e);
+    auto &targetPos = ecs.getComponent<Position>(target); 
+
+    // for now, we know we have 2 pds, will have to get all the pdcs on 
+    // the entity later
     auto &pdc1 = ecs.getComponent<Pdc1>(e);
     auto &pdc2 = ecs.getComponent<Pdc2>(e);
 
+    // work out which pdc to use
+
+    // calculate angular difference relative to the front of the ship
+    // all other angles are relative to the front of the ship aswell, this keeps
+    // all angles in relation to the ship's rotation
+    float pdc1RelativeFiringAngle = normalizeAngle(pdc1.firingAngle - entityRot.angle);
+    float pdc2RelativeFiringAngle = normalizeAngle(pdc2.firingAngle - entityRot.angle);
+
+    // check if the target is within the firing angle of the PDCs
+    if (isInRange(pdc1RelativeFiringAngle, pdc1.minFiringAngle, pdc1.maxFiringAngle)) {
+
+      // if we already have a target for this PDC, need to decide if we replace it, based
+      // on if already targeted by another PDC.
+ 
+      // add the target to the map of targets
+      pdcTargets[1] = target; // 1 for pdc1
+    }
+
+    if (isInRange(pdc2RelativeFiringAngle, pdc2.minFiringAngle, pdc2.maxFiringAngle)) {
+      // add the target to the map of targets
+      pdcTargets[2] = target; // 2 for pdc2
+    }
+    
     pdc1.target = target;
     pdc2.target = target;
 
@@ -223,7 +275,6 @@ public:
               << " source: " << source << "\n";
 
     // check if the target is within the firing angle of the PDCs
-    // TODO: would be good to rotate the pdcs over time
     if (isInRange(relativeFiringAngle, pdc.minFiringAngle, pdc.maxFiringAngle)) {
 
       if (pdc.timeSinceBurst == 0 || tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
@@ -256,7 +307,11 @@ private:
   Entity e;        // player or enemy that is using the pdcs
   BulletFactory bulletFactory;
   sf::Sound pdcFireSoundPlayer;
-  
+ 
+  std::map<float, Entity> torpedoTargetDistances; // map of targets and their distances
+
+  std::array<Entity, 2> pdcTargets; // list of 2 current targets 
+ 
   // distance in pixels to consider a torpedo a threat.
   // has to be close enough for pdcs to track it 
   float torpedoThreatRange = 16000.f;

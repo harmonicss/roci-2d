@@ -489,7 +489,7 @@ int main() {
     // target all pdcs if attacking enemy, this updates the display of pdc target heading
     if (state == State::ATTACK_PDC) {
       // target the player
-      pdcTarget.setTarget(enemy);
+      pdcTarget.addTarget(enemy);
       pdcTarget.aquireTargets();
     }
 
@@ -498,7 +498,7 @@ int main() {
     ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
       state = State::ATTACK_PDC;
-      pdcTarget.setTarget(enemy);
+      pdcTarget.addTarget(enemy);
       pdcTarget.aquireTargets(); // re-aquire targets for the PDCs, to update targeting
       pdcTarget.pdcAttack(tt);
     }

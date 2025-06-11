@@ -88,7 +88,7 @@ public:
         ecs.removeComponent<TimeFired>(entity);
         ecs.removeComponent<SpriteComponent>(entity);
         ecs.destroyEntity(entity);
-        std::cout << "Bullet " << entity << " removed" << std::endl;
+        // std::cout << "Bullet " << entity << " removed" << std::endl;
       }
     }
   }
