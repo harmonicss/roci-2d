@@ -191,9 +191,7 @@ public:
 
       // for now, attack the player. 
       // Could additional evasive maneuvers later.
-      pdcTarget.addTarget(0);
-      pdcTarget.aquireTargets();
-      pdcTarget.pdcAttack(tt);
+      pdcTarget.pdcAttack(0, tt);
     }
  
     // perform the turn

@@ -39,12 +39,11 @@ public:
   }
   ~BulletFactory() override = default;
 
-  template<typename Weapon>
-  void fireone(Entity firedby, float timeFired) {
+  void fireone(Entity firedby, Entity pdcEntity, float timeFired) {
 
     Entity bullet = ecs.createEntity("Bullet");
  
-    auto &pdc = ecs.getComponent<Weapon>(firedby);
+    auto &pdc = ecs.getComponent<Pdc>(pdcEntity);
     auto pvel = ecs.getComponent<Velocity>(firedby);
     auto ppos = ecs.getComponent<Position>(firedby);
     auto prot = ecs.getComponent<Rotation>(firedby);

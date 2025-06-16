@@ -38,41 +38,29 @@ struct TimeFired {
 
 enum class PdcFireMode { BURST, CONTINUOUS };
 
-// Point Defense Cannon
-struct Pdc1 {
-  PdcFireMode fireMode = PdcFireMode::BURST;
-  float firingAngle;                 // absolute, relative to the front of the ship and not rotatated
-  float burstSpreadAngle;            // absolute small angle to spread the burst
-  float minFiringAngle = -170.f;     // not quite behind the ship
-  float maxFiringAngle = 10.f;
-  float cooldown = 0.02f;
-  float timeSinceFired = 0.f;
-  float projectileSpeed = 5000.f;
-  u_int32_t projectileDamage = 2;
-  u_int32_t rounds = 600;
-  Entity target;                     // target for the PDC, can be a ship or a torpedo
-  uint32_t pdcBurst = 0;             // number of rounds fired in the burst
-  uint32_t maxPdcBurst = 20;
-  float timeSinceBurst = 0.f;
-  float pdcBurstCooldown = 1.f;
+// manage all the pdcs on a ship
+struct PdcMounts {
+  std::vector<Entity> pdcEntities;
 };
 
-struct Pdc2 {
-  PdcFireMode fireMode = PdcFireMode::BURST;
-  float firingAngle;
+// a generic PDC structure that can be used for different types of PDCs, and 
+// different pdc mounts on a ship.
+struct Pdc {
+  PdcFireMode fireMode;
+  float firingAngle;                 // absolute, relative to the front of the ship and not rotatated
   float burstSpreadAngle;            // absolute small angle to spread the burst
-  float minFiringAngle = -10.f;      // just past the front of the ship 
-  float maxFiringAngle = 170.f;
-  float cooldown = 0.02f;
-  float timeSinceFired = 0.f;
-  float projectileSpeed = 5000.f;
-  u_int32_t projectileDamage = 2;
-  u_int32_t rounds = 600;
+  float minFiringAngle;              // not quite behind the ship
+  float maxFiringAngle;
+  float cooldown;
+  float timeSinceFired;
+  float projectileSpeed;
+  u_int32_t projectileDamage;
+  u_int32_t rounds;
   Entity target;                     // target for the PDC, can be a ship or a torpedo
-  uint32_t pdcBurst = 0;             // number of rounds fired in the burst
-  uint32_t maxPdcBurst = 20;
-  float timeSinceBurst = 0.f;
-  float pdcBurstCooldown = 1.f;
+  uint32_t pdcBurst;                 // number of rounds fired in the burst
+  uint32_t maxPdcBurst;
+  float timeSinceBurst;
+  float pdcBurstCooldown;
 };
 
 struct TorpedoLauncher1 {
@@ -80,8 +68,8 @@ struct TorpedoLauncher1 {
   float firingOffset = -100.f;       // to create a seperation distance between launchers
   float cooldown = 5.0;
   float timeSinceFired = 0.f;
-  float projectileSpeed = 500.f; 
-  float projectileAccel = 1000.f;
+  float projectileSpeed = 100.f;
+  float projectileAccel = 500.f;
   u_int32_t projectileDamage = 200;
   u_int32_t rounds = 8;
 };
@@ -91,10 +79,10 @@ struct TorpedoLauncher2 {
   float firingOffset = 100.f;
   float cooldown = 5.0f;
   float timeSinceFired = 0.f;
-  float projectileSpeed = 500.f;
-  float projectileAccel = 1000.f;
+  float projectileSpeed = 100.f;
+  float projectileAccel = 500.f;
   u_int32_t projectileDamage = 200;
-  u_int32_t rounds = 0;
+  u_int32_t rounds = 8;
 };
 
 enum class ShapeType { AABB, Circle};

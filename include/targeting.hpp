@@ -5,6 +5,9 @@
 #include "utils.hpp"
 #include <cmath>
 #include <SFML/Audio.hpp>
+#include <optional>
+
+const Entity INVALID_TARGET_ID = 0xFFFF; // used to indicate no target
 
 // to target the pdcs and burst fire at incoming torpedos or enemy ships
 class PdcTarget {
@@ -47,29 +50,32 @@ public:
 
     // no torpedos to target
     if (nearestTorpedo == 0) {
-      return false; 
+      return false;
     }
 
     // no torpedos in range
     if (nearestTorpedoDist > torpedoThreatRange) {
-      std::cout << "PdcTarget no torpedos in range\n";
-      return false; 
+      // std::cout << "PdcTarget no torpedos in range\n";
+      return false;
     }
 
     std::cout << "pdcThreatDetected nearest torpedo: " << nearestTorpedo << "\n";
     return true; // there is a torpedo to target
   }
 
-  // targeting has alredy been done
-  void pdcAttack(float tt) {
-    firePdc1Burst(e, tt, 0.25f);
-    firePdc2Burst(e, tt, 0.25f);
+  void pdcAttack(Entity target, float tt) {
+    clearTargets(); // clear the targets before adding new ones
+    addTarget(target);
+    aquireTargets(); // re-aquire targets for the PDCs, to update targeting
+    firePdcBursts(e, tt, 0.25f);
   }
 
   // target incoming torpedos
   void pdcDefendTorpedo(float tt, float dt) {
     Entity nearestTorpedo = 0;  // might confuse with the player
     float nearestTorpedoDist = std::numeric_limits<float>::max();
+
+    torpedoTargetDistances.clear(); // clear the map of torpedo distances
 
     // find target torpedos
     // currently find the nearest, need to get all and target individually
@@ -90,6 +96,8 @@ public:
       // add each torpedo into the map, which is ordered by distance
       torpedoTargetDistances[dist] = torpedo;
 
+      std::cout << "\npdcDefendTorpedo added torpedo: " << torpedo << " distance: " << dist << "\n";
+
       if (dist < nearestTorpedoDist) {
         nearestTorpedoDist = dist;
         nearestTorpedo = torpedo;
@@ -107,197 +115,239 @@ public:
       return;
     }
 
-    std::cout << "\nPdcTarget nearest torpedo: " << nearestTorpedo << "\n";
-    std::cout << "PdcTarget nearest torpedo distance: " << nearestTorpedoDist << "\n";
- 
+    std::cout << "pdcDefendTorpedo nearest torpedo: " << nearestTorpedo << "\n";
+    std::cout << "pdcDefendTorpedo nearest torpedo distance: " << nearestTorpedoDist << "\n";
+
+    clearTargets(); // clear the targets before adding new ones
+
     // get the closest two (for now) torpedos
     int count = 0;
     for (auto &torpedo : torpedoTargetDistances) {
       if (count >= 2) {
         break; // only target the two closest torpedos
       }
-      count++;
 
       // get the torpedo entity
       Entity tt = torpedo.second;
-      std::cout << "PdcTarget targeting index : " << count << " torpedo entity: " << tt << "\n";
+      std::cout << "pdcDefendTorpedo adding target index: " << count << " torpedo entity: " << tt << "\n";
 
       // set the target for the PDCs
       addTarget(tt);
+      count++;
     }
 
     // setTarget(nearestTorpedo);
     aquireTargets();
-    firePdc1Burst(e, tt, 2.0f); // larger burstSpread to hit torps
-    firePdc2Burst(e, tt, 2.0f);
+    firePdcBursts(e, tt, 2.0f); // larger burstSpread to hit torps
+  }
+
+  void clearTargets() {
+    for (auto &t : pdcTargets) {
+      t.reset();
+    }
+
+    for (auto &pdcEntity : ecs.getComponent<PdcMounts>(e).pdcEntities) {
+      auto &pdcMount = ecs.getComponent<Pdc>(pdcEntity);
+      pdcMount.target = INVALID_TARGET_ID; // reset the target for the PDC
+    }
   }
 
   // add a target to the targeting list and assign the target to the appropriate PDCs
-  // TODO: not sure if I maintain a simple list of the two targets, or try to assign them 
-  // here. The problem is that I need to assign targets to the pdcs, if there is one target
-  // then assign them both. But with two I need to assign them seperately. 
-  // I really need a way to grab all the pdcs on a ship, as the Donnager has about 40 pdcs. 
   void addTarget(Entity target) {
 
     auto &entityRot = ecs.getComponent<Rotation>(e);
-    auto &targetPos = ecs.getComponent<Position>(target); 
-
-    // for now, we know we have 2 pds, will have to get all the pdcs on 
-    // the entity later
-    auto &pdc1 = ecs.getComponent<Pdc1>(e);
-    auto &pdc2 = ecs.getComponent<Pdc2>(e);
-
-    // work out which pdc to use
-
-    // calculate angular difference relative to the front of the ship
-    // all other angles are relative to the front of the ship aswell, this keeps
-    // all angles in relation to the ship's rotation
-    float pdc1RelativeFiringAngle = normalizeAngle(pdc1.firingAngle - entityRot.angle);
-    float pdc2RelativeFiringAngle = normalizeAngle(pdc2.firingAngle - entityRot.angle);
-
-    // check if the target is within the firing angle of the PDCs
-    if (isInRange(pdc1RelativeFiringAngle, pdc1.minFiringAngle, pdc1.maxFiringAngle)) {
-
-      // if we already have a target for this PDC, need to decide if we replace it, based
-      // on if already targeted by another PDC.
- 
-      // add the target to the map of targets
-      pdcTargets[1] = target; // 1 for pdc1
-    }
-
-    if (isInRange(pdc2RelativeFiringAngle, pdc2.minFiringAngle, pdc2.maxFiringAngle)) {
-      // add the target to the map of targets
-      pdcTargets[2] = target; // 2 for pdc2
-    }
-    
-    pdc1.target = target;
-    pdc2.target = target;
-
-    // std::cout << "PdcTarget set target: " << target << "\n";
-  }
-
-  // Target the PDCs at target
-  void aquireTargets () {
-
-    // update the target for the PDCs
-    //TODO: investigate as this will get all pdc entities, not correct?
-    // for (auto &pdc : ecs.view<Pdc1, Pdc2>()) {
-    auto &pdc1 = ecs.getComponent<Pdc1>(e);
-    auto &pdc2 = ecs.getComponent<Pdc2>(e);
-
-    auto &targetPos = ecs.getComponent<Position>(pdc1.target); // what about pdc2 different target?
-    auto &targetVel = ecs.getComponent<Velocity>(pdc1.target);
     auto &entityPos = ecs.getComponent<Position>(e);
-    auto &entityRot = ecs.getComponent<Rotation>(e);
-    auto &entityVel = ecs.getComponent<Velocity>(e);
+    auto &targetPos = ecs.getComponent<Position>(target); 
+    auto &mounts = ecs.getComponent<PdcMounts>(e);
 
-    // get the angle to the nearest torpedo
+    // get the angle to the target
     float att = angleToTarget(entityPos.value, targetPos.value);
-    // std::cout << "\nPdcTarget angle to target: " << att << "\n";
 
-    // estimate a targeting angle based on the target's velocity
-    // use a simple prediction based on the target's velocity and distance
-    sf::Vector2f distanceVector = targetPos.value - entityPos.value;
+    // assign the target to all PDCs that are within firing arc of the target
+    for (Entity pdcEntity : mounts.pdcEntities) {
 
-    float distance = distanceVector.length();
+      auto &pdc = ecs.getComponent<Pdc>(pdcEntity);
 
-    // estimate the time to impact based on the distance and target velocity
-    float timeToImpact = distance / pdc1.projectileSpeed;
+      // work out which pdc to use
 
-    // fudge factor for time to impact, as the change in angle is minimal
-    timeToImpact *= 1.00f;
-
-    // std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
-
-    // for a fast moving target, we need to set to a maximum time to impact,
-    // or else for a torpedo the vector will pass through us and our guess
-    // angle will flip
-    timeToImpact = std::clamp(timeToImpact, 0.f, 0.5f);
-
-    // Predict the target's position based on our relative velocity
-    // and the time to impact
-
-    // compute relative velocity
-    sf::Vector2f relativeVel = targetVel.value - entityVel.value;
-     std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
- 
-    sf::Vector2f predictedTargetPos = distanceVector + (relativeVel * timeToImpact);
-    // std::cout << "PdcTarget target position: " 
-    //           << targetPos.value.x << ", " << targetPos.value.y << "\n";
-
-    // aim at a guessed future position
-    sf::Vector2f guessDir = predictedTargetPos.normalized();
-
-    float guessAngle = guessDir.angle().asDegrees();
-    // std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
-
-    att = normalizeAngle(guessAngle);
-    // std::cout << "PdcTarget final absolute angle: " << att << "\n";
-
-    pdc1.firingAngle = att;
-    pdc2.firingAngle = att;
-  }
-
-  void firePdc1Burst(Entity source, float tt, float burstSpread) {
-    firePdcBurst<Pdc1>(source, tt, burstSpread, "PDC1");
-  }
-
-  void firePdc2Burst(Entity source, float tt, float burstSpread) {
-    firePdcBurst<Pdc2>(source, tt, burstSpread, "PDC2");
-  }
-
-  // fire the PDC if it is ready and target in arc
-  template<typename Pdc>
-  void firePdcBurst(Entity source, float tt, float burstSpread, const std::string &pdcName) {
-    auto &pdc = ecs.getComponent<Pdc>(source);
-    auto &entityRot = ecs.getComponent<Rotation>(source);
-
-    // calculate angular difference relative to the front of the ship
-    // all other angles are relative to the front of the ship aswell, this keeps
-    // all angles in relation to the ship's rotation
-    float relativeFiringAngle = normalizeAngle(pdc.firingAngle - entityRot.angle);
-
-    // spread the burst fire angle (beter chance of hitting torpedos and accelerating targets)
-
-    // cycle the burst through +/- burstSpread
-    pdc.burstSpreadAngle = burstSpread * std::sin(tt * 10.f); // oscillate between -burstSpread and +burstSpread
-    std::cout << "PDC1 burst spread angle: " << pdc.burstSpreadAngle << "\n";
-
-    // dont worry about a few degrees past the min or max
-    pdc.firingAngle += pdc.burstSpreadAngle;
-
-    std::cout << pdcName
-              << " relative firing angle: " << relativeFiringAngle
-              << " absolute firing angle: " << pdc.firingAngle
-              << " entity rotation angle: " << entityRot.angle
-              << " relative min: " << pdc.minFiringAngle
-              << " relative max: " << pdc.maxFiringAngle
-              << " source: " << source << "\n";
-
-    // check if the target is within the firing angle of the PDCs
-    if (isInRange(relativeFiringAngle, pdc.minFiringAngle, pdc.maxFiringAngle)) {
-
-      if (pdc.timeSinceBurst == 0 || tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
-        pdc.timeSinceBurst = tt;
-        pdc.pdcBurst = pdc.maxPdcBurst;
+      // if the pdcTargets are full, and this is a different target, then we need to
+      // remove the oldest target and add the new one
+      if (pdcTargets[0].has_value() && pdcTargets[1].has_value()) {
+        if (pdcTargets[0] != target && pdcTargets[1] != target) {
+          // remove the oldest target, which is the first one
+          std::cout << "addTarget " << ecs.getEntityName(pdcEntity) 
+                    << " removing oldest target: " << pdcTargets[0].value() << "\n";
+          pdcTargets[0].reset();
+        }
       }
 
-      if (pdc.pdcBurst > 0 && pdc.rounds) {
-        if (tt > pdc.timeSinceFired + pdc.cooldown) {
-          pdc.timeSinceFired = tt;
-          bulletFactory.fireone<Pdc1>(source, tt);
-          pdc.rounds--;
-          pdc.pdcBurst--;
-          pdcFireSoundPlayer.play();
-          std::cout << pdcName << " FIRING!" << "\n";
+      // calculate angular difference relative to the front of the ship
+      // all other angles are relative to the front of the ship aswell, this keeps
+      // all angles in relation to the ship's rotation
+      float pdcRelativeFiringAngle = normalizeAngle(att - entityRot.angle);
+
+      // check if the target is within the firing angle of the PDCs
+      if (isInRange(pdcRelativeFiringAngle, pdc.minFiringAngle, pdc.maxFiringAngle)) {
+
+        // Check if the target is already assigned
+        // TODO: not sure if this is correct, what if I need to assign to a different pdc?
+        // will it be ok as I clear the pdcTarget list beforehand?
+        // what if I want all pdcs to target the same target. This will automatically assign all 
+        // pdcTargets to the same target. 
+        // If there are different targets, this should also be taken care of as the firing arcs will 
+        // split the targeting. 
+
+        // Find first empty target slot
+        for (auto &t : pdcTargets) {
+          if (!t.has_value()) {
+            t = target; // assign the target to the first empty slot
+ 
+            // assign the pdc target to the PDC
+            pdc.target = target;
+
+            std::cout << "\naddTarget " << ecs.getEntityName(pdcEntity) 
+                      << " added target: " << target << "\n";
+            break;
+          }
         }
       }
     }
-    else {
-      std::cout << pdcName
-                << " not firing, relative angle: " << relativeFiringAngle 
-                << " is out or range. min: " << pdc.minFiringAngle 
-                << " max: " << pdc.maxFiringAngle << "\n";
+  }
+
+  // Target the PDCs at target, taking velocity and position into account
+  void aquireTargets () {
+
+    auto &mounts = ecs.getComponent<PdcMounts>(e);
+
+    // aquire the targets for the PDCs
+    for (Entity pdcEntity : mounts.pdcEntities) {
+      auto &pdc = ecs.getComponent<Pdc>(pdcEntity);
+
+      if (pdc.target == INVALID_TARGET_ID) {
+        // std::cout << "PdcTarget no target for : " << ecs.getEntityName(pdcEntity) << "\n";
+        continue; // no target assigned to this PDC
+      }
+
+      // std::cout << "aquireTargets aquiring target for "
+      //           << ecs.getEntityName(pdcEntity)
+      //           << ": " << pdc.target << "\n";
+
+      auto &targetPos = ecs.getComponent<Position>(pdc.target); 
+      auto &targetVel = ecs.getComponent<Velocity>(pdc.target);
+      auto &entityPos = ecs.getComponent<Position>(e);
+      auto &entityRot = ecs.getComponent<Rotation>(e);
+      auto &entityVel = ecs.getComponent<Velocity>(e);
+
+      // get the angle to the target
+      float att = angleToTarget(entityPos.value, targetPos.value);
+      // std::cout << "\nPdcTarget angle to target: " << att << "\n";
+
+      // estimate a targeting angle based on the target's velocity
+      // use a simple prediction based on the target's velocity and distance
+      sf::Vector2f distanceVector = targetPos.value - entityPos.value;
+
+      float distance = distanceVector.length();
+
+      // estimate the time to impact based on the distance and target velocity
+      float timeToImpact = distance / pdc.projectileSpeed;
+
+      // fudge factor for time to impact, as the change in angle is minimal
+      timeToImpact *= 1.00f;
+
+      // std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
+
+      // for a fast moving target, we need to set to a maximum time to impact,
+      // or else for a torpedo the vector will pass through us and our guess
+      // angle will flip
+      timeToImpact = std::clamp(timeToImpact, 0.f, 0.7f);
+
+      // Predict the target's position based on our relative velocity
+      // and the time to impact
+
+      // compute relative velocity
+      sf::Vector2f relativeVel = targetVel.value - entityVel.value;
+      // std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
+
+      sf::Vector2f predictedTargetPos = distanceVector + (relativeVel * timeToImpact);
+      // std::cout << "PdcTarget target position: " 
+      //           << targetPos.value.x << ", " << targetPos.value.y << "\n";
+
+      // aim at a guessed future position
+      sf::Vector2f guessDir = predictedTargetPos.normalized();
+
+      float guessAngle = guessDir.angle().asDegrees();
+      // std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
+
+      att = normalizeAngle(guessAngle);
+      // std::cout << "PdcTarget final absolute angle: " << att << "\n";
+
+      pdc.firingAngle = att;
+    }
+  }
+
+
+  // fire all the PDCs if it is ready and target in arc
+  void firePdcBursts(Entity source, float tt, float burstSpread)  {
+
+    auto &mounts = ecs.getComponent<PdcMounts>(e);
+
+    // aquire the targets for the PDCs
+    for (Entity pdcEntity : mounts.pdcEntities) {
+      auto &pdc = ecs.getComponent<Pdc>(pdcEntity);
+      auto &entityRot = ecs.getComponent<Rotation>(source);
+
+      // calculate angular difference relative to the front of the ship
+      // all other angles are relative to the front of the ship aswell, this keeps
+      // all angles in relation to the ship's rotation
+      float relativeFiringAngle = normalizeAngle(pdc.firingAngle - entityRot.angle);
+
+      // spread the burst fire angle (beter chance of hitting torpedos and accelerating targets)
+
+      // cycle the burst through +/- burstSpread
+      pdc.burstSpreadAngle = burstSpread * std::sin(tt * 10.f); // oscillate between -burstSpread and +burstSpread
+
+      // dont worry about a few degrees past the min or max
+      pdc.firingAngle += pdc.burstSpreadAngle;
+
+      std::cout << ecs.getEntityName(pdcEntity)
+        << " relative firing angle: " << relativeFiringAngle
+        << " absolute firing angle: " << pdc.firingAngle
+        << " entity rotation angle: " << entityRot.angle
+        << " relative min: " << pdc.minFiringAngle
+        << " relative max: " << pdc.maxFiringAngle
+        << " source: " << source 
+        << " burst spread angle: " << pdc.burstSpreadAngle << "\n";
+
+      // check that we have a valid target and the target is within the firing angle of the PDCs
+      if (pdc.target != INVALID_TARGET_ID && isInRange(relativeFiringAngle, pdc.minFiringAngle, pdc.maxFiringAngle)) {
+
+        if (pdc.timeSinceBurst == 0 || tt > pdc.timeSinceBurst + pdc.pdcBurstCooldown) {
+          pdc.timeSinceBurst = tt;
+          pdc.pdcBurst = pdc.maxPdcBurst;
+        }
+
+        if (pdc.pdcBurst > 0 && pdc.rounds) {
+          if (tt > pdc.timeSinceFired + pdc.cooldown) {
+            pdc.timeSinceFired = tt;
+            bulletFactory.fireone(source, pdcEntity, tt);
+            pdc.rounds--;
+            pdc.pdcBurst--;
+            pdcFireSoundPlayer.play();
+            std::cout << ecs.getEntityName(pdcEntity) << " FIRING AT " << pdc.target << "\n";
+          }
+        }
+      }
+      else {
+        std::cout << ecs.getEntityName(pdcEntity)
+          << " not firing, relative angle: " << relativeFiringAngle 
+          << " is out or range. min: " << pdc.minFiringAngle 
+          << " max: " << pdc.maxFiringAngle << "\n";
+
+        // set the firing angle to one that is out of range for display purposes
+        // this has the unfortunate side effect of firing the PDCs, so we check in the main 
+        // if statement for valid target.
+        pdc.firingAngle = pdc.minFiringAngle;
+      }
     }
   }
 
@@ -310,9 +360,9 @@ private:
  
   std::map<float, Entity> torpedoTargetDistances; // map of targets and their distances
 
-  std::array<Entity, 2> pdcTargets; // list of 2 current targets 
+  std::array<std::optional<Entity>, 2> pdcTargets; // list of 2 current targets 
  
   // distance in pixels to consider a torpedo a threat.
-  // has to be close enough for pdcs to track it 
-  float torpedoThreatRange = 16000.f;
+  // has to be close enough for pdcs to track it. 
+  float torpedoThreatRange = 35000.f;
 };

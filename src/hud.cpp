@@ -128,8 +128,9 @@ void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::F
 
   // Pdc rounds
   sf::Text pdctext(font);
-  std::snprintf(bufx, sizeof(bufx), "%i", ecs.getComponent<Pdc1>(e).rounds);
-  std::snprintf(bufy, sizeof(bufy), "%i", ecs.getComponent<Pdc2>(e).rounds);
+  auto &pdcEntities = ecs.getComponent<PdcMounts>(e).pdcEntities;
+  std::snprintf(bufx, sizeof(bufx), "%i", ecs.getComponent<Pdc>(pdcEntities[0]).rounds);
+  std::snprintf(bufy, sizeof(bufy), "%i", ecs.getComponent<Pdc>(pdcEntities[1]).rounds);
   sf::String pdcString = std::string("PDC1: ") + bufx + ", PDC2: " + bufy;
   pdctext.setString(pdcString);
   pdctext.setCharacterSize(10);
@@ -206,16 +207,17 @@ void DrawPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float
 
   sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
 
-  auto &pdc1 = ecs.getComponent<Pdc1>(e);
-  auto &pdc2 = ecs.getComponent<Pdc2>(e);
+  auto &pdcEntities = ecs.getComponent<PdcMounts>(e).pdcEntities;
+  auto &pdc1 = ecs.getComponent<Pdc>(pdcEntities[0]);
+  auto &pdc2 = ecs.getComponent<Pdc>(pdcEntities[1]);
 
   // firing angle is as absolute, not rotataed angle
   // create a vector for the pdc1 firing angle
-  sf::Vector2f pdc1Vector = {static_cast<float>(std::cos((pdc1.firingAngle) * (M_PI / 180.f)) * 1000.f),
-                             static_cast<float>(std::sin((pdc1.firingAngle) * (M_PI / 180.f)) * 1000.f)};
+  sf::Vector2f pdc1Vector = {static_cast<float>(std::cos((pdc1.firingAngle) * (M_PI / 180.f)) * 500.f),
+                             static_cast<float>(std::sin((pdc1.firingAngle) * (M_PI / 180.f)) * 500.f)};
 
-  sf::Vector2f pdc2Vector = {static_cast<float>(std::cos((pdc2.firingAngle) * (M_PI / 180.f)) * 1000.f),
-                             static_cast<float>(std::sin((pdc2.firingAngle) * (M_PI / 180.f)) * 1000.f)};
+  sf::Vector2f pdc2Vector = {static_cast<float>(std::cos((pdc2.firingAngle) * (M_PI / 180.f)) * 500.f),
+                             static_cast<float>(std::sin((pdc2.firingAngle) * (M_PI / 180.f)) * 500.f)};
 
   DrawVector(window, ecs, e, ppos.value, pdc1Vector, cameraOffset, sf::Color::Red, zoomFactor, 20.f);
   DrawVector(window, ecs, e, ppos.value, pdc2Vector, cameraOffset, sf::Color::Green, zoomFactor, 20.f);
@@ -235,11 +237,11 @@ void DrawPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float
   float rotatedMinAngle = normalizeAngle(pdc1.minFiringAngle + prot.angle);
   float rotatedMaxAngle = normalizeAngle(pdc1.maxFiringAngle + prot.angle);
 
-  sf::Vector2f pdc1MinVector = {static_cast<float>(std::cos((rotatedMinAngle) * (M_PI / 180.f)) * 500.f),
-                                static_cast<float>(std::sin((rotatedMinAngle) * (M_PI / 180.f)) * 500.f)};
+  sf::Vector2f pdc1MinVector = {static_cast<float>(std::cos((rotatedMinAngle) * (M_PI / 180.f)) * 250.f),
+                                static_cast<float>(std::sin((rotatedMinAngle) * (M_PI / 180.f)) * 250.f)};
 
-  sf::Vector2f pdc1MaxVector = {static_cast<float>(std::cos((rotatedMaxAngle) * (M_PI / 180.f)) * 500.f),
-                                static_cast<float>(std::sin((rotatedMaxAngle) * (M_PI / 180.f)) * 500.f)};
+  sf::Vector2f pdc1MaxVector = {static_cast<float>(std::cos((rotatedMaxAngle) * (M_PI / 180.f)) * 250.f),
+                                static_cast<float>(std::sin((rotatedMaxAngle) * (M_PI / 180.f)) * 250.f)};
 
   DrawVector(window, ecs, e, ppos.value, pdc1MinVector, cameraOffset, lightRed, zoomFactor, 10.f);
   DrawVector(window, ecs, e, ppos.value, pdc1MaxVector, cameraOffset, darkRed, zoomFactor, 10.f);
@@ -250,11 +252,11 @@ void DrawPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float
   rotatedMinAngle = normalizeAngle(pdc2.minFiringAngle + prot.angle);
   rotatedMaxAngle = normalizeAngle(pdc2.maxFiringAngle + prot.angle);
 
-  sf::Vector2f pdc2MinVector = {static_cast<float>(std::cos((rotatedMinAngle) * (M_PI / 180.f)) * 500.f),
-                                static_cast<float>(std::sin((rotatedMinAngle) * (M_PI / 180.f)) * 500.f)};
+  sf::Vector2f pdc2MinVector = {static_cast<float>(std::cos((rotatedMinAngle) * (M_PI / 180.f)) * 250.f),
+                                static_cast<float>(std::sin((rotatedMinAngle) * (M_PI / 180.f)) * 250.f)};
 
-  sf::Vector2f pdc2MaxVector = {static_cast<float>(std::cos((rotatedMaxAngle) * (M_PI / 180.f)) * 500.f),
-                                static_cast<float>(std::sin((rotatedMaxAngle) * (M_PI / 180.f)) * 500.f)};
+  sf::Vector2f pdc2MaxVector = {static_cast<float>(std::cos((rotatedMaxAngle) * (M_PI / 180.f)) * 250.f),
+                                static_cast<float>(std::sin((rotatedMaxAngle) * (M_PI / 180.f)) * 250.f)};
 
   DrawVector(window, ecs, e, ppos.value, pdc2MinVector, cameraOffset, lightGreen, zoomFactor, 10.f);
   DrawVector(window, ecs, e, ppos.value, pdc2MaxVector, cameraOffset, darkGreen, zoomFactor, 10.f);

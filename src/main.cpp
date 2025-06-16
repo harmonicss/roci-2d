@@ -42,7 +42,8 @@ struct FlipBurnControl {
 
 // use this to control the pdc targeting
 enum class State {
-  ATTACK_PDC, 
+  IDLE,
+  ATTACK_PDC,
   DEFENCE_PDC,
 };
 
@@ -55,7 +56,7 @@ int main() {
 
   FlipBurnControl flipControl;
 
-  State state = State::DEFENCE_PDC;
+  State state = State::IDLE;
 
   // - ECS Setup -
   Coordinator ecs;
@@ -65,13 +66,13 @@ int main() {
   ecs.registerComponent<Rotation>();
   ecs.registerComponent<SpriteComponent>();
   ecs.registerComponent<Health>();
-  ecs.registerComponent<Pdc1>();
-  ecs.registerComponent<Pdc2>();
+  ecs.registerComponent<Pdc>();
   ecs.registerComponent<TorpedoLauncher1>();
   ecs.registerComponent<TorpedoLauncher2>();
   ecs.registerComponent<Collision>();
   ecs.registerComponent<Target>();
   ecs.registerComponent<TimeFired>();
+  ecs.registerComponent<PdcMounts>();
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Fonts -
@@ -143,9 +144,7 @@ int main() {
     sc.sprite.setOrigin(rociOrigin);
     ecs.addComponent(player, SpriteComponent{sc});
   }
-  
-  ecs.addComponent(player, Pdc1{});
-  ecs.addComponent(player, Pdc2{});
+ 
   ecs.addComponent(player, TorpedoLauncher1{});
   ecs.addComponent(player, TorpedoLauncher2{});
   ecs.addComponent(
@@ -154,7 +153,8 @@ int main() {
                         static_cast<float>(rociTexture.getSize().y) / 2 - 45, 0.f});
 
   ///////////////////////////////////////////////////////////////////////////////
-  // - Create Enemy Entity -
+  // - Create Enemy Entity - be careful with the order of this, as I assume
+  // enemy = 1 sometimes.
   ///////////////////////////////////////////////////////////////////////////////
   Entity enemy = ecs.createEntity("Enemy");
   ecs.addComponent(enemy, Position{{0, -18000.f}});
@@ -169,14 +169,105 @@ int main() {
     sc.sprite.setOrigin(enemyOrigin);
     ecs.addComponent(enemy, sc);
   }
-  ecs.addComponent(enemy, Pdc1{});
-  ecs.addComponent(enemy, Pdc2{});
   ecs.addComponent(enemy, TorpedoLauncher1{});
   ecs.addComponent(enemy, TorpedoLauncher2{});
   ecs.addComponent(
       enemy, Collision{ShapeType::AABB,
                        static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
                        static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
+
+  ///////////////////////////////////////////////////////////////////////////////
+  // create pdc mounts for the player
+  ///////////////////////////////////////////////////////////////////////////////
+  std::vector<Entity> playerPdcEntities;
+  Entity pdc1 = ecs.createEntity("PDC1");
+  Entity pdc2 = ecs.createEntity("PDC2");
+  ecs.addComponent(pdc1, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = -45.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = -170.f,
+    .maxFiringAngle = 10.f,
+    .cooldown = 0.02f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 5000.f,
+    .projectileDamage = 2,
+    .rounds = 600,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 20,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+  });
+  playerPdcEntities.push_back(pdc1);
+
+  ecs.addComponent(pdc2, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = +45.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = -10.f,
+    .maxFiringAngle = 170.f,
+    .cooldown = 0.02f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 5000.f,
+    .projectileDamage = 2,
+    .rounds = 600,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 20,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+  });
+  playerPdcEntities.push_back(pdc2);
+
+  ecs.addComponent(player, PdcMounts{playerPdcEntities});
+
+  ///////////////////////////////////////////////////////////////////////////////
+  // create pdc mounts for the enemy
+  ///////////////////////////////////////////////////////////////////////////////
+  std::vector<Entity> enemyPdcEntities;
+  pdc1 = ecs.createEntity("PDC1");
+  pdc2 = ecs.createEntity("PDC2");
+  ecs.addComponent(pdc1, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = -45.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = -170.f,
+    .maxFiringAngle = 10.f,
+    .cooldown = 0.01f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 8000.f,
+    .projectileDamage = 2,
+    .rounds = 600,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 20,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+  });
+  enemyPdcEntities.push_back(pdc1);
+
+  ecs.addComponent(pdc2, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = +45.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = -10.f,
+    .maxFiringAngle = 170.f,
+    .cooldown = 0.01f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 8000.f,
+    .projectileDamage = 2,
+    .rounds = 600,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 20,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+  });
+  enemyPdcEntities.push_back(pdc2);
+
+  ecs.addComponent(enemy, PdcMounts{enemyPdcEntities});
+
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Collision System, with lambda callback
@@ -200,7 +291,9 @@ int main() {
         phealth.value -= ecs.getComponent<TorpedoLauncher1>(0).projectileDamage;
       }
       else { // bullet, can add railgun later
-        phealth.value -= ecs.getComponent<Pdc1>(0).projectileDamage;
+        // just grab any pdc for now
+        auto &mounts = ecs.getComponent<PdcMounts>(0);
+        phealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
 
         // TODO: add torpedo sound
         pdcHitSoundPlayer.play();
@@ -214,7 +307,9 @@ int main() {
         ehealth.value -= ecs.getComponent<TorpedoLauncher1>(1).projectileDamage;
       }
       else { // bullet, can add railgun later
-        ehealth.value -= ecs.getComponent<Pdc1>(1).projectileDamage;
+        // just grab any pdc for now
+        auto &mounts = ecs.getComponent<PdcMounts>(1);
+        ehealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
 
         // TODO: add torpedo sound
         pdcHitSoundPlayer.play();
@@ -486,28 +581,36 @@ int main() {
       }
     }
 
-    // target all pdcs if attacking enemy, this updates the display of pdc target heading
-    if (state == State::ATTACK_PDC) {
-      // target the player
-      pdcTarget.addTarget(enemy);
-      pdcTarget.aquireTargets();
-    }
-
     ///////////////////////////////////////////////////////////////////////////////
     // Fire! Attacking PDCs
     ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
-      state = State::ATTACK_PDC;
-      pdcTarget.addTarget(enemy);
-      pdcTarget.aquireTargets(); // re-aquire targets for the PDCs, to update targeting
-      pdcTarget.pdcAttack(tt);
+      if (state == State::ATTACK_PDC)
+        state = State::IDLE;
+      else
+        state = State::ATTACK_PDC;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
-    // Fire! Defensive PDCs
+    // Fire! Defensive PDCs Change to defence state
     ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) {
-      state = State::DEFENCE_PDC;
+      if (state == State::DEFENCE_PDC)
+        state = State::IDLE;
+      else
+        state = State::DEFENCE_PDC;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // simple state machine 
+    // target all pdcs if attacking enemy, this updates the display of pdc target heading
+    ///////////////////////////////////////////////////////////////////////////////
+    if (state == State::ATTACK_PDC) {
+      // target the player
+      pdcTarget.pdcAttack(enemy, tt);
+    }
+    else if (state == State::DEFENCE_PDC) {
+      // target the nearest torpedo
       pdcTarget.pdcDefendTorpedo(tt, dt);
     }
 
