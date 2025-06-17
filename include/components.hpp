@@ -61,6 +61,8 @@ struct Pdc {
   uint32_t maxPdcBurst;
   float timeSinceBurst;
   float pdcBurstCooldown;
+  float positionx;                   // position of the pdc on the ship
+  float positiony;
 };
 
 struct TorpedoLauncher1 {

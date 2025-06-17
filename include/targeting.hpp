@@ -238,13 +238,15 @@ public:
       auto &entityRot = ecs.getComponent<Rotation>(e);
       auto &entityVel = ecs.getComponent<Velocity>(e);
 
-      // get the angle to the target
-      float att = angleToTarget(entityPos.value, targetPos.value);
+      sf::Vector2f pdcOffset = rotateVector({pdc.positionx, pdc.positiony}, entityRot.angle);
+
+      // get the angle to the target, adjust for the position of the pdc
+      float att = angleToTarget(entityPos.value + pdcOffset, targetPos.value);
       // std::cout << "\nPdcTarget angle to target: " << att << "\n";
 
       // estimate a targeting angle based on the target's velocity
       // use a simple prediction based on the target's velocity and distance
-      sf::Vector2f distanceVector = targetPos.value - entityPos.value;
+      sf::Vector2f distanceVector = targetPos.value - entityPos.value + pdcOffset;
 
       float distance = distanceVector.length();
 
@@ -259,7 +261,7 @@ public:
       // for a fast moving target, we need to set to a maximum time to impact,
       // or else for a torpedo the vector will pass through us and our guess
       // angle will flip
-      timeToImpact = std::clamp(timeToImpact, 0.f, 0.7f);
+      timeToImpact = std::clamp(timeToImpact, 0.f, 0.5f);
 
       // Predict the target's position based on our relative velocity
       // and the time to impact
@@ -364,5 +366,5 @@ private:
  
   // distance in pixels to consider a torpedo a threat.
   // has to be close enough for pdcs to track it. 
-  float torpedoThreatRange = 35000.f;
+  float torpedoThreatRange = 16000.f;
 };

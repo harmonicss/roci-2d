@@ -198,6 +198,8 @@ int main() {
     .maxPdcBurst = 20,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
+    .positionx = 260.f,       // top left
+    .positiony = -180.f,       // top left
   });
   playerPdcEntities.push_back(pdc1);
 
@@ -217,6 +219,8 @@ int main() {
     .maxPdcBurst = 20,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
+    .positionx = 260.f,       // top right
+    .positiony = 180.f,       // top right
   });
   playerPdcEntities.push_back(pdc2);
 
@@ -236,7 +240,7 @@ int main() {
     .maxFiringAngle = 10.f,
     .cooldown = 0.01f,
     .timeSinceFired = 0.f,
-    .projectileSpeed = 8000.f,
+    .projectileSpeed = 6000.f,
     .projectileDamage = 2,
     .rounds = 600,
     .target = INVALID_TARGET_ID,
@@ -244,6 +248,8 @@ int main() {
     .maxPdcBurst = 20,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
+    .positionx = 260.f,        // top left
+    .positiony = -180.f,       // top left
   });
   enemyPdcEntities.push_back(pdc1);
 
@@ -255,7 +261,7 @@ int main() {
     .maxFiringAngle = 170.f,
     .cooldown = 0.01f,
     .timeSinceFired = 0.f,
-    .projectileSpeed = 8000.f,
+    .projectileSpeed = 6000.f,
     .projectileDamage = 2,
     .rounds = 600,
     .target = INVALID_TARGET_ID,
@@ -263,6 +269,8 @@ int main() {
     .maxPdcBurst = 20,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
+    .positionx = 260.f,        // top right
+    .positiony = 180.f,        // top right
   });
   enemyPdcEntities.push_back(pdc2);
 
@@ -600,13 +608,15 @@ int main() {
     // target all pdcs if attacking enemy, this updates the display of pdc target heading
     ///////////////////////////////////////////////////////////////////////////////
     if (state == State::ATTACK_PDC) {
-      // target the player
+      // target the enemy
       pdcTarget.pdcAttack(enemy, tt);
     }
     else if (state == State::DEFENCE_PDC) {
       // target the nearest torpedo
       pdcTarget.pdcDefendTorpedo(tt, dt);
     }
+
+    state = State::IDLE;
 
     ///////////////////////////////////////////////////////////////////////////////
     // Fire! Torpedo 1 & 2

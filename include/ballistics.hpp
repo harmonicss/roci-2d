@@ -1,6 +1,7 @@
 #pragma once
 #include "ecs.hpp"
 #include "components.hpp"
+#include "utils.hpp"
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <cmath>
@@ -59,9 +60,19 @@ public:
     ecs.addComponent(
         bullet, Velocity{{pvel.value.x + (dx * pdc.projectileSpeed),
                           pvel.value.y + (dy * pdc.projectileSpeed)}});
+
+#if 0
     ecs.addComponent(
         bullet, Position{{ppos.value.x + (dx * launch_distance),
                           ppos.value.y + (dy * launch_distance)}});
+
+#else
+    // fire from the actual pdc, not the centre of the ship
+    sf::Vector2f pdcOffset = rotateVector({pdc.positionx, pdc.positiony}, prot.angle);
+    ecs.addComponent(
+        bullet, Position{ppos.value + pdcOffset});
+#endif
+
     ecs.addComponent(bullet, Rotation{pdc.firingAngle});
     ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.5f, 0.5f, 0.f});
     ecs.addComponent(bullet, TimeFired{timeFired});
@@ -144,7 +155,7 @@ public:
 
     SpriteComponent sc{sf::Sprite(texture)};
     sf::Vector2f torpedoOrigin(texture.getSize().x / 2.f,
-                              texture.getSize().y / 2.f);
+                               texture.getSize().y / 2.f);
     sc.sprite.setOrigin(torpedoOrigin);
     ecs.addComponent(torpedo, sc);
   }

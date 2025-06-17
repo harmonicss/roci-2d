@@ -219,9 +219,14 @@ void DrawPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float
   sf::Vector2f pdc2Vector = {static_cast<float>(std::cos((pdc2.firingAngle) * (M_PI / 180.f)) * 500.f),
                              static_cast<float>(std::sin((pdc2.firingAngle) * (M_PI / 180.f)) * 500.f)};
 
-  DrawVector(window, ecs, e, ppos.value, pdc1Vector, cameraOffset, sf::Color::Red, zoomFactor, 20.f);
-  DrawVector(window, ecs, e, ppos.value, pdc2Vector, cameraOffset, sf::Color::Green, zoomFactor, 20.f);
+  // fire from the actual pdc, not the centre of the ship
+  sf::Vector2f pdc1Offset = rotateVector({pdc1.positionx, pdc1.positiony}, prot.angle);
+  sf::Vector2f pdc2Offset = rotateVector({pdc2.positionx, pdc2.positiony}, prot.angle);
 
+  DrawVector(window, ecs, e, ppos.value + pdc1Offset, pdc1Vector, cameraOffset, sf::Color::Red, zoomFactor, 20.f);
+  DrawVector(window, ecs, e, ppos.value + pdc2Offset, pdc2Vector, cameraOffset, sf::Color::Green, zoomFactor, 20.f);
+
+#if 0
   sf::Color darkRed(156, 0, 0);
   sf::Color lightRed(150, 110, 110);
   sf::Color darkGreen(52, 156, 0);
@@ -260,6 +265,7 @@ void DrawPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float
 
   DrawVector(window, ecs, e, ppos.value, pdc2MinVector, cameraOffset, lightGreen, zoomFactor, 10.f);
   DrawVector(window, ecs, e, ppos.value, pdc2MaxVector, cameraOffset, darkGreen, zoomFactor, 10.f);
+#endif
 }
 
 void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& font, float zoomFactor) {

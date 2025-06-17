@@ -32,3 +32,13 @@ inline float angleToTarget(sf::Vector2f source, sf::Vector2f target) {
 
   return (radians * 180.f) / M_PI;
 }
+
+inline sf::Vector2f rotateVector(const sf::Vector2f& vec, float angleDegrees) {
+    float radians = angleDegrees * (M_PI / 180.f);
+    float cs = std::cos(radians);
+    float sn = std::sin(radians);
+    return {
+        vec.x * cs - vec.y * sn,
+        vec.x * sn + vec.y * cs
+    };
+}
