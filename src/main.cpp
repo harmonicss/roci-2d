@@ -585,20 +585,14 @@ int main() {
     // Fire! Attacking PDCs
     ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) {
-      if (state == State::ATTACK_PDC)
-        state = State::IDLE;
-      else
-        state = State::ATTACK_PDC;
+      state = State::ATTACK_PDC;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
     // Fire! Defensive PDCs Change to defence state
     ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) {
-      if (state == State::DEFENCE_PDC)
-        state = State::IDLE;
-      else
-        state = State::DEFENCE_PDC;
+      state = State::DEFENCE_PDC;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
