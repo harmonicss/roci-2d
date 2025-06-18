@@ -640,8 +640,10 @@ void createPdcs(Coordinator &ecs, Entity e) {
   std::vector<Entity> pdcEntities;
   Entity pdc1 = ecs.createEntity("PDC1");
   Entity pdc2 = ecs.createEntity("PDC2");
-  Entity pdc3 = ecs.createEntity("PDC3");
-
+  Entity pdc3 = ecs.createEntity("PDC3"); 
+  Entity pdc4 = ecs.createEntity("PDC4");
+  Entity pdc5 = ecs.createEntity("PDC5"); // centre
+ 
   ecs.addComponent(pdc1, Pdc{
     .fireMode = PdcFireMode::BURST,
     .firingAngle = -45.f,
@@ -684,8 +686,50 @@ void createPdcs(Coordinator &ecs, Entity e) {
   });
   pdcEntities.push_back(pdc2);
 
-  // 360 in centre
   ecs.addComponent(pdc3, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = -45.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = -170.f,
+    .maxFiringAngle = -10.f,
+    .cooldown = 0.01f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 5000.f,
+    .projectileDamage = 2,
+    .rounds = 600,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 30,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+    .positionx = 40.f,       // middle left
+    .positiony = -180.f,
+  });
+  pdcEntities.push_back(pdc3);
+
+  ecs.addComponent(pdc4, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = +45.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = 10.f,
+    .maxFiringAngle = 170.f,
+    .cooldown = 0.01f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 5000.f,
+    .projectileDamage = 2,
+    .rounds = 600,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 30,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+    .positionx = 40.f,       // middle right
+    .positiony = 180.f,
+  });
+  pdcEntities.push_back(pdc4);
+
+  // 360 in centre
+  ecs.addComponent(pdc5, Pdc{
     .fireMode = PdcFireMode::BURST,
     .firingAngle = +0.f,
     .burstSpreadAngle = 5.f,
@@ -704,6 +748,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .positionx = -160.f,       // centre
     .positiony = 0.f,
   });
-  pdcEntities.push_back(pdc3);
+  pdcEntities.push_back(pdc5);
+
   ecs.addComponent(e, PdcMounts{pdcEntities});
 }
