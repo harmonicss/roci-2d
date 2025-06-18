@@ -7,6 +7,25 @@
 #include <SFML/Audio.hpp>
 #include <optional>
 
+#undef PDCTARGET_AI_DEBUG
+
+#if !defined(PDCTARGET_AI_DEBUG)
+// a streambuf that does nothing, used to redirect cout to a null stream
+struct PdcNullBuffer : std::streambuf {
+  int overflow(int c) override { return c; } // do nothing
+};
+
+static PdcNullBuffer pdcNullBuffer; // global null buffer to use for cout
+static std::ostream pdcNullStream(&pdcNullBuffer); // global null stream to use for cout
+
+#define PDCTARGET_DEBUG pdcNullStream
+
+#else
+
+#define PDCTARGET_DEBUG std::cout
+
+#endif
+
 const Entity INVALID_TARGET_ID = 0xFFFF; // used to indicate no target
 
 // to target the pdcs and burst fire at incoming torpedos or enemy ships
@@ -19,7 +38,7 @@ public:
     bulletFactory(bulletFactory),
     pdcFireSoundPlayer(pdcFireSoundPlayer)
   {
-    std::cout << "PdcTarget created for entity: " << e << std::endl;
+    PDCTARGET_DEBUG << "PdcTarget created for entity: " << e << std::endl;
   }
   ~PdcTarget() = default;
 
@@ -55,11 +74,11 @@ public:
 
     // no torpedos in range
     if (nearestTorpedoDist > torpedoThreatRange) {
-      // std::cout << "PdcTarget no torpedos in range\n";
+      // PDCTARGET_DEBUG << "PdcTarget no torpedos in range\n";
       return false;
     }
 
-    std::cout << "pdcThreatDetected nearest torpedo: " << nearestTorpedo << "\n";
+    PDCTARGET_DEBUG << "pdcThreatDetected nearest torpedo: " << nearestTorpedo << "\n";
     return true; // there is a torpedo to target
   }
 
@@ -96,7 +115,7 @@ public:
       // add each torpedo into the map, which is ordered by distance
       torpedoTargetDistances[dist] = torpedo;
 
-      std::cout << "\npdcDefendTorpedo added torpedo: " << torpedo << " distance: " << dist << "\n";
+      PDCTARGET_DEBUG << "\npdcDefendTorpedo added torpedo: " << torpedo << " distance: " << dist << "\n";
 
       if (dist < nearestTorpedoDist) {
         nearestTorpedoDist = dist;
@@ -111,12 +130,12 @@ public:
 
     // no torpedos in range
     if (nearestTorpedoDist > torpedoThreatRange) {
-      // std::cout << "PdcTarget no torpedos in range\n";
+      // PDCTARGET_DEBUG << "PdcTarget no torpedos in range\n";
       return;
     }
 
-    std::cout << "pdcDefendTorpedo nearest torpedo: " << nearestTorpedo << "\n";
-    std::cout << "pdcDefendTorpedo nearest torpedo distance: " << nearestTorpedoDist << "\n";
+    PDCTARGET_DEBUG << "pdcDefendTorpedo nearest torpedo: " << nearestTorpedo << "\n";
+    PDCTARGET_DEBUG << "pdcDefendTorpedo nearest torpedo distance: " << nearestTorpedoDist << "\n";
 
     clearTargets(); // clear the targets before adding new ones
 
@@ -129,7 +148,7 @@ public:
 
       // get the torpedo entity
       Entity tt = torpedo.second;
-      std::cout << "pdcDefendTorpedo adding target index: " << count << " torpedo entity: " << tt << "\n";
+      PDCTARGET_DEBUG << "pdcDefendTorpedo adding target index: " << count << " torpedo entity: " << tt << "\n";
 
       // set the target for the PDCs
       addTarget(tt);
@@ -175,7 +194,7 @@ public:
       if (pdcTargets[0].has_value() && pdcTargets[1].has_value()) {
         if (pdcTargets[0] != target && pdcTargets[1] != target) {
           // remove the oldest target, which is the first one
-          std::cout << "addTarget " << ecs.getEntityName(pdcEntity) 
+          PDCTARGET_DEBUG << "addTarget " << ecs.getEntityName(pdcEntity) 
                     << " removing oldest target: " << pdcTargets[0].value() << "\n";
           pdcTargets[0].reset();
         }
@@ -205,7 +224,7 @@ public:
             // assign the pdc target to the PDC
             pdc.target = target;
 
-            std::cout << "\naddTarget " << ecs.getEntityName(pdcEntity) 
+            PDCTARGET_DEBUG << "\naddTarget " << ecs.getEntityName(pdcEntity) 
                       << " added target: " << target << "\n";
             break;
           }
@@ -224,11 +243,11 @@ public:
       auto &pdc = ecs.getComponent<Pdc>(pdcEntity);
 
       if (pdc.target == INVALID_TARGET_ID) {
-        std::cout << "PdcTarget no target for : " << ecs.getEntityName(pdcEntity) << "\n";
+        PDCTARGET_DEBUG << "PdcTarget no target for : " << ecs.getEntityName(pdcEntity) << "\n";
         continue; // no target assigned to this PDC
       }
 
-      std::cout << "\non " << ecs.getEntityName(e)
+      PDCTARGET_DEBUG << "\non " << ecs.getEntityName(e)
                 << " aquireTargets aquiring target for "
                 << ecs.getEntityName(pdcEntity)
                 << ": " << pdc.target << "\n";
@@ -243,7 +262,7 @@ public:
 
       // get the angle to the target, adjust for the position of the pdc
       float att = angleToTarget(entityPos.value + pdcOffset, targetPos.value);
-      std::cout << "PdcTarget angle to target: " << att << "\n";
+      PDCTARGET_DEBUG << "PdcTarget angle to target: " << att << "\n";
 
       // estimate a targeting angle based on the target's velocity
       // use a simple prediction based on the target's velocity and distance
@@ -257,7 +276,7 @@ public:
       // fudge factor for time to impact, as the change in angle is minimal
       timeToImpact *= 1.00f;
 
-      std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
+      PDCTARGET_DEBUG << "PdcTarget time to impact: " << timeToImpact << "\n";
 
       // for a fast moving target, we need to set to a maximum time to impact,
       // or else for a torpedo the vector will pass through us and our guess
@@ -270,20 +289,20 @@ public:
 
       // compute relative velocity
       sf::Vector2f relativeVel = targetVel.value - entityVel.value;
-      std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
+      PDCTARGET_DEBUG << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
 
       sf::Vector2f predictedTargetPos = distanceVector + (relativeVel * timeToImpact);
-      std::cout << "PdcTarget target position: " 
+      PDCTARGET_DEBUG << "PdcTarget target position: " 
                 << targetPos.value.x << ", " << targetPos.value.y << "\n";
 
       // aim at a guessed future position
       sf::Vector2f guessDir = predictedTargetPos.normalized();
 
       float guessAngle = guessDir.angle().asDegrees();
-      std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
+      PDCTARGET_DEBUG << "PdcTarget guess angle: " << guessAngle << "\n";
 
       att = normalizeAngle(guessAngle);
-      std::cout << "PdcTarget final absolute angle: " << att << "\n";
+      PDCTARGET_DEBUG << "PdcTarget final absolute angle: " << att << "\n";
 
       pdc.firingAngle = att;
     }
@@ -313,7 +332,7 @@ public:
       // dont worry about a few degrees past the min or max
       pdc.firingAngle += pdc.burstSpreadAngle;
 
-      std::cout << ecs.getEntityName(pdcEntity)
+      PDCTARGET_DEBUG << ecs.getEntityName(pdcEntity)
         << " relative firing angle: " << relativeFiringAngle
         << " absolute firing angle: " << pdc.firingAngle
         << " entity rotation angle: " << entityRot.angle
@@ -337,12 +356,12 @@ public:
             pdc.rounds--;
             pdc.pdcBurst--;
             pdcFireSoundPlayer.play();
-            std::cout << ecs.getEntityName(pdcEntity) << " FIRING AT " << pdc.target << "\n";
+            PDCTARGET_DEBUG << ecs.getEntityName(pdcEntity) << " FIRING AT " << pdc.target << "\n";
           }
         }
       }
       else {
-        std::cout << ecs.getEntityName(pdcEntity)
+        PDCTARGET_DEBUG << ecs.getEntityName(pdcEntity)
           << " not firing, relative angle: " << relativeFiringAngle 
           << " is out or range. min: " << pdc.minFiringAngle 
           << " max: " << pdc.maxFiringAngle << "\n";

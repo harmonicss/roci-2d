@@ -202,12 +202,12 @@ int main() {
     // if ()
     if (ecs.getComponent<Collision>(e1).firedBy == e2 ||
         ecs.getComponent<Collision>(e2).firedBy == e1) {
-      std::cout << "Collision between " << e1Name << " and " << e2Name
-                << " prevented due to being fired by the other entity.\n";
+      // std::cout << "Collision between " << e1Name << " and " << e2Name
+      //           << " prevented due to being fired by the other entity.\n";
       return;
     }
 
-    std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
+    // std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
 
     // Damage the health of the entities
     // cant capture player here, I know it is 0.
