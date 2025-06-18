@@ -61,20 +61,13 @@ public:
         bullet, Velocity{{pvel.value.x + (dx * pdc.projectileSpeed),
                           pvel.value.y + (dy * pdc.projectileSpeed)}});
 
-#if 0
-    ecs.addComponent(
-        bullet, Position{{ppos.value.x + (dx * launch_distance),
-                          ppos.value.y + (dy * launch_distance)}});
-
-#else
     // fire from the actual pdc, not the centre of the ship
     sf::Vector2f pdcOffset = rotateVector({pdc.positionx, pdc.positiony}, prot.angle);
     ecs.addComponent(
         bullet, Position{ppos.value + pdcOffset});
-#endif
 
     ecs.addComponent(bullet, Rotation{pdc.firingAngle});
-    ecs.addComponent(bullet, Collision{firedby, ShapeType::AABB, 0.5f, 0.5f, 0.f});
+    ecs.addComponent(bullet, Collision{firedby, ShapeType::AABB, 5.0f, 5.0f, 0.f});
     ecs.addComponent(bullet, TimeFired{timeFired});
 
     SpriteComponent sc{sf::Sprite(texture)};

@@ -188,14 +188,14 @@ int main() {
     .burstSpreadAngle = 5.f,
     .minFiringAngle = -170.f,
     .maxFiringAngle = 10.f,
-    .cooldown = 0.02f,
+    .cooldown = 0.01f,
     .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
+    .projectileSpeed = 10000.f,
     .projectileDamage = 2,
     .rounds = 600,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
-    .maxPdcBurst = 20,
+    .maxPdcBurst = 30,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
     .positionx = 260.f,       // top left
@@ -209,14 +209,14 @@ int main() {
     .burstSpreadAngle = 5.f,
     .minFiringAngle = -10.f,
     .maxFiringAngle = 170.f,
-    .cooldown = 0.02f,
+    .cooldown = 0.01f,
     .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
+    .projectileSpeed = 10000.f,
     .projectileDamage = 2,
     .rounds = 600,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
-    .maxPdcBurst = 20,
+    .maxPdcBurst = 30,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
     .positionx = 260.f,       // top right
@@ -240,12 +240,12 @@ int main() {
     .maxFiringAngle = 10.f,
     .cooldown = 0.01f,
     .timeSinceFired = 0.f,
-    .projectileSpeed = 6000.f,
+    .projectileSpeed = 10000.f,
     .projectileDamage = 2,
     .rounds = 600,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
-    .maxPdcBurst = 20,
+    .maxPdcBurst = 30,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
     .positionx = 260.f,        // top left
@@ -261,12 +261,12 @@ int main() {
     .maxFiringAngle = 170.f,
     .cooldown = 0.01f,
     .timeSinceFired = 0.f,
-    .projectileSpeed = 6000.f,
+    .projectileSpeed = 10000.f,
     .projectileDamage = 2,
     .rounds = 600,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
-    .maxPdcBurst = 20,
+    .maxPdcBurst = 30,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
     .positionx = 260.f,        // top right
@@ -668,7 +668,7 @@ int main() {
     sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
     // GUI
-    std::array<int, 5> radius{2000, 3000, 4000, 8000, 16000};
+    std::array<int, 6> radius{2000, 3000, 4000, 8000, 16000, 25000};
 
     // Circles
     for (auto r : radius) {

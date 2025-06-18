@@ -368,5 +368,5 @@ private:
  
   // distance in pixels to consider a torpedo a threat.
   // has to be close enough for pdcs to track it. 
-  float torpedoThreatRange = 16000.f;
+  float torpedoThreatRange = 25000.f;
 };
