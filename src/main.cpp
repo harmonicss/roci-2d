@@ -51,7 +51,7 @@ enum class State {
 int main() {
 
   auto window = sf::RenderWindow(sf::VideoMode({1920u, 1080u}), "Rocinante",
-                                 sf::Style::Default);
+                                 sf::Style::None);
   window.setFramerateLimit(60);
 
   FlipBurnControl flipControl;
@@ -182,6 +182,8 @@ int main() {
   std::vector<Entity> playerPdcEntities;
   Entity pdc1 = ecs.createEntity("PDC1");
   Entity pdc2 = ecs.createEntity("PDC2");
+  Entity pdc3 = ecs.createEntity("PDC3");
+
   ecs.addComponent(pdc1, Pdc{
     .fireMode = PdcFireMode::BURST,
     .firingAngle = -45.f,
@@ -190,7 +192,7 @@ int main() {
     .maxFiringAngle = 10.f,
     .cooldown = 0.01f,
     .timeSinceFired = 0.f,
-    .projectileSpeed = 10000.f,
+    .projectileSpeed = 5000.f,
     .projectileDamage = 2,
     .rounds = 600,
     .target = INVALID_TARGET_ID,
@@ -198,8 +200,8 @@ int main() {
     .maxPdcBurst = 30,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
-    .positionx = 260.f,       // top left
-    .positiony = -150.f,       // top left
+    .positionx = 210.f,       // top left
+    .positiony = -130.f,       // top left
   });
   playerPdcEntities.push_back(pdc1);
 
@@ -211,7 +213,7 @@ int main() {
     .maxFiringAngle = 170.f,
     .cooldown = 0.01f,
     .timeSinceFired = 0.f,
-    .projectileSpeed = 10000.f,
+    .projectileSpeed = 5000.f,
     .projectileDamage = 2,
     .rounds = 600,
     .target = INVALID_TARGET_ID,
@@ -219,12 +221,34 @@ int main() {
     .maxPdcBurst = 30,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
-    .positionx = 260.f,       // top right
-    .positiony = 150.f,       // top right
+    .positionx = 210.f,       // top right
+    .positiony = 130.f,       // top right
   });
   playerPdcEntities.push_back(pdc2);
 
+  // 360 in centre
+  ecs.addComponent(pdc3, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = +0.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = -180.f,
+    .maxFiringAngle = 180.f,
+    .cooldown = 0.01f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 5000.f,
+    .projectileDamage = 2,
+    .rounds = 600,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 30,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+    .positionx = -160.f,       // centre
+    .positiony = 0.f,
+  });
+  playerPdcEntities.push_back(pdc3);
   ecs.addComponent(player, PdcMounts{playerPdcEntities});
+
 
   ///////////////////////////////////////////////////////////////////////////////
   // create pdc mounts for the enemy
@@ -240,7 +264,7 @@ int main() {
     .maxFiringAngle = 10.f,
     .cooldown = 0.01f,
     .timeSinceFired = 0.f,
-    .projectileSpeed = 10000.f,
+    .projectileSpeed = 5000.f,
     .projectileDamage = 2,
     .rounds = 600,
     .target = INVALID_TARGET_ID,
@@ -261,7 +285,7 @@ int main() {
     .maxFiringAngle = 170.f,
     .cooldown = 0.01f,
     .timeSinceFired = 0.f,
-    .projectileSpeed = 10000.f,
+    .projectileSpeed = 5000.f,
     .projectileDamage = 2,
     .rounds = 600,
     .target = INVALID_TARGET_ID,
@@ -422,8 +446,8 @@ int main() {
         }
 
         // min zoom factor
-        if (zoomFactor < 5.f) {
-          zoomFactor = 5.f;
+        if (zoomFactor < 1.f) {
+          zoomFactor = 1.f;
         }
 
         worldview.setSize({1920 * zoomFactor, 1080 * zoomFactor});
@@ -523,7 +547,7 @@ int main() {
         // rotate left
         auto &rot = ecs.getComponent<Rotation>(player);
         //rot.angle -= (window.getSize().x / 500.f);
-        rot.angle -= 180.f * dt;
+        rot.angle -= 90.f * dt;
         if (rot.angle >= 180.f) {
           rot.angle -= 360.f;
         } else if (rot.angle < -180.f) {
@@ -534,7 +558,7 @@ int main() {
         // rotate right
         auto &rot = ecs.getComponent<Rotation>(player);
         // rot.angle += (window.getSize().x / 500.f);
-        rot.angle += 180.f * dt;
+        rot.angle += 90.f * dt;
         if (rot.angle >= 180.f) {
           rot.angle -= 360.f;
         } else if (rot.angle < -180.f) {

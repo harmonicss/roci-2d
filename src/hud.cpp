@@ -15,7 +15,7 @@
 void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
                 sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor, float thickness);
 
-void DrawPdcOverlay(sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor);
+void DrawPlayerPdcOverlay(sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor);
 
 void DrawHUD(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font) {
 
@@ -192,11 +192,11 @@ void DrawPlayerOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& fo
 
   DrawVector(window, ecs, 0, ppos.value, pvel.value, cameraOffset, sf::Color::Green, zoomFactor, 40.f);
 
-  DrawPdcOverlay(window, ecs, 0, zoomFactor);
+  DrawPlayerPdcOverlay(window, ecs, 0, zoomFactor);
 }
 
-// draws the angles of the pdc targeting
-void DrawPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor) {
+// draws the angles of the pdc targeting on the player
+void DrawPlayerPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor) {
 
   u_int16_t screenWidth = window.getSize().x;
   u_int16_t screenHeight = window.getSize().y;
@@ -210,21 +210,27 @@ void DrawPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float
   auto &pdcEntities = ecs.getComponent<PdcMounts>(e).pdcEntities;
   auto &pdc1 = ecs.getComponent<Pdc>(pdcEntities[0]);
   auto &pdc2 = ecs.getComponent<Pdc>(pdcEntities[1]);
+  auto &pdc3 = ecs.getComponent<Pdc>(pdcEntities[2]);
 
   // firing angle is as absolute, not rotataed angle
   // create a vector for the pdc1 firing angle
-  sf::Vector2f pdc1Vector = {static_cast<float>(std::cos((pdc1.firingAngle) * (M_PI / 180.f)) * 500.f),
-                             static_cast<float>(std::sin((pdc1.firingAngle) * (M_PI / 180.f)) * 500.f)};
+  sf::Vector2f pdc1Vector = {static_cast<float>(std::cos((pdc1.firingAngle) * (M_PI / 180.f)) * 200.f),
+                             static_cast<float>(std::sin((pdc1.firingAngle) * (M_PI / 180.f)) * 200.f)};
 
-  sf::Vector2f pdc2Vector = {static_cast<float>(std::cos((pdc2.firingAngle) * (M_PI / 180.f)) * 500.f),
-                             static_cast<float>(std::sin((pdc2.firingAngle) * (M_PI / 180.f)) * 500.f)};
+  sf::Vector2f pdc2Vector = {static_cast<float>(std::cos((pdc2.firingAngle) * (M_PI / 180.f)) * 200.f),
+                             static_cast<float>(std::sin((pdc2.firingAngle) * (M_PI / 180.f)) * 200.f)};
+
+  sf::Vector2f pdc3Vector = {static_cast<float>(std::cos((pdc3.firingAngle) * (M_PI / 180.f)) * 200.f),
+                             static_cast<float>(std::sin((pdc3.firingAngle) * (M_PI / 180.f)) * 200.f)};
 
   // fire from the actual pdc, not the centre of the ship
   sf::Vector2f pdc1Offset = rotateVector({pdc1.positionx, pdc1.positiony}, prot.angle);
   sf::Vector2f pdc2Offset = rotateVector({pdc2.positionx, pdc2.positiony}, prot.angle);
+  sf::Vector2f pdc3Offset = rotateVector({pdc3.positionx, pdc3.positiony}, prot.angle);
 
   DrawVector(window, ecs, e, ppos.value + pdc1Offset, pdc1Vector, cameraOffset, sf::Color::Red, zoomFactor, 20.f);
   DrawVector(window, ecs, e, ppos.value + pdc2Offset, pdc2Vector, cameraOffset, sf::Color::Green, zoomFactor, 20.f);
+  DrawVector(window, ecs, e, ppos.value + pdc3Offset, pdc3Vector, cameraOffset, sf::Color::Blue, zoomFactor, 20.f);
 
 #if 0
   sf::Color darkRed(156, 0, 0);
