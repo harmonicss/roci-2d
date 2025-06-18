@@ -148,7 +148,7 @@ int main() {
   ecs.addComponent(player, TorpedoLauncher1{});
   ecs.addComponent(player, TorpedoLauncher2{});
   ecs.addComponent(
-      player, Collision{ShapeType::AABB,
+      player, Collision{player, ShapeType::AABB,
                         static_cast<float>(rociTexture.getSize().x) / 2 - 45,
                         static_cast<float>(rociTexture.getSize().y) / 2 - 45, 0.f});
 
@@ -172,7 +172,7 @@ int main() {
   ecs.addComponent(enemy, TorpedoLauncher1{});
   ecs.addComponent(enemy, TorpedoLauncher2{});
   ecs.addComponent(
-      enemy, Collision{ShapeType::AABB,
+      enemy, Collision{enemy,ShapeType::AABB,
                        static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
                        static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
 
@@ -199,7 +199,7 @@ int main() {
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
     .positionx = 260.f,       // top left
-    .positiony = -180.f,       // top left
+    .positiony = -150.f,       // top left
   });
   playerPdcEntities.push_back(pdc1);
 
@@ -220,7 +220,7 @@ int main() {
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
     .positionx = 260.f,       // top right
-    .positiony = 180.f,       // top right
+    .positiony = 150.f,       // top right
   });
   playerPdcEntities.push_back(pdc2);
 
@@ -249,7 +249,7 @@ int main() {
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
     .positionx = 260.f,        // top left
-    .positiony = -180.f,       // top left
+    .positiony = -150.f,       // top left
   });
   enemyPdcEntities.push_back(pdc1);
 
@@ -270,7 +270,7 @@ int main() {
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
     .positionx = 260.f,        // top right
-    .positiony = 180.f,        // top right
+    .positiony = 150.f,        // top right
   });
   enemyPdcEntities.push_back(pdc2);
 
@@ -286,6 +286,16 @@ int main() {
 
     // bullets cant collide with each other, so only destroy if they hit the player or enemy or torpedo
     if (e1Name == "Bullet" && e2Name == "Bullet") {
+      return;
+    }
+
+    // prevent collision between the firer and the bulled or torpedo fired
+    // this stops fire/launch collisions
+    // if ()
+    if (ecs.getComponent<Collision>(e1).firedBy == e2 ||
+        ecs.getComponent<Collision>(e2).firedBy == e1) {
+      std::cout << "Collision between " << e1Name << " and " << e2Name
+                << " prevented due to being fired by the other entity.\n";
       return;
     }
 

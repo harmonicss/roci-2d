@@ -224,13 +224,14 @@ public:
       auto &pdc = ecs.getComponent<Pdc>(pdcEntity);
 
       if (pdc.target == INVALID_TARGET_ID) {
-        // std::cout << "PdcTarget no target for : " << ecs.getEntityName(pdcEntity) << "\n";
+        std::cout << "PdcTarget no target for : " << ecs.getEntityName(pdcEntity) << "\n";
         continue; // no target assigned to this PDC
       }
 
-      // std::cout << "aquireTargets aquiring target for "
-      //           << ecs.getEntityName(pdcEntity)
-      //           << ": " << pdc.target << "\n";
+      std::cout << "\non " << ecs.getEntityName(e)
+                << " aquireTargets aquiring target for "
+                << ecs.getEntityName(pdcEntity)
+                << ": " << pdc.target << "\n";
 
       auto &targetPos = ecs.getComponent<Position>(pdc.target); 
       auto &targetVel = ecs.getComponent<Velocity>(pdc.target);
@@ -242,11 +243,11 @@ public:
 
       // get the angle to the target, adjust for the position of the pdc
       float att = angleToTarget(entityPos.value + pdcOffset, targetPos.value);
-      // std::cout << "\nPdcTarget angle to target: " << att << "\n";
+      std::cout << "PdcTarget angle to target: " << att << "\n";
 
       // estimate a targeting angle based on the target's velocity
       // use a simple prediction based on the target's velocity and distance
-      sf::Vector2f distanceVector = targetPos.value - entityPos.value + pdcOffset;
+      sf::Vector2f distanceVector = targetPos.value - (entityPos.value + pdcOffset);
 
       float distance = distanceVector.length();
 
@@ -256,32 +257,33 @@ public:
       // fudge factor for time to impact, as the change in angle is minimal
       timeToImpact *= 1.00f;
 
-      // std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
+      std::cout << "PdcTarget time to impact: " << timeToImpact << "\n";
 
       // for a fast moving target, we need to set to a maximum time to impact,
       // or else for a torpedo the vector will pass through us and our guess
-      // angle will flip
-      timeToImpact = std::clamp(timeToImpact, 0.f, 0.5f);
+      // angle will flip. There is a comprimise here as a higher clip is more
+      // accurate for targeting, but will lead to incorrect torpedo targeting.
+      timeToImpact = std::clamp(timeToImpact, 0.f, 1.0f);
 
       // Predict the target's position based on our relative velocity
       // and the time to impact
 
       // compute relative velocity
       sf::Vector2f relativeVel = targetVel.value - entityVel.value;
-      // std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
+      std::cout << "PdcTarget relative velocity: " << relativeVel.x << ", " << relativeVel.y << "\n";
 
       sf::Vector2f predictedTargetPos = distanceVector + (relativeVel * timeToImpact);
-      // std::cout << "PdcTarget target position: " 
-      //           << targetPos.value.x << ", " << targetPos.value.y << "\n";
+      std::cout << "PdcTarget target position: " 
+                << targetPos.value.x << ", " << targetPos.value.y << "\n";
 
       // aim at a guessed future position
       sf::Vector2f guessDir = predictedTargetPos.normalized();
 
       float guessAngle = guessDir.angle().asDegrees();
-      // std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
+      std::cout << "PdcTarget guess angle: " << guessAngle << "\n";
 
       att = normalizeAngle(guessAngle);
-      // std::cout << "PdcTarget final absolute angle: " << att << "\n";
+      std::cout << "PdcTarget final absolute angle: " << att << "\n";
 
       pdc.firingAngle = att;
     }

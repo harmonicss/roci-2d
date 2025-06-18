@@ -74,7 +74,7 @@ public:
 #endif
 
     ecs.addComponent(bullet, Rotation{pdc.firingAngle});
-    ecs.addComponent(bullet, Collision{ShapeType::AABB, 0.5f, 0.5f, 0.f});
+    ecs.addComponent(bullet, Collision{firedby, ShapeType::AABB, 0.5f, 0.5f, 0.f});
     ecs.addComponent(bullet, TimeFired{timeFired});
 
     SpriteComponent sc{sf::Sprite(texture)};
@@ -151,7 +151,7 @@ public:
                                             (dy * launcher.projectileAccel)}});
 
     // TODO: collision size is a guess atm
-    ecs.addComponent(torpedo, Collision{ShapeType::AABB, 80.0f, 30.f, 0.f});
+    ecs.addComponent(torpedo, Collision{firedby, ShapeType::AABB, 80.0f, 30.f, 0.f});
 
     SpriteComponent sc{sf::Sprite(texture)};
     sf::Vector2f torpedoOrigin(texture.getSize().x / 2.f,
