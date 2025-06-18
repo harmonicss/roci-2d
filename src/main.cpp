@@ -29,6 +29,9 @@ extern void DrawTorpedoOverlay(sf::RenderWindow &window, Coordinator &ecs,
 extern void DrawPlayerOverlay(sf::RenderWindow &window, Coordinator &ecs,
                               sf::Font &font, float zoomFactor);
 
+
+void createPdcs(Coordinator &ecs, Entity e);
+
 // Flip 180 and burn to a stop
 struct FlipBurnControl {
   bool flipping = false;
@@ -177,129 +180,10 @@ int main() {
                        static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
 
   ///////////////////////////////////////////////////////////////////////////////
-  // create pdc mounts for the player
+  // create pdc mounts
   ///////////////////////////////////////////////////////////////////////////////
-  std::vector<Entity> playerPdcEntities;
-  Entity pdc1 = ecs.createEntity("PDC1");
-  Entity pdc2 = ecs.createEntity("PDC2");
-  Entity pdc3 = ecs.createEntity("PDC3");
-
-  ecs.addComponent(pdc1, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = -45.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = -170.f,
-    .maxFiringAngle = 10.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = 600,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = 210.f,       // top left
-    .positiony = -130.f,       // top left
-  });
-  playerPdcEntities.push_back(pdc1);
-
-  ecs.addComponent(pdc2, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = +45.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = -10.f,
-    .maxFiringAngle = 170.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = 600,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = 210.f,       // top right
-    .positiony = 130.f,       // top right
-  });
-  playerPdcEntities.push_back(pdc2);
-
-  // 360 in centre
-  ecs.addComponent(pdc3, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = +0.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = -180.f,
-    .maxFiringAngle = 180.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = 600,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = -160.f,       // centre
-    .positiony = 0.f,
-  });
-  playerPdcEntities.push_back(pdc3);
-  ecs.addComponent(player, PdcMounts{playerPdcEntities});
-
-
-  ///////////////////////////////////////////////////////////////////////////////
-  // create pdc mounts for the enemy
-  ///////////////////////////////////////////////////////////////////////////////
-  std::vector<Entity> enemyPdcEntities;
-  pdc1 = ecs.createEntity("PDC1");
-  pdc2 = ecs.createEntity("PDC2");
-  ecs.addComponent(pdc1, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = -45.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = -170.f,
-    .maxFiringAngle = 10.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = 600,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = 260.f,        // top left
-    .positiony = -150.f,       // top left
-  });
-  enemyPdcEntities.push_back(pdc1);
-
-  ecs.addComponent(pdc2, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = +45.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = -10.f,
-    .maxFiringAngle = 170.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = 600,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = 260.f,        // top right
-    .positiony = 150.f,        // top right
-  });
-  enemyPdcEntities.push_back(pdc2);
-
-  ecs.addComponent(enemy, PdcMounts{enemyPdcEntities});
-
+  createPdcs(ecs, player);
+  createPdcs(ecs, enemy);
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Collision System, with lambda callback
@@ -543,7 +427,7 @@ int main() {
       }
     }
     else if (flipControl.flipping == false) {
-      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::H)) {
         // rotate left
         auto &rot = ecs.getComponent<Rotation>(player);
         //rot.angle -= (window.getSize().x / 500.f);
@@ -554,7 +438,7 @@ int main() {
           rot.angle += 360.f;
         }
       }
-      else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
+      else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::L)) {
         // rotate right
         auto &rot = ecs.getComponent<Rotation>(player);
         // rot.angle += (window.getSize().x / 500.f);
@@ -566,7 +450,7 @@ int main() {
         }
       }
 
-      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) {
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::K)) {
         // accelerate
         auto &acc = ecs.getComponent<Acceleration>(player);
         auto &rot = ecs.getComponent<Rotation>(player);
@@ -749,4 +633,77 @@ int main() {
     // display everything
     window.display();
   }
+}
+
+void createPdcs(Coordinator &ecs, Entity e) {
+
+  std::vector<Entity> pdcEntities;
+  Entity pdc1 = ecs.createEntity("PDC1");
+  Entity pdc2 = ecs.createEntity("PDC2");
+  Entity pdc3 = ecs.createEntity("PDC3");
+
+  ecs.addComponent(pdc1, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = -45.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = -170.f,
+    .maxFiringAngle = 10.f,
+    .cooldown = 0.01f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 5000.f,
+    .projectileDamage = 2,
+    .rounds = 600,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 30,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+    .positionx = 210.f,       // top left
+    .positiony = -130.f,       // top left
+  });
+  pdcEntities.push_back(pdc1);
+
+  ecs.addComponent(pdc2, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = +45.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = -10.f,
+    .maxFiringAngle = 170.f,
+    .cooldown = 0.01f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 5000.f,
+    .projectileDamage = 2,
+    .rounds = 600,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 30,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+    .positionx = 210.f,       // top right
+    .positiony = 130.f,       // top right
+  });
+  pdcEntities.push_back(pdc2);
+
+  // 360 in centre
+  ecs.addComponent(pdc3, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = +0.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = -180.f,
+    .maxFiringAngle = 180.f,
+    .cooldown = 0.01f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 5000.f,
+    .projectileDamage = 2,
+    .rounds = 600,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 30,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+    .positionx = -160.f,       // centre
+    .positiony = 0.f,
+  });
+  pdcEntities.push_back(pdc3);
+  ecs.addComponent(e, PdcMounts{pdcEntities});
 }

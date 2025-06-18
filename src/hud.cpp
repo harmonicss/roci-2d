@@ -41,7 +41,7 @@ void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::F
 
   // entity 0 is the player
   if (e == 0) {
-    yOffset = 850.f;
+    yOffset = 800.f;
   } else {
     yOffset = 50.f;
   }
@@ -128,17 +128,19 @@ void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::F
 
   // Pdc rounds
   sf::Text pdctext(font);
-  auto &pdcEntities = ecs.getComponent<PdcMounts>(e).pdcEntities;
-  std::snprintf(bufx, sizeof(bufx), "%i", ecs.getComponent<Pdc>(pdcEntities[0]).rounds);
-  std::snprintf(bufy, sizeof(bufy), "%i", ecs.getComponent<Pdc>(pdcEntities[1]).rounds);
-  sf::String pdcString = std::string("PDC1: ") + bufx + ", PDC2: " + bufy;
-  pdctext.setString(pdcString);
-  pdctext.setCharacterSize(10);
-  pdctext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-  sf::Vector2f pdcTextPosition = { 10.f, yOffset };
-  yOffset += 20.f;
-  pdctext.setPosition(pdcTextPosition);
-  window.draw(pdctext);
+  // auto &pdcEntities = ecs.getComponent<PdcMounts>(e).pdcEntities;
+  for (Entity pdcEntity : ecs.getComponent<PdcMounts>(e).pdcEntities) {
+    auto &pdc = ecs.getComponent<Pdc>(pdcEntity);
+    std::snprintf(bufx, sizeof(bufx), "%i", pdc.rounds);
+    sf::String pdcString = ecs.getEntityName(pdcEntity) + ": " + bufx;
+    pdctext.setString(pdcString);
+    pdctext.setCharacterSize(10);
+    pdctext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
+    sf::Vector2f pdcTextPosition = { 10.f, yOffset };
+    yOffset += 20.f;
+    pdctext.setPosition(pdcTextPosition);
+    window.draw(pdctext);
+  }
 
   // torpedo rounds
   sf::Text torpedotext(font);

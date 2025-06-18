@@ -364,7 +364,7 @@ private:
  
   std::map<float, Entity> torpedoTargetDistances; // map of targets and their distances
 
-  std::array<std::optional<Entity>, 2> pdcTargets; // list of 2 current targets 
+  std::array<std::optional<Entity>, 3> pdcTargets; // list of 3 current targets 
  
   // distance in pixels to consider a torpedo a threat.
   // has to be close enough for pdcs to track it. 
