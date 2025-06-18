@@ -68,7 +68,7 @@ struct Pdc {
 struct TorpedoLauncher1 {
   float firingAngle = -35.f;         // helps avoid collision
   float firingOffset = -100.f;       // to create a seperation distance between launchers
-  float cooldown = 5.0;
+  float cooldown = 1.0f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 100.f;
   float projectileAccel = 500.f;
@@ -79,7 +79,7 @@ struct TorpedoLauncher1 {
 struct TorpedoLauncher2 {
   float firingAngle = 35.f;
   float firingOffset = 100.f;
-  float cooldown = 5.0f;
+  float cooldown = 1.0f;
   float timeSinceFired = 0.f;
   float projectileSpeed = 100.f;
   float projectileAccel = 500.f;
