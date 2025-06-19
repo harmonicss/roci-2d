@@ -76,6 +76,7 @@ int main() {
   ecs.registerComponent<Target>();
   ecs.registerComponent<TimeFired>();
   ecs.registerComponent<PdcMounts>();
+  ecs.registerComponent<TorpedoControl>();
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Fonts -

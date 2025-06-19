@@ -146,6 +146,9 @@ public:
     // TODO: collision size is a guess atm
     ecs.addComponent(torpedo, Collision{firedby, ShapeType::AABB, 80.0f, 30.f, 0.f});
 
+    // each torpedo has it's own control structure
+    ecs.addComponent(torpedo, TorpedoControl{});
+
     SpriteComponent sc{sf::Sprite(texture)};
     sf::Vector2f torpedoOrigin(texture.getSize().x / 2.f,
                                texture.getSize().y / 2.f);

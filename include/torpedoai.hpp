@@ -44,12 +44,13 @@ public:
  
     // need to get all the torpedos, find their targets and turn towards them
     for (auto &torpedo :
-         ecs.view<Position, Velocity, Acceleration, Rotation, Target>()) {
+         ecs.view<Position, Velocity, Acceleration, Rotation, Target, TorpedoControl>()) {
 
       auto &torpedoPos = ecs.getComponent<Position>(torpedo);
       auto &torpedoRot = ecs.getComponent<Rotation>(torpedo);
       auto &torpedoVel = ecs.getComponent<Velocity>(torpedo).value;
       auto &torpedoAcc = ecs.getComponent<Acceleration>(torpedo).value;
+      auto &torpedoControl = ecs.getComponent<TorpedoControl>(torpedo);
 
       Entity target = ecs.getComponent<Target>(torpedo).target;
       auto &targetPos = ecs.getComponent<Position>(target);
@@ -225,10 +226,11 @@ public:
 
       // convert to degrees per second
       omega = omega * (180.f / M_PI);
-      omega *= 10.f; 
+      omega *= 10.f;  // TODO: not sure about this
 
       // limit the heading rate to a maximum 
       // this might be causing some jumping round of the direction
+      // TODO: not sure about this either
       if (omega > 40.f) {
         omega = 40.f;
       } else if (omega < -40.f) {
@@ -264,40 +266,18 @@ public:
 private:
   Coordinator &ecs;
 
-  struct TorpedoControl {
-    bool turning = false;
-    bool burning = false;
-    float targetAngle = 0.f;
-    sf::Vector2f targetPosition;
-    sf::Vector2f targetAcceleration;
-    enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE };
-    RotationDirection rotationDir = RotationDirection::CLOCKWISE;
-  };
-
-  TorpedoControl torpedoControl;
 
   void startTurn(float atp, Entity torpedo, Entity target) {
+    auto &torpedoControl = ecs.getComponent<TorpedoControl>(torpedo);
+
     torpedoControl.targetAngle = atp;
     auto &torpedoRot = ecs.getComponent<Rotation>(torpedo);
-
-    // TODO: wrap with Angle.wrapUnsigned
-    if (torpedoRot.angle >= 180.f) {
-      torpedoRot.angle -= 360.f;
-    } else if (torpedoRot.angle < -180.f) {
-      torpedoRot.angle += 360.f;
-    }
+    normalizeAngle(torpedoRot.angle);
 
     TORPEDO_DEBUG << "Starting Turn to " << atp << "\n";
 
     float diff = torpedoControl.targetAngle - torpedoRot.angle;
-
-    // take into account the wrap around to get the shortest distance
-    // TODO this doesnt really work after a collision
-    if (diff < -180.f) {
-      diff += 360.f;
-    } else if (diff > 180.f) {
-      diff -= 360.f;
-    }
+    normalizeAngle(diff);
 
     if (diff > 0.f) {
       torpedoControl.rotationDir = TorpedoControl::RotationDirection::CLOCKWISE;
@@ -310,16 +290,12 @@ private:
   }
 
   void performTurn(Entity torpedo, Entity target) {
+    auto &torpedoControl = ecs.getComponent<TorpedoControl>(torpedo);
+
     auto &torpedoRot = ecs.getComponent<Rotation>(torpedo);
     float diff = torpedoControl.targetAngle - torpedoRot.angle;
+    normalizeAngle(diff);
 
-    // take into account the wrap around to get the shortest distance
-    if (diff < -180.f) {
-      diff += 360.f;
-    } else if (diff > 180.f) {
-      diff -= 360.f;
-    }
- 
     TORPEDO_DEBUG << "Performing Turn to " << torpedoControl.targetAngle << ", Diff " << diff << " current angle " << torpedoRot.angle << "\n";
 
     // some leeway to ensure we stop
@@ -338,11 +314,6 @@ private:
     }
 
     // TODO: wrap with Angle.wrapUnsigned
-    if (torpedoRot.angle >= 180.f) {
-      torpedoRot.angle -= 360.f;
-    } else if (torpedoRot.angle < -180.f) {
-      torpedoRot.angle += 360.f;
-    }
+    normalizeAngle(torpedoRot.angle);
   }
-
 };

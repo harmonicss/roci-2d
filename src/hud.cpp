@@ -332,8 +332,8 @@ void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& f
     float radians = trot.angle * (M_PI / 180.f);
  
     DrawVector(window, ecs, e, tpos.value,
-               sf::Vector2f{std::cos(radians) * 10000.f, 
-               std::sin(radians) * 10000.f}, cameraOffset, sf::Color::Blue, zoomFactor, 30.f);
+               sf::Vector2f{std::cos(radians) * 10000.f, std::sin(radians) * 10000.f}, 
+               cameraOffset, sf::Color::Blue, zoomFactor, 30.f);
   }
 }
 
