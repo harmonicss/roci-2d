@@ -1,20 +1,27 @@
 #pragma once
 #include "components.hpp"
 #include "ecs.hpp"
+#include "../include/explosion.hpp"
 #include <SFML/Audio/SoundBuffer.hpp>
+#include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Audio.hpp>
 #include <functional>
-#include <iostream>
 #include <cmath>
 
 class CollisionSystem {
 public:
   using CollisionCallback = std::function<void(Entity, Entity)>;
 
-  CollisionSystem(Coordinator &ecs, const sf::Sound &sound, CollisionCallback cb)
+  CollisionSystem(Coordinator &ecs,
+                  const sf::Sound &sound,
+                  std::vector<Explosion> &explosions,
+                  sf::Texture &explosionTexture,
+                  CollisionCallback cb)
       : ecs(ecs), // Bind member variable to the passed in Coordinator
         sound(sound), // Bind member variable to the passed in SoundBuffer
+        explosions(explosions), // Bind member variable to the passed in explosions vector
+        explosionTexture(explosionTexture), // Bind member variable to the passed in Texture
         onCollision(std::move(cb)) // Move callback into member
   {}
 
@@ -66,7 +73,9 @@ private:
   Coordinator &ecs;
   const sf::Sound &sound;
   CollisionCallback onCollision;
-
+  std::vector<Explosion> explosions; // to store explosions
+  sf::Texture &explosionTexture; // texture for explosions
+ 
   // check for AABB collision
   // use a dynamic AABB rectangle, whish isnt the best solution as the rectangle gets bigger 
   // in certain situations, but will do for now. 

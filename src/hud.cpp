@@ -317,6 +317,7 @@ void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& f
     circle.setOutlineColor(sf::Color(sf::Color::Red));
     circle.setOrigin(sf::Vector2f(radius, radius));
 
+    // zoomFactor is needed here, as I am drawing this on a seperate HUD view
     sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
     sf::Vector2f tposRelative = tpos.value / zoomFactor;
 

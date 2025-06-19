@@ -5,6 +5,7 @@
 #include "../include/enemyai.hpp"
 #include "../include/torpedoai.hpp"
 #include "../include/targeting.hpp"
+#include "../include/explosion.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -61,6 +62,8 @@ int main() {
 
   State state = State::IDLE;
 
+  std::vector<Explosion> explosions;
+
   // - ECS Setup -
   Coordinator ecs;
   ecs.registerComponent<Position>();
@@ -90,7 +93,7 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Textures -
   ///////////////////////////////////////////////////////////////////////////////
-  sf::Texture rociTexture, enemyTexture, bulletTexture, torpedoTexture;
+  sf::Texture rociTexture, enemyTexture, bulletTexture, torpedoTexture, explosionTexture;
 
   if (!rociTexture.loadFromFile("../assets/textures/roci.png")) {
     std::cout << "Error loading texture" << std::endl;
@@ -111,6 +114,11 @@ int main() {
   }
 
   if (!torpedoTexture.loadFromFile("../assets/textures/torpedo.png")) {
+    std::cout << "Error loading texture" << std::endl;
+    return -1;
+  }
+
+  if (!explosionTexture.loadFromFile("../assets/explosions/explosion_sheet.png")) {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
@@ -189,12 +197,18 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // Create Collision System, with lambda callback
   ///////////////////////////////////////////////////////////////////////////////
-  CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, [&ecs, &pdcHitSoundPlayer](Entity e1, Entity e2) {
+  CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, explosions, explosionTexture,
+                                  [&ecs, &pdcHitSoundPlayer, &explosions, &explosionTexture](Entity e1, Entity e2) {
     std::string e1Name = ecs.getEntityName(e1);
     std::string e2Name = ecs.getEntityName(e2);
 
     // bullets cant collide with each other, so only destroy if they hit the player or enemy or torpedo
     if (e1Name == "Bullet" && e2Name == "Bullet") {
+      return;
+    }
+
+    // torpedos cant collide with each other, so only destroy if they hit the player or enemy or bullet
+    if (e1Name == "Torpedo" && e2Name == "Torpedo") {
       return;
     }
 
@@ -216,6 +230,10 @@ int main() {
       auto &phealth = ecs.getComponent<Health>(0);
       if (e1Name == "Torpedo" || e2Name == "Torpedo") {
         phealth.value -= ecs.getComponent<TorpedoLauncher1>(0).projectileDamage;
+
+        // trigger explosion
+        auto &e1pos = ecs.getComponent<Position>(e1);
+        explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
       }
       else { // bullet, can add railgun later
         // just grab any pdc for now
@@ -232,6 +250,10 @@ int main() {
       auto &ehealth = ecs.getComponent<Health>(1);
       if (e1Name == "Torpedo" || e2Name == "Torpedo") {
         ehealth.value -= ecs.getComponent<TorpedoLauncher1>(1).projectileDamage;
+
+        // trigger explosion
+        auto &e1pos = ecs.getComponent<Position>(e1);
+        explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
       }
       else { // bullet, can add railgun later
         // just grab any pdc for now
@@ -398,7 +420,7 @@ int main() {
 
         // cannot calculate the angle from a zero vector
         if (vel.length() == 0.f) {
-          std::cout << "Flip correctionAngle: 0\n";
+          // std::cout << "Flip correctionAngle: 0\n";
           flipControl.targetAngle = rot.angle + 180.f;
           if (flipControl.targetAngle >= 180.f) {
             flipControl.targetAngle -= 360.f;
@@ -410,7 +432,7 @@ int main() {
         else {
           // get the angle of the velocity vector
           sf::Angle correctionAngle = vel.angle();
-          std::cout << "Flip correctionAngle: " << correctionAngle.asDegrees() << "\n";
+          // std::cout << "Flip correctionAngle: " << correctionAngle.asDegrees() << "\n";
           flipControl.targetAngle = correctionAngle.asDegrees() - 180.f;
           float diff = std::abs(flipControl.targetAngle - rot.angle);
           if (diff > 0.f) {
@@ -423,7 +445,7 @@ int main() {
           } else if (flipControl.targetAngle < -180.f) {
             flipControl.targetAngle += 360.f;
           }
-          std::cout << "Flip target angle: " << flipControl.targetAngle << "\n";
+          // std::cout << "Flip target angle: " << flipControl.targetAngle << "\n";
         }
       }
     }
@@ -479,9 +501,9 @@ int main() {
       auto &rot = ecs.getComponent<Rotation>(player);
       float diff = std::abs(flipControl.targetAngle - rot.angle);
 
-      std::cout << "\ntargetAngle:   " << flipControl.targetAngle << "\n";
-      std::cout << "Current angle: " << rot.angle << "\n";
-      std::cout << "Flipping diff: " << diff << "\n";
+      // std::cout << "\ntargetAngle:   " << flipControl.targetAngle << "\n";
+      // std::cout << "Current angle: " << rot.angle << "\n";
+      // std::cout << "Flipping diff: " << diff << "\n";
 
       if (diff < 20.f) {
         rot.angle = flipControl.targetAngle;
@@ -619,7 +641,35 @@ int main() {
       window.draw(sc.sprite);
     }
 
-    // Use a seperate HUD view
+    // Draw the explosions
+    for (auto &explosion : explosions) explosion.Update(dt);
+
+    // Remove all finished explosions
+    //
+    // std::remove_if : This rearranges the vector so that all unwanted elements 
+    //                  (e.finished == true) are moved to the end. It returns an
+    //                  iterator pointing to the new logical end of the "kept" elements.
+    //
+    // The lambda [](Explosion& e) { return e.finished; } is the predicate.
+    // If it returns true, the element is considered removed.
+    // So: it marks explosions where e.finished == true.
+    //
+    // explosions.erase(...)
+    // This actually erases elements from the container, using the iterator returned by remove_if.
+    //
+    explosions.erase(
+        std::remove_if(explosions.begin(), explosions.end(),
+                       [](const Explosion &e) { return e.finished; }),
+        explosions.end()
+    );
+
+    for (auto &explosion : explosions) explosion.Draw(window, ecs);
+
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // Use a seperate HUD view, note that zoomFactor is needed here as it is 
+    // not part of the zoomable world view.
+    ///////////////////////////////////////////////////////////////////////////////
     sf::View hudView = window.getDefaultView();
     window.setView(hudView);
 
@@ -655,7 +705,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .timeSinceFired = 0.f,
     .projectileSpeed = 5000.f,
     .projectileDamage = 2,
-    .rounds = 600,
+    .rounds = 00,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
     .maxPdcBurst = 30,
@@ -676,7 +726,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .timeSinceFired = 0.f,
     .projectileSpeed = 5000.f,
     .projectileDamage = 2,
-    .rounds = 600,
+    .rounds = 00,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
     .maxPdcBurst = 30,
@@ -697,7 +747,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .timeSinceFired = 0.f,
     .projectileSpeed = 5000.f,
     .projectileDamage = 2,
-    .rounds = 600,
+    .rounds = 00,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
     .maxPdcBurst = 30,
@@ -718,7 +768,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .timeSinceFired = 0.f,
     .projectileSpeed = 5000.f,
     .projectileDamage = 2,
-    .rounds = 600,
+    .rounds = 00,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
     .maxPdcBurst = 30,
@@ -740,7 +790,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .timeSinceFired = 0.f,
     .projectileSpeed = 5000.f,
     .projectileDamage = 2,
-    .rounds = 600,
+    .rounds = 00,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
     .maxPdcBurst = 30,

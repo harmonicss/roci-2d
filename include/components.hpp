@@ -73,7 +73,7 @@ struct TorpedoLauncher1 {
   float projectileSpeed = 100.f;
   float projectileAccel = 500.f;
   u_int32_t projectileDamage = 200;
-  u_int32_t rounds = 8;
+  u_int32_t rounds = 4;
 };
 
 struct TorpedoLauncher2 {
@@ -84,7 +84,7 @@ struct TorpedoLauncher2 {
   float projectileSpeed = 100.f;
   float projectileAccel = 500.f;
   u_int32_t projectileDamage = 200;
-  u_int32_t rounds = 8;
+  u_int32_t rounds = 0;
 };
 
 struct TorpedoControl {
