@@ -67,7 +67,7 @@ public:
         bullet, Position{ppos.value + pdcOffset});
 
     ecs.addComponent(bullet, Rotation{pdc.firingAngle});
-    ecs.addComponent(bullet, Collision{firedby, ShapeType::AABB, 5.0f, 5.0f, 0.f});
+    ecs.addComponent(bullet, Collision{firedby, ShapeType::AABB, 50.0f, 50.0f, 0.f});
     ecs.addComponent(bullet, TimeFired{timeFired});
 
     SpriteComponent sc{sf::Sprite(texture)};
@@ -83,7 +83,7 @@ public:
     for (auto &entity : ecs.view<TimeFired>()) {
       auto &timeFired = ecs.getComponent<TimeFired>(entity);
 
-      if (tt - timeFired.value > 30.0f) {
+      if (tt - timeFired.value > 10.0f) {
         ecs.removeComponent<Velocity>(entity);
         ecs.removeComponent<Position>(entity);
         ecs.removeComponent<Rotation>(entity);

@@ -176,7 +176,7 @@ int main() {
   // enemy = 1 sometimes.
   ///////////////////////////////////////////////////////////////////////////////
   Entity enemy = ecs.createEntity("Enemy");
-  ecs.addComponent(enemy, Position{{0, -18000.f}});
+  ecs.addComponent(enemy, Position{{0, -180000.f}});
   ecs.addComponent(enemy, Velocity{{0.f, 0.f}});
   ecs.addComponent(enemy, Rotation{90.f});
   ecs.addComponent(enemy, Health{100});
@@ -607,8 +607,8 @@ int main() {
     u_int16_t screenHeight = window.getSize().y;
     sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
-    // GUI
-    std::array<int, 6> radius{2000, 3000, 4000, 8000, 16000, 32000};
+    // GUI outer radius is torpedo threat range
+    std::array<int, 6> radius{2000, 3000, 4000, 8000, 16000, 45000};
 
     // Circles
     for (auto r : radius) {
@@ -834,7 +834,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .maxPdcBurst = 30,
     .timeSinceBurst = 0.f,
     .pdcBurstCooldown = 1.f,
-    .positionx = -160.f,       // centre
+    .positionx = -168.f,       // centre, move slightly back to see the vector
     .positiony = 0.f,
   });
 
