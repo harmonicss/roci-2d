@@ -118,7 +118,7 @@ int main() {
     return -1;
   }
 
-  if (!explosionTexture.loadFromFile("../assets/explosions/explosion_sheet.png")) {
+  if (!explosionTexture.loadFromFile("../assets/textures/explosion_sheet.png")) {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
@@ -139,6 +139,13 @@ int main() {
     return -1;
   }
   sf::Sound pdcHitSoundPlayer(pdcHitSoundBuffer);
+
+  sf::SoundBuffer explosionSoundBuffer;
+  if (!explosionSoundBuffer.loadFromFile("../assets/sounds/explosion.wav")) {
+    std::cout << "Error loading sound" << std::endl;
+    return -1;
+  }
+  sf::Sound explosionSoundPlayer(explosionSoundBuffer);
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Create Player Entity -
@@ -197,8 +204,8 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // Create Collision System, with lambda callback
   ///////////////////////////////////////////////////////////////////////////////
-  CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, explosions, explosionTexture,
-                                  [&ecs, &pdcHitSoundPlayer, &explosions, &explosionTexture](Entity e1, Entity e2) {
+  CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, explosionSoundPlayer, explosions, explosionTexture,
+                                  [&ecs, &pdcHitSoundPlayer, &explosionSoundPlayer, &explosions, &explosionTexture](Entity e1, Entity e2) {
     std::string e1Name = ecs.getEntityName(e1);
     std::string e2Name = ecs.getEntityName(e2);
 
@@ -234,13 +241,14 @@ int main() {
         // trigger explosion
         auto &e1pos = ecs.getComponent<Position>(e1);
         explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
+
+        explosionSoundPlayer.play();
       }
       else { // bullet, can add railgun later
         // just grab any pdc for now
         auto &mounts = ecs.getComponent<PdcMounts>(0);
         phealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
 
-        // TODO: add torpedo sound
         pdcHitSoundPlayer.play();
       }
     }
@@ -254,13 +262,14 @@ int main() {
         // trigger explosion
         auto &e1pos = ecs.getComponent<Position>(e1);
         explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
+
+        explosionSoundPlayer.play();
       }
       else { // bullet, can add railgun later
         // just grab any pdc for now
         auto &mounts = ecs.getComponent<PdcMounts>(1);
         ehealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
 
-        // TODO: add torpedo sound
         pdcHitSoundPlayer.play();
       }
     }
@@ -412,7 +421,7 @@ int main() {
       // rotate to burn and reduce velocity, may not be 180 if there is 
       // some lateral movement
       if (tt > flipControl.timeSinceFlipped + flipControl.cooldown) {
-        std::cout << "Starting Flipping!\n";
+        // std::cout << "Starting Flipping!\n";
         flipControl.timeSinceFlipped = tt;
         flipControl.flipping = true;
         auto &rot = ecs.getComponent<Rotation>(player);
@@ -521,9 +530,9 @@ int main() {
       } else if (rot.angle < -180.f) {
         rot.angle += 360.f;
       }
-      std::cout << "New angle:     " << rot.angle << "\n";
+      // std::cout << "New angle:     " << rot.angle << "\n";
       if (rot.angle == flipControl.targetAngle) {
-        std::cout << "Flipped to target angle: " << flipControl.targetAngle << "\n";
+        // std::cout << "Flipped to target angle: " << flipControl.targetAngle << "\n";
         flipControl.flipping = false;
         flipControl.targetAngle = 0.f;
         flipControl.burning = true;
@@ -599,7 +608,7 @@ int main() {
     sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
     // GUI
-    std::array<int, 6> radius{2000, 3000, 4000, 8000, 16000, 25000};
+    std::array<int, 6> radius{2000, 3000, 4000, 8000, 16000, 32000};
 
     // Circles
     for (auto r : radius) {
@@ -688,13 +697,17 @@ int main() {
 
 void createPdcs(Coordinator &ecs, Entity e) {
 
+  const int PDC_ROUNDS = 600;
+
   std::vector<Entity> pdcEntities;
   Entity pdc1 = ecs.createEntity("PDC1");
   Entity pdc2 = ecs.createEntity("PDC2");
   Entity pdc3 = ecs.createEntity("PDC3"); 
   Entity pdc4 = ecs.createEntity("PDC4");
   Entity pdc5 = ecs.createEntity("PDC5"); // centre
+  Entity pdc6 = ecs.createEntity("PDC6"); // centre
  
+  // Fore Left
   ecs.addComponent(pdc1, Pdc{
     .fireMode = PdcFireMode::BURST,
     .firingAngle = -45.f,
@@ -705,7 +718,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .timeSinceFired = 0.f,
     .projectileSpeed = 5000.f,
     .projectileDamage = 2,
-    .rounds = 00,
+    .rounds = PDC_ROUNDS,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
     .maxPdcBurst = 30,
@@ -716,6 +729,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
   });
   pdcEntities.push_back(pdc1);
 
+  // Fore Right
   ecs.addComponent(pdc2, Pdc{
     .fireMode = PdcFireMode::BURST,
     .firingAngle = +45.f,
@@ -726,7 +740,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .timeSinceFired = 0.f,
     .projectileSpeed = 5000.f,
     .projectileDamage = 2,
-    .rounds = 00,
+    .rounds = PDC_ROUNDS,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
     .maxPdcBurst = 30,
@@ -737,6 +751,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
   });
   pdcEntities.push_back(pdc2);
 
+  // Mid Left
   ecs.addComponent(pdc3, Pdc{
     .fireMode = PdcFireMode::BURST,
     .firingAngle = -45.f,
@@ -747,7 +762,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .timeSinceFired = 0.f,
     .projectileSpeed = 5000.f,
     .projectileDamage = 2,
-    .rounds = 00,
+    .rounds = PDC_ROUNDS,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
     .maxPdcBurst = 30,
@@ -758,6 +773,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
   });
   pdcEntities.push_back(pdc3);
 
+  // Mid Right
   ecs.addComponent(pdc4, Pdc{
     .fireMode = PdcFireMode::BURST,
     .firingAngle = +45.f,
@@ -768,7 +784,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .timeSinceFired = 0.f,
     .projectileSpeed = 5000.f,
     .projectileDamage = 2,
-    .rounds = 00,
+    .rounds = PDC_ROUNDS,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
     .maxPdcBurst = 30,
@@ -779,7 +795,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
   });
   pdcEntities.push_back(pdc4);
 
-  // 360 in centre
+  // Aft 1 360 in centre
   ecs.addComponent(pdc5, Pdc{
     .fireMode = PdcFireMode::BURST,
     .firingAngle = +0.f,
@@ -790,7 +806,7 @@ void createPdcs(Coordinator &ecs, Entity e) {
     .timeSinceFired = 0.f,
     .projectileSpeed = 5000.f,
     .projectileDamage = 2,
-    .rounds = 00,
+    .rounds = PDC_ROUNDS,
     .target = INVALID_TARGET_ID,
     .pdcBurst = 0,
     .maxPdcBurst = 30,
@@ -801,5 +817,27 @@ void createPdcs(Coordinator &ecs, Entity e) {
   });
   pdcEntities.push_back(pdc5);
 
+  // Aft 2 360 in centre
+  ecs.addComponent(pdc6, Pdc{
+    .fireMode = PdcFireMode::BURST,
+    .firingAngle = +0.f,
+    .burstSpreadAngle = 5.f,
+    .minFiringAngle = -180.f,
+    .maxFiringAngle = 180.f,
+    .cooldown = 0.01f,
+    .timeSinceFired = 0.f,
+    .projectileSpeed = 5000.f,
+    .projectileDamage = 2,
+    .rounds = PDC_ROUNDS,
+    .target = INVALID_TARGET_ID,
+    .pdcBurst = 0,
+    .maxPdcBurst = 30,
+    .timeSinceBurst = 0.f,
+    .pdcBurstCooldown = 1.f,
+    .positionx = -160.f,       // centre
+    .positiony = 0.f,
+  });
+
+  pdcEntities.push_back(pdc6);
   ecs.addComponent(e, PdcMounts{pdcEntities});
 }

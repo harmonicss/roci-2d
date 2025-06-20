@@ -157,7 +157,7 @@ public:
 
     // setTarget(nearestTorpedo);
     aquireTargets();
-    firePdcBursts(e, tt, 2.0f); // larger burstSpread to hit torps
+    firePdcBursts(e, tt, 5.0f); // larger burstSpread to hit torps
   }
 
   void clearTargets() {
@@ -387,5 +387,5 @@ private:
  
   // distance in pixels to consider a torpedo a threat.
   // has to be close enough for pdcs to track it. 
-  float torpedoThreatRange = 25000.f;
+  float torpedoThreatRange = 32000.f;
 };

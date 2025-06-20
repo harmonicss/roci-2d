@@ -14,14 +14,16 @@ public:
   using CollisionCallback = std::function<void(Entity, Entity)>;
 
   CollisionSystem(Coordinator &ecs,
-                  const sf::Sound &sound,
+                  const sf::Sound &pdcSound,
+                  const sf::Sound &explosionSound,
                   std::vector<Explosion> &explosions,
                   sf::Texture &explosionTexture,
                   CollisionCallback cb)
       : ecs(ecs), // Bind member variable to the passed in Coordinator
-        sound(sound), // Bind member variable to the passed in SoundBuffer
-        explosions(explosions), // Bind member variable to the passed in explosions vector
-        explosionTexture(explosionTexture), // Bind member variable to the passed in Texture
+        pdcSound(pdcSound),
+        explosionSound(explosionSound),
+        explosions(explosions),
+        explosionTexture(explosionTexture),
         onCollision(std::move(cb)) // Move callback into member
   {}
 
@@ -71,7 +73,8 @@ public:
 
 private:
   Coordinator &ecs;
-  const sf::Sound &sound;
+  const sf::Sound &pdcSound;
+  const sf::Sound &explosionSound;
   CollisionCallback onCollision;
   std::vector<Explosion> explosions; // to store explosions
   sf::Texture &explosionTexture; // texture for explosions

@@ -215,6 +215,7 @@ void DrawPlayerPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e,
   auto &pdc3 = ecs.getComponent<Pdc>(pdcEntities[2]);
   auto &pdc4 = ecs.getComponent<Pdc>(pdcEntities[3]);
   auto &pdc5 = ecs.getComponent<Pdc>(pdcEntities[4]);
+  auto &pdc6 = ecs.getComponent<Pdc>(pdcEntities[5]);
 
   // firing angle is as absolute, not rotataed angle
   // create a vector for the pdc1 firing angle
@@ -233,18 +234,23 @@ void DrawPlayerPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e,
   sf::Vector2f pdc5Vector = {static_cast<float>(std::cos((pdc5.firingAngle) * (M_PI / 180.f)) * 200.f),
                              static_cast<float>(std::sin((pdc5.firingAngle) * (M_PI / 180.f)) * 200.f)};
 
+  sf::Vector2f pdc6Vector = {static_cast<float>(std::cos((pdc6.firingAngle) * (M_PI / 180.f)) * 200.f),
+                             static_cast<float>(std::sin((pdc6.firingAngle) * (M_PI / 180.f)) * 200.f)};
+
   // fire from the actual pdc, not the centre of the ship
   sf::Vector2f pdc1Offset = rotateVector({pdc1.positionx, pdc1.positiony}, prot.angle);
   sf::Vector2f pdc2Offset = rotateVector({pdc2.positionx, pdc2.positiony}, prot.angle);
   sf::Vector2f pdc3Offset = rotateVector({pdc3.positionx, pdc3.positiony}, prot.angle);
   sf::Vector2f pdc4Offset = rotateVector({pdc4.positionx, pdc4.positiony}, prot.angle);
   sf::Vector2f pdc5Offset = rotateVector({pdc5.positionx, pdc5.positiony}, prot.angle);
+  sf::Vector2f pdc6Offset = rotateVector({pdc6.positionx, pdc6.positiony}, prot.angle);
 
-  DrawVector(window, ecs, e, ppos.value + pdc1Offset, pdc1Vector, cameraOffset, sf::Color::Red, zoomFactor, 20.f);
-  DrawVector(window, ecs, e, ppos.value + pdc2Offset, pdc2Vector, cameraOffset, sf::Color::Green, zoomFactor, 20.f);
-  DrawVector(window, ecs, e, ppos.value + pdc3Offset, pdc3Vector, cameraOffset, sf::Color::Red, zoomFactor, 20.f);
-  DrawVector(window, ecs, e, ppos.value + pdc4Offset, pdc4Vector, cameraOffset, sf::Color::Green, zoomFactor, 20.f);
-  DrawVector(window, ecs, e, ppos.value + pdc5Offset, pdc5Vector, cameraOffset, sf::Color::Blue, zoomFactor, 20.f);
+  DrawVector(window, ecs, e, ppos.value + pdc1Offset, pdc1Vector, cameraOffset, sf::Color::Red, zoomFactor, 10.f);
+  DrawVector(window, ecs, e, ppos.value + pdc2Offset, pdc2Vector, cameraOffset, sf::Color::Green, zoomFactor, 10.f);
+  DrawVector(window, ecs, e, ppos.value + pdc3Offset, pdc3Vector, cameraOffset, sf::Color::Red, zoomFactor, 10.f);
+  DrawVector(window, ecs, e, ppos.value + pdc4Offset, pdc4Vector, cameraOffset, sf::Color::Green, zoomFactor, 10.f);
+  DrawVector(window, ecs, e, ppos.value + pdc5Offset, pdc5Vector, cameraOffset, sf::Color::Blue, zoomFactor, 10.f);
+  DrawVector(window, ecs, e, ppos.value + pdc6Offset, pdc6Vector, cameraOffset, sf::Color::Cyan, zoomFactor, 10.f);
 
 #if 0
   sf::Color darkRed(156, 0, 0);
