@@ -167,6 +167,7 @@ public:
 
       float engine_accel = 0.f;
 
+#if 0 // this doesnt really work
       // dont accelerate if we are facing the wrong way, this help prevent torpedo misses 
       // that have too much velocity from accelerating away from the target.
       // This also stops deceleration, but no way to get the torpedo to decelerate and then 
@@ -188,8 +189,9 @@ public:
         engine_accel = 0.f;
         std::cout << "TorpedoAI not accelerating, angle to target: " << att << ", torpedo angle: " << torpedoRot.angle << "\n";
       }
-
-
+#else
+      engine_accel = 2000.f;
+#endif
 
       // apply continuous engine thrust, convert to radians
       sf::Vector2f a_engines = { static_cast<float>(std::cos(torpedoRot.angle * (M_PI / 180.f)) * engine_accel),

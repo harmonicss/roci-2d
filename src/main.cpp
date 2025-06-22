@@ -216,12 +216,12 @@ int main() {
 
     // torpedos cant collide with each other, so only destroy if they hit the player or enemy or bullet
     if (e1Name == "Torpedo" && e2Name == "Torpedo") {
+      // std::cout << "Collision between two torpedos detected, but not handled.\n";
       return;
     }
 
-    // prevent collision between the firer and the bulled or torpedo fired
+    // prevent collision between the firer and the bullet or torpedo fired
     // this stops fire/launch collisions
-    // if ()
     if (ecs.getComponent<Collision>(e1).firedBy == e2 ||
         ecs.getComponent<Collision>(e2).firedBy == e1) {
       // std::cout << "Collision between " << e1Name << " and " << e2Name
@@ -339,9 +339,13 @@ int main() {
     // this is the main space window. Render this first, then render the HUD
     window.setView(worldview);
 
+    u_int16_t screenWidth = window.getSize().x;
+    u_int16_t screenHeight = window.getSize().y;
+    sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
+
     ///////////////////////////////////////////////////////////////////////////////
     // - Events -
-  ///////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
     while (const std::optional event = window.pollEvent()) {
 
       if (event->is<sf::Event::Closed>()) {
@@ -390,11 +394,14 @@ int main() {
       pos.value += vel.value * dt;
     }
 
+    // Collision System - check for collisions
+    // check again later as sometimes only one of two missiles will hit
+    collisionSystem.Update();
 
     ///////////////////////////////////////////////////////////////////////////////
     // Keyboard and flip control
     // dont use events for the keyboard, check if currently pressed.
-  ///////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
     if (flipControl.burning == true) {
       // burn deceleration to 0
       auto &acc = ecs.getComponent<Acceleration>(player);
@@ -503,6 +510,48 @@ int main() {
       }
     }
 
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // Use the mouse to set rotation and acceleration
+    ///////////////////////////////////////////////////////////////////////////////
+    if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+
+      sf::Vector2i clickPosition = sf::Mouse::getPosition(window);
+      sf::Vector2f clickPositionf(static_cast<float>(clickPosition.x),
+                                  static_cast<float>(clickPosition.y));
+   
+      std::cout << "click mouse x: " << clickPosition.x << std::endl;
+      std::cout << "click mouse y: " << clickPosition.y << std::endl;
+
+      // convert to world coordinates, doesnt seem to work very well
+      // sf::Vector2f worldPosition = window.mapPixelToCoords(clickPosition);
+
+      // set vector to the mouse position
+      // std::cout << "world mouse x: " << worldPosition.x << std::endl;
+      // std::cout << "world mouse y: " << worldPosition.y << std::endl;
+
+      auto &acc = ecs.getComponent<Acceleration>(player);
+      auto &vel = ecs.getComponent<Velocity>(player);
+      auto &rot = ecs.getComponent<Rotation>(player);
+
+      sf::Vector2f playerPos = ecs.getComponent<Position>(player).value;
+
+      sf::Vector2f cameraOffset = screenCentre - playerPos;
+      sf::Vector2f newVector = clickPositionf - playerPos - cameraOffset;
+
+      std::cout << "new vector length " << newVector.length()
+                << " angle: " << newVector.angle().asDegrees() << "\n";
+
+      // turn towards the vector, instant turn for now
+      rot.angle = newVector.angle().asDegrees();
+
+      // start accelerating
+      acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 50000.f * dt;
+      acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 50000.f * dt;
+
+    }
+ 
+
     ///////////////////////////////////////////////////////////////////////////////
     // Animate the flip
     ///////////////////////////////////////////////////////////////////////////////
@@ -596,16 +645,14 @@ int main() {
     torpedoAI.Update(tt, dt);
     bulletFactory.Update(tt); // remove bullets that have been fired for too long
 
-    // Collision System - check for collisions
+    // Collision System - check for collisions again
+    // it is possible that two missiles have collided near a target, so we need to check again
     collisionSystem.Update();
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Render -
     ///////////////////////////////////////////////////////////////////////////////
     window.clear(sf::Color(7, 5, 8));
-    u_int16_t screenWidth = window.getSize().x;
-    u_int16_t screenHeight = window.getSize().y;
-    sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
     // GUI outer radius is torpedo threat range
     std::array<int, 6> radius{2000, 3000, 4000, 8000, 16000, 45000};
