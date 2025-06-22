@@ -40,7 +40,7 @@ public:
   // Update Torpedo Targeting
   void Update(float tt, float dt) {
 
-    float const max_lateral_accel = 1000.f; // maximum lateral acceleration (thrusters) for torpedos
+    float const max_lateral_accel = 1500.f; // maximum lateral acceleration (thrusters) for torpedos
  
     // need to get all the torpedos, find their targets and turn towards them
     for (auto &torpedo :
@@ -171,16 +171,24 @@ public:
       // that have too much velocity from accelerating away from the target.
       // This also stops deceleration, but no way to get the torpedo to decelerate and then 
       // reengage. 
-#if 0
-      if (torpedoRot.angle >= att - 5.f && torpedoRot.angle <= att + 5.f) {
-      } else {
-        engine_accel = 0.f;
-        TORPEDO_DEBUG << "TorpedoAI not accelerating, angle to target: " << att << ", torpedo angle: " << torpedoRot.angle << "\n";
+      if (isInRange(torpedoRot.angle,  att - 10.f, att + 10.f)) {
+        // limit maximum velocity
+        if (torpedoVel.length() > 10000.f) {
+          // dont accelerate if we are going too fast
+          engine_accel = 0.f;
+        }
+        else {
+          // apply the engine acceleration
+
+          // not sure how to get the launcher acceleration, so copy for now
+          engine_accel = 2000.f;
+        }
       }
-#else
-      // not sure how to get the launcher acceleration, so copy for now
-      engine_accel = 2000.f;
-#endif
+      else {
+        engine_accel = 0.f;
+        std::cout << "TorpedoAI not accelerating, angle to target: " << att << ", torpedo angle: " << torpedoRot.angle << "\n";
+      }
+
 
 
       // apply continuous engine thrust, convert to radians
