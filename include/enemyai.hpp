@@ -33,13 +33,13 @@ public:
     auto &playerPos = ecs.getComponent<Position>(0);
 
     float dist = distance(enemyPos.value, playerPos.value);
-
     float atp = angleToTarget(enemyPos.value, playerPos.value);
+
+    auto &t1rounds = ecs.getComponent<TorpedoLauncher1>(enemy).rounds;
+    auto &t2rounds = ecs.getComponent<TorpedoLauncher2>(enemy).rounds;
 
     // std::cout << "EnemyAI distance to player: " << dist << std::endl;
     // std::cout << "\nEnemyAI angle to player: " << atp << std::endl;
-
-
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Ship State Machine -
@@ -56,10 +56,14 @@ public:
         state = State::IDLE;
       }
       else if (state == State::CLOSE) {
-        if (dist <= attack_torpedo_distance) {
+        if (dist <= attack_torpedo_distance && t1rounds > 0 && t2rounds > 0) {
           state = State::ATTACK_TORPEDO;
           std::cout << "EnemyAI state: ATTACK_TORPEDO" << std::endl;
         }
+        else if (dist < attack_pdc_distance) {
+          state = State::ATTACK_PDC;
+          std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
+        } 
       }
       else if (state == State::IDLE) {
         if (dist < close_distance) {
@@ -68,10 +72,16 @@ public:
         }
       }
       else if (state == State::ATTACK_TORPEDO) {
+
         if (dist < attack_pdc_distance) {
           state = State::ATTACK_PDC;
           std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
         } 
+        else if (t1rounds == 0 && t2rounds == 0) {
+          // if we have no torpedos left, switch to close
+          state = State::CLOSE;
+          std::cout << "EnemyAI state: CLOSE (no torpedos left)" << std::endl;
+        }
         else if (dist > attack_torpedo_distance) {
           state = State::CLOSE;
           std::cout << "EnemyAI state: CLOSE" << std::endl;
