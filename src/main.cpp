@@ -510,7 +510,6 @@ int main() {
       }
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////
     // Use the mouse to set rotation and acceleration
     ///////////////////////////////////////////////////////////////////////////////
@@ -520,15 +519,8 @@ int main() {
       sf::Vector2f clickPositionf(static_cast<float>(clickPosition.x),
                                   static_cast<float>(clickPosition.y));
    
-      std::cout << "click mouse x: " << clickPosition.x << std::endl;
-      std::cout << "click mouse y: " << clickPosition.y << std::endl;
-
       // convert to world coordinates, doesnt seem to work very well
       // sf::Vector2f worldPosition = window.mapPixelToCoords(clickPosition);
-
-      // set vector to the mouse position
-      // std::cout << "world mouse x: " << worldPosition.x << std::endl;
-      // std::cout << "world mouse y: " << worldPosition.y << std::endl;
 
       auto &acc = ecs.getComponent<Acceleration>(player);
       auto &vel = ecs.getComponent<Velocity>(player);
@@ -539,19 +531,18 @@ int main() {
       sf::Vector2f cameraOffset = screenCentre - playerPos;
       sf::Vector2f newVector = clickPositionf - playerPos - cameraOffset;
 
-      std::cout << "new vector length " << newVector.length()
-                << " angle: " << newVector.angle().asDegrees() << "\n";
+      // std::cout << "new vector length " << newVector.length()
+      //           << " angle: " << newVector.angle().asDegrees() << "\n";
 
       // turn towards the vector, instant turn for now
       rot.angle = newVector.angle().asDegrees();
 
-      // start accelerating
-      acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 50000.f * dt;
-      acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 50000.f * dt;
-
+      // start accelerating, using dt doesnt work very well if there are lots of bullets
+      // use the distance from the mouse click to set acceleration, max 10 Gs
+      acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * (newVector.length() * 2.0f);
+      acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * (newVector.length() * 2.0f);
     }
  
-
     ///////////////////////////////////////////////////////////////////////////////
     // Animate the flip
     ///////////////////////////////////////////////////////////////////////////////
