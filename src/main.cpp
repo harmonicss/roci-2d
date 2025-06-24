@@ -6,6 +6,7 @@
 #include "../include/torpedoai.hpp"
 #include "../include/targeting.hpp"
 #include "../include/explosion.hpp"
+#include "ships.cpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -93,7 +94,7 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Textures -
   ///////////////////////////////////////////////////////////////////////////////
-  sf::Texture rociTexture, enemyTexture, bulletTexture, torpedoTexture, explosionTexture;
+  sf::Texture rociTexture, belterFrigateTexture, bulletTexture, torpedoTexture, explosionTexture;
 
   if (!rociTexture.loadFromFile("../assets/textures/roci.png")) {
     std::cout << "Error loading texture" << std::endl;
@@ -103,7 +104,7 @@ int main() {
             << rociTexture.getSize().y << "\n";
 
   // roci fighting itself for now
-  if (!enemyTexture.loadFromFile("../assets/textures/roci.png")) {
+  if (!belterFrigateTexture.loadFromFile("../assets/textures/bashi-bazouk.png")) {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
@@ -150,6 +151,16 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // - Create Player Entity -
   ///////////////////////////////////////////////////////////////////////////////
+
+  PlayerShipFactory playerShipFactory(ecs, rociTexture);
+  Entity player = playerShipFactory.createPlayerShip("Rocinante");
+
+
+  BelterFrigateShipFactory belterShipFactory(ecs, belterFrigateTexture);
+  Entity enemy = belterShipFactory.createBelterFrigateShip(
+      "Bashi Bazouk", {0.f, -180000.f}, {0.f, 0.f}, 90.f, 50);
+
+#if 0
   Entity player = ecs.createEntity("Rocinante");
   ecs.addComponent(player, Position{{0, 0}});
   ecs.addComponent(player, Velocity{{0.f, 0.f}});
@@ -194,6 +205,7 @@ int main() {
       enemy, Collision{enemy,ShapeType::AABB,
                        static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
                        static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
+#endif
 
   ///////////////////////////////////////////////////////////////////////////////
   // create pdc mounts
