@@ -32,7 +32,7 @@ extern void DrawPlayerOverlay(sf::RenderWindow &window, Coordinator &ecs,
                               sf::Font &font, float zoomFactor);
 
 
-void createPdcs(Coordinator &ecs, Entity e);
+void destroyEntity(Coordinator &ecs, Entity e);
 
 // Flip 180 and burn to a stop
 struct FlipBurnControl {
@@ -149,69 +149,16 @@ int main() {
   sf::Sound explosionSoundPlayer(explosionSoundBuffer);
 
   ///////////////////////////////////////////////////////////////////////////////
-  // - Create Player Entity -
+  // - Create Ship Entities -
   ///////////////////////////////////////////////////////////////////////////////
 
   PlayerShipFactory playerShipFactory(ecs, rociTexture);
   Entity player = playerShipFactory.createPlayerShip("Rocinante");
 
-
   BelterFrigateShipFactory belterShipFactory(ecs, belterFrigateTexture);
   Entity enemy = belterShipFactory.createBelterFrigateShip(
       "Bashi Bazouk", {0.f, -180000.f}, {0.f, 0.f}, 90.f, 50);
 
-#if 0
-  Entity player = ecs.createEntity("Rocinante");
-  ecs.addComponent(player, Position{{0, 0}});
-  ecs.addComponent(player, Velocity{{0.f, 0.f}});
-  ecs.addComponent(player, Rotation{0.f});
-  ecs.addComponent(player, Health{100});
-  ecs.addComponent(player, Acceleration{{0.f, 0.f}});
-  {
-    SpriteComponent sc{sf::Sprite(rociTexture)};
-    sf::Vector2f rociOrigin(rociTexture.getSize().x / 2.f,
-                            rociTexture.getSize().y / 2.f);
-    sc.sprite.setOrigin(rociOrigin);
-    ecs.addComponent(player, SpriteComponent{sc});
-  }
- 
-  ecs.addComponent(player, TorpedoLauncher1{});
-  ecs.addComponent(player, TorpedoLauncher2{});
-  ecs.addComponent(
-      player, Collision{player, ShapeType::AABB,
-                        static_cast<float>(rociTexture.getSize().x) / 2 - 45,
-                        static_cast<float>(rociTexture.getSize().y) / 2 - 45, 0.f});
-
-  ///////////////////////////////////////////////////////////////////////////////
-  // - Create Enemy Entity - be careful with the order of this, as I assume
-  // enemy = 1 sometimes.
-  ///////////////////////////////////////////////////////////////////////////////
-  Entity enemy = ecs.createEntity("Enemy");
-  ecs.addComponent(enemy, Position{{0, -180000.f}});
-  ecs.addComponent(enemy, Velocity{{0.f, 0.f}});
-  ecs.addComponent(enemy, Rotation{90.f});
-  ecs.addComponent(enemy, Health{100});
-  ecs.addComponent(enemy, Acceleration{{0.f, 0.f}});
-  {
-    SpriteComponent sc{sf::Sprite(enemyTexture)};
-    sf::Vector2f enemyOrigin(enemyTexture.getSize().x / 2.f,
-                             enemyTexture.getSize().y / 2.f);
-    sc.sprite.setOrigin(enemyOrigin);
-    ecs.addComponent(enemy, sc);
-  }
-  ecs.addComponent(enemy, TorpedoLauncher1{});
-  ecs.addComponent(enemy, TorpedoLauncher2{});
-  ecs.addComponent(
-      enemy, Collision{enemy,ShapeType::AABB,
-                       static_cast<float>(enemyTexture.getSize().x) / 2 - 45,
-                       static_cast<float>(enemyTexture.getSize().y) / 2 - 45, 0.f});
-#endif
-
-  ///////////////////////////////////////////////////////////////////////////////
-  // create pdc mounts
-  ///////////////////////////////////////////////////////////////////////////////
-  createPdcs(ecs, player);
-  createPdcs(ecs, enemy);
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Collision System, with lambda callback
@@ -228,7 +175,7 @@ int main() {
 
     // torpedos cant collide with each other, so only destroy if they hit the player or enemy or bullet
     if (e1Name == "Torpedo" && e2Name == "Torpedo") {
-      // std::cout << "Collision between two torpedos detected, but not handled.\n";
+      std::cout << "Collision between two torpedos detected, but not handled.\n";
       return;
     }
 
@@ -241,77 +188,66 @@ int main() {
       return;
     }
 
-    // std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
+    std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
 
     // Damage the health of the entities
-    // cant capture player here, I know it is 0.
-    if (e1 == 0 || e2 == 0) {
-      auto &phealth = ecs.getComponent<Health>(0);
-      if (e1Name == "Torpedo" || e2Name == "Torpedo") {
-        phealth.value -= ecs.getComponent<TorpedoLauncher1>(0).projectileDamage;
+    if (e1Name == "Bullet") {
 
-        // trigger explosion
-        auto &e1pos = ecs.getComponent<Position>(e1);
-        explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
+      // torpedo doesnt have any health
+      if (e2Name != "Torpedo") {
+        auto &ehealth = ecs.getComponent<Health>(e2);
 
-        explosionSoundPlayer.play();
-      }
-      else { // bullet, can add railgun later
         // just grab any pdc for now
-        auto &mounts = ecs.getComponent<PdcMounts>(0);
-        phealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
-
-        pdcHitSoundPlayer.play();
-      }
-    }
- 
-    // enemy is 1
-    if (e1 == 1 || e2 == 1) {
-      auto &ehealth = ecs.getComponent<Health>(1);
-      if (e1Name == "Torpedo" || e2Name == "Torpedo") {
-        ehealth.value -= ecs.getComponent<TorpedoLauncher1>(1).projectileDamage;
-
-        // trigger explosion
-        auto &e1pos = ecs.getComponent<Position>(e1);
-        explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
-
-        explosionSoundPlayer.play();
-      }
-      else { // bullet, can add railgun later
-        // just grab any pdc for now
-        auto &mounts = ecs.getComponent<PdcMounts>(1);
+        auto &mounts = ecs.getComponent<PdcMounts>(e2);
         ehealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
-
-        pdcHitSoundPlayer.play();
       }
+      pdcHitSoundPlayer.play();
+      destroyEntity(ecs, e1);
+    }
+    else if (e2Name == "Bullet") {
+
+      // torpedo doesnt have any health
+      if (e1Name != "Torpedo") {
+        auto &ehealth = ecs.getComponent<Health>(e1);
+
+        // just grab any pdc for now
+        auto &mounts = ecs.getComponent<PdcMounts>(e1);
+        ehealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
+      }
+      pdcHitSoundPlayer.play();
+      destroyEntity(ecs, e2);
     }
 
+    if (e1Name == "Torpedo") {
 
-    if (e1 > 1) {
-      ecs.removeComponent<Velocity>(e1);
-      ecs.removeComponent<Position>(e1);
-      ecs.removeComponent<Rotation>(e1);
-      ecs.removeComponent<Collision>(e1);
-      ecs.removeComponent<Target>(e1);
-      ecs.removeComponent<SpriteComponent>(e1);
-      if (e1Name == "Bullet") 
-        ecs.removeComponent<TimeFired>(e1);
-      ecs.destroyEntity(e1);
+      if (e2Name != "Bullet") {
+        auto &ehealth = ecs.getComponent<Health>(e2);
+        ehealth.value -= ecs.getComponent<TorpedoLauncher1>(e2).projectileDamage;
+      }
+      // trigger explosion
+      auto &e1pos = ecs.getComponent<Position>(e1);
+      explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
+
+      explosionSoundPlayer.play();
+ 
+      destroyEntity(ecs, e1);
     }
+    else if (e2Name == "Torpedo") {
+      if (e1Name != "Bullet") {
+        auto &ehealth = ecs.getComponent<Health>(e1);
+        ehealth.value -= ecs.getComponent<TorpedoLauncher1>(e1).projectileDamage;
+      }
+      // trigger explosion
+      auto &e2pos = ecs.getComponent<Position>(e2);
+      explosions.emplace_back(&explosionTexture, e2pos.value, 8, 7);
 
-    if (e2 > 1) {
-      ecs.removeComponent<Velocity>(e2);
-      ecs.removeComponent<Position>(e2);
-      ecs.removeComponent<Rotation>(e2);
-      ecs.removeComponent<Collision>(e2);
-      ecs.removeComponent<Target>(e2);
-      ecs.removeComponent<SpriteComponent>(e2);
-      if (e2Name == "Bullet") 
-        ecs.removeComponent<TimeFired>(e2);
-      ecs.destroyEntity(e2);
+      explosionSoundPlayer.play();
+
+      destroyEntity(ecs, e2);
     }
   });
- 
+
+
   ///////////////////////////////////////////////////////////////////////////////
   // Create Ballistics Factory
   ///////////////////////////////////////////////////////////////////////////////
@@ -745,149 +681,16 @@ int main() {
   }
 }
 
-void createPdcs(Coordinator &ecs, Entity e) {
-
-  const int PDC_ROUNDS = 600;
-
-  std::vector<Entity> pdcEntities;
-  Entity pdc1 = ecs.createEntity("PDC1");
-  Entity pdc2 = ecs.createEntity("PDC2");
-  Entity pdc3 = ecs.createEntity("PDC3"); 
-  Entity pdc4 = ecs.createEntity("PDC4");
-  Entity pdc5 = ecs.createEntity("PDC5"); // centre
-  Entity pdc6 = ecs.createEntity("PDC6"); // centre
- 
-  // Fore Left
-  ecs.addComponent(pdc1, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = -45.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = -170.f,
-    .maxFiringAngle = 10.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = PDC_ROUNDS,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = 210.f,       // top left
-    .positiony = -130.f,       // top left
-  });
-  pdcEntities.push_back(pdc1);
-
-  // Fore Right
-  ecs.addComponent(pdc2, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = +45.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = -10.f,
-    .maxFiringAngle = 170.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = PDC_ROUNDS,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = 210.f,       // top right
-    .positiony = 130.f,       // top right
-  });
-  pdcEntities.push_back(pdc2);
-
-  // Mid Left
-  ecs.addComponent(pdc3, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = -45.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = -170.f,
-    .maxFiringAngle = -10.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = PDC_ROUNDS,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = 40.f,       // middle left
-    .positiony = -180.f,
-  });
-  pdcEntities.push_back(pdc3);
-
-  // Mid Right
-  ecs.addComponent(pdc4, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = +45.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = 10.f,
-    .maxFiringAngle = 170.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = PDC_ROUNDS,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = 40.f,       // middle right
-    .positiony = 180.f,
-  });
-  pdcEntities.push_back(pdc4);
-
-  // Aft 1 360 in centre
-  ecs.addComponent(pdc5, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = +0.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = -180.f,
-    .maxFiringAngle = 180.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = PDC_ROUNDS,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = -160.f,       // centre
-    .positiony = 0.f,
-  });
-  pdcEntities.push_back(pdc5);
-
-  // Aft 2 360 in centre
-  ecs.addComponent(pdc6, Pdc{
-    .fireMode = PdcFireMode::BURST,
-    .firingAngle = +0.f,
-    .burstSpreadAngle = 5.f,
-    .minFiringAngle = -180.f,
-    .maxFiringAngle = 180.f,
-    .cooldown = 0.01f,
-    .timeSinceFired = 0.f,
-    .projectileSpeed = 5000.f,
-    .projectileDamage = 2,
-    .rounds = PDC_ROUNDS,
-    .target = INVALID_TARGET_ID,
-    .pdcBurst = 0,
-    .maxPdcBurst = 30,
-    .timeSinceBurst = 0.f,
-    .pdcBurstCooldown = 1.f,
-    .positionx = -168.f,       // centre, move slightly back to see the vector
-    .positiony = 0.f,
-  });
-
-  pdcEntities.push_back(pdc6);
-  ecs.addComponent(e, PdcMounts{pdcEntities});
-}
+  void destroyEntity(Coordinator &ecs, Entity e) {
+    std::cout << "Destroying entity: " << ecs.getEntityName(e) << " : " << e << "\n";
+    ecs.removeComponent<Velocity>(e);
+    ecs.removeComponent<Position>(e);
+    ecs.removeComponent<Rotation>(e);
+    ecs.removeComponent<Collision>(e);
+    ecs.removeComponent<Target>(e);
+    ecs.removeComponent<SpriteComponent>(e);
+    if (ecs.hasComponent<TimeFired>(e)) {
+      ecs.removeComponent<TimeFired>(e);
+    }
+    ecs.destroyEntity(e);
+  }
