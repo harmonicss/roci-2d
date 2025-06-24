@@ -198,7 +198,7 @@ public:
     return compMgr.getComponent<T>(e);
   }
 
-  template <typename T> void hasComponent(Entity e) {
+  template <typename T> bool hasComponent(Entity e) {
     return compMgr.hasComponent<T>(e);
   }
 
