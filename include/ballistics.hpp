@@ -144,7 +144,7 @@ public:
                                             (dy * launcher.projectileAccel)}});
 
     // TODO: collision size is a guess atm
-    ecs.addComponent(torpedo, Collision{firedby, ShapeType::AABB, 80.0f, 30.f, 0.f});
+    ecs.addComponent(torpedo, Collision{firedby, ShapeType::AABB, 100.0f, 30.f, 0.f});
 
     // each torpedo has it's own control structure
     ecs.addComponent(torpedo, TorpedoControl{});
