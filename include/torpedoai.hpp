@@ -44,7 +44,7 @@ public:
  
     // need to get all the torpedos, find their targets and turn towards them
     for (auto &torpedo :
-         ecs.view<Position, Velocity, Acceleration, Rotation, Target, TorpedoControl>()) {
+         ecs.view<Position, Velocity, Acceleration, Rotation, TorpedoTarget, TorpedoControl>()) {
 
       auto &torpedoPos = ecs.getComponent<Position>(torpedo);
       auto &torpedoRot = ecs.getComponent<Rotation>(torpedo);
@@ -52,7 +52,7 @@ public:
       auto &torpedoAcc = ecs.getComponent<Acceleration>(torpedo).value;
       auto &torpedoControl = ecs.getComponent<TorpedoControl>(torpedo);
 
-      Entity target = ecs.getComponent<Target>(torpedo).target;
+      Entity target = ecs.getComponent<TorpedoTarget>(torpedo).target;
       auto &targetPos = ecs.getComponent<Position>(target);
       auto &targetVel = ecs.getComponent<Velocity>(target).value;
       auto &targetAcc = ecs.getComponent<Acceleration>(target).value;

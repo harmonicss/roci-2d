@@ -77,10 +77,12 @@ int main() {
   ecs.registerComponent<TorpedoLauncher1>();
   ecs.registerComponent<TorpedoLauncher2>();
   ecs.registerComponent<Collision>();
-  ecs.registerComponent<Target>();
+  ecs.registerComponent<TorpedoTarget>();
   ecs.registerComponent<TimeFired>();
   ecs.registerComponent<PdcMounts>();
   ecs.registerComponent<TorpedoControl>();
+  ecs.registerComponent<EnemyShipTarget>();
+  ecs.registerComponent<FriendlyShipTarget>();
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Fonts -
@@ -547,7 +549,7 @@ int main() {
     ///////////////////////////////////////////////////////////////////////////////
     if (state == State::ATTACK_PDC) {
       // target the enemy
-      pdcTarget.pdcAttack(enemy, tt);
+      pdcTarget.pdcAttack<EnemyShipTarget>(tt);
     }
     else if (state == State::DEFENCE_PDC) {
       // target the nearest torpedo
@@ -675,7 +677,7 @@ int main() {
     DrawShipNames(window, ecs, player, font, zoomFactor);
     DrawTorpedoOverlay(window, ecs, font, zoomFactor);
     DrawVectorOverlay(window, ecs, player, font, zoomFactor);
-    DrawVectorOverlay(window, ecs, enemy, font, zoomFactor);
+    DrawVectorOverlay(window, ecs, player, font, zoomFactor);
 
     // display everything
     window.display();
@@ -687,7 +689,9 @@ int main() {
     ecs.removeComponent<Position>(e);
     ecs.removeComponent<Rotation>(e);
     ecs.removeComponent<Collision>(e);
-    ecs.removeComponent<Target>(e);
+    if (ecs.hasComponent<TorpedoTarget>(e)) {
+      ecs.removeComponent<TorpedoTarget>(e);
+    }
     ecs.removeComponent<SpriteComponent>(e);
     if (ecs.hasComponent<TimeFired>(e)) {
       ecs.removeComponent<TimeFired>(e);

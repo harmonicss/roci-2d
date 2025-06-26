@@ -13,7 +13,7 @@ class EnemyAI {
 
 public:
   EnemyAI(Coordinator &ecs, Entity enemy, BulletFactory bulletFactory, TorpedoFactory torpedoFactory, sf::Sound pdcFireSoundPlayer) :
-    ecs(ecs), 
+    ecs(ecs),
     enemy(enemy),
     bulletFactory(bulletFactory),
     torpedoFactory(torpedoFactory),
@@ -212,7 +212,7 @@ public:
 
       // for now, attack the player. 
       // Could additional evasive maneuvers later.
-      pdcTarget.pdcAttack(0, tt);
+      pdcTarget.pdcAttack<FriendlyShipTarget>(tt);
     }
     else if (state == State::FLEE) {
       // set accel to 5G

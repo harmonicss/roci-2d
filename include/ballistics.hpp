@@ -113,7 +113,7 @@ public:
     auto spos = ecs.getComponent<Position>(firedby);
     auto srot = ecs.getComponent<Rotation>(firedby);
 
-    ecs.addComponent(torpedo, Target{target});
+    ecs.addComponent(torpedo, TorpedoTarget{target});
 
     // fire launcher out at an angle, convert to radians
     // add an offset to fire on the left or right of the ship

@@ -47,8 +47,8 @@ public:
     float nearestTorpedoDist = std::numeric_limits<float>::max();
 
     // find target torpedos
-    for (auto &torpedo : ecs.view<Target>()) {
-      auto &torpedoTarget = ecs.getComponent<Target>(torpedo);
+    for (auto &torpedo : ecs.view<TorpedoTarget>()) {
+      auto &torpedoTarget = ecs.getComponent<TorpedoTarget>(torpedo);
 
       if (torpedoTarget.target != e) {
         // skip if the torpedo is not targeting this entity
@@ -82,14 +82,76 @@ public:
     return true; // there is a torpedo to target
   }
 
-  void pdcAttack(Entity target, float tt) {
-    clearTargets(); // clear the targets before adding new ones
-    addTarget(target);
+  // target and fire on enemy ships within range
+  template<typename TargetType> // should be EnemyShipTarget or FriendlyShipTarget
+  void pdcAttack(float tt) {
+    static_assert(std::is_same_v<TargetType, EnemyShipTarget> ||
+                  std::is_same_v<TargetType, FriendlyShipTarget>,
+                  "TargetType must be EnemyShipTarget or FriendlyShipTarget");
+
+    Entity nearestShip = 0;  // might confuse with the player
+    float nearestShipDist = std::numeric_limits<float>::max();
+
+    shipTargetDistances.clear(); // clear the map of torpedo distances
+
+    // find target ships
+    // find the nearest for range, and add to the shipTargetDistances
+    for (auto &ship : ecs.view<TargetType>()) {
+
+      // find the nearest torpedo to the player or enemy
+      auto &enemyPos = ecs.getComponent<Position>(ship);
+      auto &myPos = ecs.getComponent<Position>(e);
+
+      float dist = distance(myPos.value, enemyPos.value);
+
+      // add each torpedo into the map, which is ordered by distance
+      shipTargetDistances[dist] = ship;
+
+      PDCTARGET_DEBUG << "\npdcAttack added enemy ship: " << ship << " distance: " << dist << "\n";
+
+      if (dist < nearestShipDist) {
+        nearestShipDist = dist;
+        nearestShip = ship;
+      }
+    }
+
+    // no enemy ships to target
+    if (nearestShip == 0) {
+      return;
+    }
+
+    // no enemy ships in range
+    if (nearestShipDist > shipThreatRange) {
+      // PDCTARGET_DEBUG << "pdcAttack no enemy ship in range\n";
+      return;
+    }
+
+    PDCTARGET_DEBUG << "pdcAttack nearest enemy ship: " << nearestShip << "\n";
+    PDCTARGET_DEBUG << "pdcAttack nearest enemy ship distance: " << nearestShipDist << "\n";
+
+    clearPdcTargets(); // clear the targets before adding new ones
+
+    // get the closest four ships
+    int count = 0;
+    for (auto &ship : shipTargetDistances) {
+      if (count >= 4) {
+        break; 
+      }
+
+      // get the torpedo entity target
+      Entity target = ship.second;
+      PDCTARGET_DEBUG << "pdcAttack adding enemy ship target index: " << count << " ship entity: " << target << "\n";
+
+      // set the target for the PDCs
+      addTarget(target);
+      count++;
+    }
+
     aquireTargets(true); // re-aquire targets for the PDCs, to update targeting, use prediction
     firePdcBursts(e, tt, 1.0f);
   }
 
-  // target incoming torpedos
+  // target and fire upon incoming torpedos
   void pdcDefendTorpedo(float tt, float dt) {
     Entity nearestTorpedo = 0;  // might confuse with the player
     float nearestTorpedoDist = std::numeric_limits<float>::max();
@@ -97,9 +159,9 @@ public:
     torpedoTargetDistances.clear(); // clear the map of torpedo distances
 
     // find target torpedos
-    // currently find the nearest, need to get all and target individually
-    for (auto &torpedo : ecs.view<Target>()) {
-      auto &torpedoTarget = ecs.getComponent<Target>(torpedo);
+    // find the nearest for range, and add to the torpedoTargetDistances
+    for (auto &torpedo : ecs.view<TorpedoTarget>()) {
+      auto &torpedoTarget = ecs.getComponent<TorpedoTarget>(torpedo);
 
       if (torpedoTarget.target != e) {
         // skip if the torpedo is not targeting this entity
@@ -137,7 +199,7 @@ public:
     PDCTARGET_DEBUG << "pdcDefendTorpedo nearest torpedo: " << nearestTorpedo << "\n";
     PDCTARGET_DEBUG << "pdcDefendTorpedo nearest torpedo distance: " << nearestTorpedoDist << "\n";
 
-    clearTargets(); // clear the targets before adding new ones
+    clearPdcTargets(); // clear the targets before adding new ones
 
     // get the closest four torpedos
     int count = 0;
@@ -147,11 +209,11 @@ public:
       }
 
       // get the torpedo entity
-      Entity tt = torpedo.second;
-      PDCTARGET_DEBUG << "pdcDefendTorpedo adding target index: " << count << " torpedo entity: " << tt << "\n";
+      Entity target = torpedo.second;
+      PDCTARGET_DEBUG << "pdcDefendTorpedo adding target index: " << count << " torpedo entity: " << target << "\n";
 
       // set the target for the PDCs
-      addTarget(tt);
+      addTarget(target);
       count++;
     }
 
@@ -159,7 +221,7 @@ public:
     firePdcBursts(e, tt, 5.0f); // larger burstSpread to hit torps
   }
 
-  void clearTargets() {
+  void clearPdcTargets() {
     for (auto &t : pdcTargets) {
       t.reset();
     }
@@ -416,11 +478,14 @@ private:
   BulletFactory bulletFactory;
   sf::Sound pdcFireSoundPlayer;
  
-  std::map<float, Entity> torpedoTargetDistances; // map of targets and their distances
+  std::map<float, Entity> torpedoTargetDistances;      // map of torpedo targets and their distances
+  std::map<float, Entity> shipTargetDistances;         // map of ships and their distances
 
   std::array<std::optional<Entity>, 4> pdcTargets; // list of 4 current targets 
  
   // distance in pixels to consider a torpedo a threat.
   // has to be close enough for pdcs to track it.
   float torpedoThreatRange = 45000.f;
+
+  float shipThreatRange = 45000.f; // distance in pixels to consider an ship a threat for pdc targeting
 };

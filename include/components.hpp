@@ -109,7 +109,22 @@ struct Collision {
   float radius = 0.f;     // for Circle
 };
 
-// get a torpedo to target a ship, or a pdc to target a torpedo.
-struct Target {
-  Entity target;
+// get a torpedo to target a ship
+struct TorpedoTarget {
+  Entity target;  // the target of the torpedo
+};
+
+// get a ship to target a ship
+// targeting is handles seperately so just want to know if they are an enemy ship
+struct EnemyShipTarget {
+
+  // This is abit redundant as the entity that owns this component will have the same id,
+  // but allows me to get a list of enemy ships.
+  Entity ship;  // the id of the enemy ship.
+};
+
+struct FriendlyShipTarget {
+
+  // again, redundant
+  Entity ship;  // the id of the friendly ship.
 };

@@ -48,6 +48,9 @@ public:
     ecs.addComponent(player, TorpedoLauncher1{});
     ecs.addComponent(player, TorpedoLauncher2{});
 
+    // as this is a friendly ship, add the component to identify it as a friendly
+    ecs.addComponent(player, FriendlyShipTarget{player});
+
     createMcrnPdcs6(ecs, player);
 
     return player;
@@ -83,6 +86,9 @@ public:
 
     ecs.addComponent(e, TorpedoLauncher1{.rounds = 4});
     ecs.addComponent(e, TorpedoLauncher2{.rounds = 4});
+
+    // as this is an enemy ship, add the component to identify it as a target
+    ecs.addComponent(e, EnemyShipTarget{e});
 
     createBelterPdcs1(ecs, e);
 
