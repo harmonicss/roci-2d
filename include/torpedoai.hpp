@@ -253,12 +253,12 @@ public:
       if (torpedoControl.turning == false) {
         // startTurn(att, torpedo, target);
         // not really sure why subtraction works, maybe I get the sign wrong somewhere
-        startTurn(att - omega, torpedo, target);
+        startTurn(att - omega, torpedo);
       }
 
       // perform the turn
       if (torpedoControl.turning) {
-        performTurn(torpedo, target);
+        performTurn(torpedo);
       }
 
       // get the direction/ angle of this acceleration
@@ -277,7 +277,7 @@ private:
   Coordinator &ecs;
 
 
-  void startTurn(float atp, Entity torpedo, Entity target) {
+  void startTurn(float atp, Entity torpedo) {
     auto &torpedoControl = ecs.getComponent<TorpedoControl>(torpedo);
 
     torpedoControl.targetAngle = atp;
@@ -299,7 +299,7 @@ private:
     }
   }
 
-  void performTurn(Entity torpedo, Entity target) {
+  void performTurn(Entity torpedo) {
     auto &torpedoControl = ecs.getComponent<TorpedoControl>(torpedo);
 
     auto &torpedoRot = ecs.getComponent<Rotation>(torpedo);
@@ -323,7 +323,6 @@ private:
       TORPEDO_DEBUG << "CounterClockwise turn to " << torpedoRot.angle << "\n";
     }
 
-    // TODO: wrap with Angle.wrapUnsigned
     normalizeAngle(torpedoRot.angle);
   }
 };

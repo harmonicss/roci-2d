@@ -180,11 +180,7 @@ public:
       auto &enemyRot = ecs.getComponent<Rotation>(enemy);
       float diff = atp - enemyRot.angle;
 
-      if (diff >= 180.f) {
-        diff -= 360.f;
-      } else if (diff < -180.f) {
-        diff += 360.f;
-      }
+      normalizeAngle(diff);
 
       // playing with setting the heading to an offsest for pdc fire and to avoid collisions
       // +/- 45 degrees will miss if the player is moving, so try 35
@@ -240,9 +236,9 @@ public:
   sf::Sound pdcFireSoundPlayer;
   PdcTarget pdcTarget;
 
-  const float close_distance          = 1000000.f;
+  const float close_distance          = 500000.f;
   const float attack_pdc_distance     = 8000.f;
-  const float attack_torpedo_distance = 900000.f;
+  const float attack_torpedo_distance = 200000.f;
 
   enum class State {
     IDLE,
@@ -272,12 +268,7 @@ public:
     shipControl.targetAngle = angle;
     auto &enemyRot = ecs.getComponent<Rotation>(enemy);
 
-    // TODO: wrap with Angle.wrapUnsigned
-    if (enemyRot.angle >= 180.f) {
-      enemyRot.angle -= 360.f;
-    } else if (enemyRot.angle < -180.f) {
-      enemyRot.angle += 360.f;
-    }
+    normalizeAngle(enemyRot.angle);
 
     // std::cout << "Starting Turn to " << angle << "\n";
 
@@ -285,11 +276,7 @@ public:
 
     // take into account the wrap around to get the shortest distance
     // TODO this doesnt really work after a collision
-    if (diff < -180.f) {
-      diff += 360.f;
-    } else if (diff > 180.f) {
-      diff -= 360.f;
-    }
+    normalizeAngle(diff);
 
     if (diff > 0.f) {
       shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
@@ -306,11 +293,7 @@ public:
     float diff = shipControl.targetAngle - enemyRot.angle;
 
     // take into account the wrap around to get the shortest distance
-    if (diff < -180.f) {
-      diff += 360.f;
-    } else if (diff > 180.f) {
-      diff -= 360.f;
-    }
+    normalizeAngle(diff);
  
     // std::cout << "Performing Turn to " << shipControl.targetAngle << ", Diff " << diff << " current angle " << enemyRot.angle << "\n";
 
@@ -329,12 +312,7 @@ public:
       // std::cout << "CounterClockwise turn to " << enemyRot.angle << "\n";
     }
 
-    // TODO: wrap with Angle.wrapUnsigned
-    if (enemyRot.angle >= 180.f) {
-      enemyRot.angle -= 360.f;
-    } else if (enemyRot.angle < -180.f) {
-      enemyRot.angle += 360.f;
-    }
+    normalizeAngle(enemyRot.angle);
   }
 };
 
