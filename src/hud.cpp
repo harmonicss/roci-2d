@@ -180,21 +180,23 @@ void DrawShipNames (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Fo
   window.draw(nametext);
 }
 
-// draws the player vector 
-void DrawPlayerOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& font, float zoomFactor) {
+// draws the vector on the ship
+void DrawVectorOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font, float zoomFactor) {
 
   u_int16_t screenWidth = window.getSize().x;
   u_int16_t screenHeight = window.getSize().y;
   sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
   auto &ppos = ecs.getComponent<Position>(0);
-  auto &pvel = ecs.getComponent<Velocity>(0);
+  auto &epos = ecs.getComponent<Position>(e);
+  auto &evel = ecs.getComponent<Velocity>(e);
 
   sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
 
-  DrawVector(window, ecs, 0, ppos.value, pvel.value, cameraOffset, sf::Color::Green, zoomFactor, 40.f);
+  DrawVector(window, ecs, e, epos.value, evel.value, cameraOffset, sf::Color::Green, zoomFactor, 40.f);
 
-  DrawPlayerPdcOverlay(window, ecs, 0, zoomFactor);
+  if (e == 0)
+    DrawPlayerPdcOverlay(window, ecs, 0, zoomFactor);
 }
 
 // draws the angles of the pdc targeting on the player

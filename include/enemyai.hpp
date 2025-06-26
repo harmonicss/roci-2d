@@ -38,15 +38,25 @@ public:
     auto &t1rounds = ecs.getComponent<TorpedoLauncher1>(enemy).rounds;
     auto &t2rounds = ecs.getComponent<TorpedoLauncher2>(enemy).rounds;
 
+    // just get pdc1 rounds for now
+    auto &pdcMounts = ecs.getComponent<PdcMounts>(enemy).pdcEntities;
+    auto &pdc1 = ecs.getComponent<Pdc>(pdcMounts[0]);
+    auto &pdc1rounds = pdc1.rounds; 
+
     // std::cout << "EnemyAI distance to player: " << dist << std::endl;
     // std::cout << "\nEnemyAI angle to player: " << atp << std::endl;
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Ship State Machine -
     ///////////////////////////////////////////////////////////////////////////////
-    if (pdcTarget.pdcTorpedoThreatDetect()) {
+    if (pdcTarget.pdcTorpedoThreatDetect() && pdc1rounds > 0) {
       state = State::DEFENCE_PDC;
       std::cout << "EnemyAI state: DEFENCE_PDC" << std::endl;
+    }
+    else if (pdc1rounds < 30 && t1rounds == 0 && t2rounds == 0) {
+      // if we have no PDCs or torpedos left, switch to FLEE
+      state = State::FLEE;
+      std::cout << "EnemyAI state: FLEE (no PDCs or torpedos left)" << std::endl;
     }
     else
     {
@@ -122,10 +132,10 @@ public:
         startTurn(atp);
       }
 
-      // accelerate towards the player, about 1G atm
+      // accelerate towards the player, about 3G atm
       // TODO: update to change acceleration based on distance
-      enemyAcc.value.y = std::sin((enemyRot.angle) * (M_PI / 180.f)) * 5000.f * dt;
-      enemyAcc.value.x = std::cos((enemyRot.angle) * (M_PI / 180.f)) * 5000.f * dt;
+      enemyAcc.value.y = std::sin((enemyRot.angle) * (M_PI / 180.f)) * 300.f;
+      enemyAcc.value.x = std::cos((enemyRot.angle) * (M_PI / 180.f)) * 300.f;
     }
     else if (state == State::IDLE) {
       enemyAcc.value.x = 0.f;
@@ -189,19 +199,30 @@ public:
       // set accel to 0
       enemyAcc.value.x = 0.f;
       enemyAcc.value.y = 0.f; 
-      
+
 #if 0
       // set a target velocity instead
       enemyVel.value.y = std::sin((enemyRot.angle) * (M_PI / 180.f)) * 1000.f;
       enemyVel.value.x = std::cos((enemyRot.angle) * (M_PI / 180.f)) * 1000.f; 
 #else 
-      enemyVel.value.y = 0.f;
-      enemyVel.value.x = 0.f;
+      // commented out keeping the existing velocity
+      // enemyVel.value.y = 0.f;
+      // enemyVel.value.x = 0.f;
 #endif
 
       // for now, attack the player. 
       // Could additional evasive maneuvers later.
       pdcTarget.pdcAttack(0, tt);
+    }
+    else if (state == State::FLEE) {
+      // set accel to 5G
+      enemyAcc.value.y = std::sin((enemyRot.angle) * (M_PI / 180.f)) * 500.f;
+      enemyAcc.value.x = std::cos((enemyRot.angle) * (M_PI / 180.f)) * 500.f;
+
+      // only want to turn the ship if we are not already turning, prevents jittering
+      if (shipControl.turning == false) {
+        startTurn(atp + 180.f); // turn away from the player
+      }
     }
  
     // perform the turn

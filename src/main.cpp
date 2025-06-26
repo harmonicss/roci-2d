@@ -28,7 +28,7 @@ extern void DrawShipNames(sf::RenderWindow &window, Coordinator &ecs, Entity e,
                           sf::Font &font, float zoomFactor);
 extern void DrawTorpedoOverlay(sf::RenderWindow &window, Coordinator &ecs,
                                sf::Font &font, float zoomFactor);
-extern void DrawPlayerOverlay(sf::RenderWindow &window, Coordinator &ecs,
+extern void DrawVectorOverlay(sf::RenderWindow &window, Coordinator &ecs, Entity e,
                               sf::Font &font, float zoomFactor);
 
 
@@ -175,7 +175,7 @@ int main() {
 
     // torpedos cant collide with each other, so only destroy if they hit the player or enemy or bullet
     if (e1Name == "Torpedo" && e2Name == "Torpedo") {
-      std::cout << "Collision between two torpedos detected, but not handled.\n";
+      // std::cout << "Collision between two torpedos detected, but not handled.\n";
       return;
     }
 
@@ -188,7 +188,7 @@ int main() {
       return;
     }
 
-    std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
+    // std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
 
     // Damage the health of the entities
     if (e1Name == "Bullet") {
@@ -674,7 +674,8 @@ int main() {
     DrawShipNames(window, ecs, enemy, font, zoomFactor);
     DrawShipNames(window, ecs, player, font, zoomFactor);
     DrawTorpedoOverlay(window, ecs, font, zoomFactor);
-    DrawPlayerOverlay(window, ecs, font, zoomFactor);
+    DrawVectorOverlay(window, ecs, player, font, zoomFactor);
+    DrawVectorOverlay(window, ecs, enemy, font, zoomFactor);
 
     // display everything
     window.display();
@@ -682,7 +683,6 @@ int main() {
 }
 
   void destroyEntity(Coordinator &ecs, Entity e) {
-    std::cout << "Destroying entity: " << ecs.getEntityName(e) << " : " << e << "\n";
     ecs.removeComponent<Velocity>(e);
     ecs.removeComponent<Position>(e);
     ecs.removeComponent<Rotation>(e);

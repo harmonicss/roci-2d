@@ -204,7 +204,7 @@ public:
       for (auto &t : pdcTargets) {
         if (!t.has_value()) {
           emptySlotFound = true;
-          continue; 
+          continue;
         }
       }
 
