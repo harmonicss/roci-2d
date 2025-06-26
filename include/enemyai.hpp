@@ -12,7 +12,8 @@
 class EnemyAI {
 
 public:
-  EnemyAI(Coordinator &ecs, Entity enemy, BulletFactory bulletFactory, TorpedoFactory torpedoFactory, sf::Sound pdcFireSoundPlayer) :
+  EnemyAI(Coordinator &ecs, Entity enemy, BulletFactory bulletFactory,
+          TorpedoFactory torpedoFactory, sf::Sound pdcFireSoundPlayer) :
     ecs(ecs),
     enemy(enemy),
     bulletFactory(bulletFactory),

@@ -158,9 +158,11 @@ int main() {
   Entity player = playerShipFactory.createPlayerShip("Rocinante");
 
   BelterFrigateShipFactory belterShipFactory(ecs, belterFrigateTexture);
-  Entity enemy = belterShipFactory.createBelterFrigateShip(
+  Entity enemy1 = belterShipFactory.createBelterFrigateShip(
       "Bashi Bazouk", {0.f, -180000.f}, {0.f, 0.f}, 90.f, 50);
 
+  Entity enemy2 = belterShipFactory.createBelterFrigateShip(
+      "Behemoth", {14000.f, -180000.f}, {0.f, 0.f}, 90.f, 50);
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Collision System, with lambda callback
@@ -259,7 +261,8 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // Create Enemy and Torpedo AIs
   ///////////////////////////////////////////////////////////////////////////////
-  EnemyAI enemyAI(ecs, enemy, bulletFactory, torpedoFactory, pdcFireSoundPlayer);
+  EnemyAI enemy1AI(ecs, enemy1, bulletFactory, torpedoFactory, pdcFireSoundPlayer);
+  EnemyAI enemy2AI(ecs, enemy2, bulletFactory, torpedoFactory, pdcFireSoundPlayer);
   TorpedoAI torpedoAI(ecs);
 
   // Create PDC Targeting System for player
@@ -371,7 +374,7 @@ int main() {
         vel.value.x = 0.f;
         vel.value.y = 0.f;
       }
-    } 
+    }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
       // flip and decelerate
       // debounce the flip
@@ -568,21 +571,23 @@ int main() {
 
       if ((launcher1.timeSinceFired == 0.f || tt > launcher1.timeSinceFired + launcher1.cooldown) && launcher1.rounds) {
         launcher1.timeSinceFired = tt;
-        torpedoFactory.fireone<TorpedoLauncher1>(player, enemy);
+        //TODO: need some way to target enemies
+        torpedoFactory.fireone<TorpedoLauncher1>(player, enemy1);
         // TODO: add torpedo sound
         pdcFireSoundPlayer.play();
         launcher1.rounds--;
       }
       if ((launcher2.timeSinceFired == 0.f || tt > launcher2.timeSinceFired + launcher2.cooldown) && launcher2.rounds) {
         launcher2.timeSinceFired = tt;
-        torpedoFactory.fireone<TorpedoLauncher2>(player, enemy);
+        torpedoFactory.fireone<TorpedoLauncher2>(player, enemy2);
         pdcFireSoundPlayer.play();
         launcher2.rounds--;
       }
     }
 
     // Enemy & Torpedo AIs
-    enemyAI.Update(tt, dt);
+    enemy1AI.Update(tt, dt);
+    enemy2AI.Update(tt, dt);
     torpedoAI.Update(tt, dt);
     bulletFactory.Update(tt); // remove bullets that have been fired for too long
 
@@ -596,7 +601,7 @@ int main() {
     window.clear(sf::Color(7, 5, 8));
 
     // GUI outer radius is torpedo threat range
-    std::array<int, 6> radius{2000, 3000, 4000, 8000, 16000, 45000};
+    std::array<int, 6> radius{8000, 16000, 45000};
 
     // Circles
     for (auto r : radius) {
@@ -672,12 +677,14 @@ int main() {
 
     DrawHUD(window, ecs, player, font);
     DrawSidebarText(window, ecs, player, font);
-    DrawSidebarText(window, ecs, enemy, font);
-    DrawShipNames(window, ecs, enemy, font, zoomFactor);
+    DrawSidebarText(window, ecs, enemy1, font);
+    DrawShipNames(window, ecs, enemy1, font, zoomFactor);
+    DrawShipNames(window, ecs, enemy2, font, zoomFactor);
     DrawShipNames(window, ecs, player, font, zoomFactor);
     DrawTorpedoOverlay(window, ecs, font, zoomFactor);
     DrawVectorOverlay(window, ecs, player, font, zoomFactor);
-    DrawVectorOverlay(window, ecs, player, font, zoomFactor);
+    DrawVectorOverlay(window, ecs, enemy1, font, zoomFactor);
+    DrawVectorOverlay(window, ecs, enemy2, font, zoomFactor);
 
     // display everything
     window.display();
