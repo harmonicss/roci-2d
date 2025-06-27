@@ -84,7 +84,8 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Textures -
   ///////////////////////////////////////////////////////////////////////////////
-  sf::Texture rociTexture, belterFrigateTexture, bulletTexture, torpedoTexture, explosionTexture;
+  sf::Texture rociTexture, belterFrigateTexture, bulletTexture, torpedoTexture, 
+              explosionTexture, driveTexture;
 
   if (!rociTexture.loadFromFile("../assets/textures/roci.png")) {
     std::cout << "Error loading texture" << std::endl;
@@ -110,6 +111,11 @@ int main() {
   }
 
   if (!explosionTexture.loadFromFile("../assets/textures/explosion_sheet.png")) {
+    std::cout << "Error loading texture" << std::endl;
+    return -1;
+  }
+
+  if (!driveTexture.loadFromFile("../assets/textures/drive.png")) {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
@@ -142,10 +148,10 @@ int main() {
   // - Create Ship Entities -
   ///////////////////////////////////////////////////////////////////////////////
 
-  PlayerShipFactory playerShipFactory(ecs, rociTexture);
+  PlayerShipFactory playerShipFactory(ecs, rociTexture, driveTexture);
   Entity player = playerShipFactory.createPlayerShip("Rocinante");
 
-  BelterFrigateShipFactory belterShipFactory(ecs, belterFrigateTexture);
+  BelterFrigateShipFactory belterShipFactory(ecs, belterFrigateTexture, driveTexture);
   Entity enemy1 = belterShipFactory.createBelterFrigateShip(
       "Bashi Bazouk", {0.f, -180000.f}, {0.f, 0.f}, 90.f, 50);
 
@@ -478,12 +484,15 @@ int main() {
       //           << " angle: " << newVector.angle().asDegrees() << "\n";
 
       // turn towards the vector
-      startTurn(ecs, shipControl, player, newVector.angle().asDegrees()); 
+      if (newVector.length() > 0.f) {
+        // std::cout << "Turning towards vector: " << newVector.angle().asDegrees() << "\n";
+        startTurn(ecs, shipControl, player, newVector.angle().asDegrees()); 
 
-      // start accelerating, using dt doesnt work very well if there are lots of bullets
-      // use the distance from the mouse click to set acceleration, max 10 Gs
-      acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * (newVector.length() * 2.0f);
-      acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * (newVector.length() * 2.0f);
+        // start accelerating, using dt doesnt work very well if there are lots of bullets
+        // use the distance from the mouse click to set acceleration, max 10 Gs
+        acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * (newVector.length() * 2.0f);
+        acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * (newVector.length() * 2.0f);
+      }
     }
  
     ///////////////////////////////////////////////////////////////////////////////
@@ -578,6 +587,9 @@ int main() {
       }
     }
 
+    ///////////////////////////////////////////////////////////////////////////////
+    // - Update everying else -
+    ///////////////////////////////////////////////////////////////////////////////
     // Enemy & Torpedo AIs
     enemy1AI.Update(tt, dt);
     enemy2AI.Update(tt, dt);
@@ -587,6 +599,9 @@ int main() {
     // Collision System - check for collisions again
     // it is possible that two missiles have collided near a target, so we need to check again
     collisionSystem.Update();
+
+    // player drive plume update
+    playerShipFactory.UpdateDrivePlume();
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Render -

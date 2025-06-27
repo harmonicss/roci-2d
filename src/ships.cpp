@@ -7,9 +7,10 @@ void createBelterPdcs1(Coordinator &ecs, Entity e);
 
 class ShipFactory {
 public:
-  ShipFactory(Coordinator &ecs, sf::Texture &shipTexture) :
+  ShipFactory(Coordinator &ecs, sf::Texture &shipTexture, sf::Texture &driveTexture) :
     ecs(ecs), 
-    shipTexture(shipTexture) {
+    shipTexture(shipTexture),
+    driveTexture(driveTexture) {
     // std::cout << "ShipFactory created" << std::endl;
   }
 
@@ -18,12 +19,13 @@ public:
 protected:
   Coordinator &ecs;
   sf::Texture &shipTexture;
+  sf::Texture &driveTexture;
 };
 
 // shold I make this a singleton?
 class PlayerShipFactory : public ShipFactory {
 public:
-  PlayerShipFactory(Coordinator &ecs, sf::Texture &shipTexture) : ShipFactory(ecs, shipTexture) {}
+  PlayerShipFactory(Coordinator &ecs, sf::Texture &shipTexture, sf::Texture &driveTexture) : ShipFactory(ecs, shipTexture, driveTexture) {}
  
   ~PlayerShipFactory() override = default;
 
@@ -55,14 +57,67 @@ public:
 
     createMcrnPdcs6(ecs, player);
 
+    // set the object player
+    player = player;
+    createPlayerDrivePlume();
+
     return player;
   }
+
+  void UpdateDrivePlume() {
+
+    auto &driveSprite = ecs.getComponent<SpriteComponent>(drivePlume).sprite;
+    auto &pPos = ecs.getComponent<Position>(player);
+    auto &pRot = ecs.getComponent<Rotation>(player);
+    auto &pAcc = ecs.getComponent<Acceleration>(player);
+    float accelLength = pAcc.value.length();
+
+    auto &dPos = ecs.getComponent<Position>(drivePlume);
+    auto &dRot = ecs.getComponent<Rotation>(drivePlume);
+
+    sf::Vector2f drivePlumePosition = pPos.value + rotateVector({-500.f, 0.f}, pRot.angle);
+   
+    dPos.value = drivePlumePosition;
+    dRot.angle = pRot.angle;
+
+    // adjust the drive plume sprite based on the acceleration length
+    if (accelLength > 0.f) {
+      driveSprite.setScale(sf::Vector2f{5.f + (accelLength / 100.f), 5.f + (accelLength / 500.f)});
+    } else {
+      driveSprite.setScale(sf::Vector2f{0.f, 0.f});
+    }
+  };
+
+
+private:
+  Entity player;
+  Entity drivePlume;
+
+  // always has to be called after the player has been created
+  void createPlayerDrivePlume() {
+    drivePlume = ecs.createEntity("PlayerDrivePlume");
+
+    auto &pPos = ecs.getComponent<Position>(player);
+    auto &pRot = ecs.getComponent<Rotation>(player);
+
+    sf::Vector2f drivePlumePosition = pPos.value + rotateVector({-500.f, 0.f}, pRot.angle);
+
+    ecs.addComponent(drivePlume, Position{{drivePlumePosition.x, drivePlumePosition.y}});
+    ecs.addComponent(drivePlume, Rotation{pRot.angle});
+
+    SpriteComponent dc{sf::Sprite(driveTexture)};
+    sf::Vector2f driveOrigin(driveTexture.getSize().x - 40.f, // the is whitespace at the front of the png
+                             driveTexture.getSize().y / 2.f);
+    dc.sprite.setOrigin(driveOrigin);
+    dc.sprite.setScale(sf::Vector2f{0.f, 0.f}); 
+    ecs.addComponent(drivePlume, dc);
+  };
 };
 
 class BelterFrigateShipFactory : public ShipFactory {
 
 public:
-  BelterFrigateShipFactory(Coordinator &ecs, sf::Texture &shipTexture) : ShipFactory(ecs, shipTexture) {}
+  BelterFrigateShipFactory(Coordinator &ecs, sf::Texture &shipTexture, sf::Texture driveTexture) : ShipFactory(ecs, shipTexture, driveTexture) {}
  
   ~BelterFrigateShipFactory() override = default;
 
