@@ -90,6 +90,7 @@ struct TorpedoLauncher2 {
 struct TorpedoControl {
   bool turning = false;
   bool burning = false;
+  bool flipping = false;
   float targetAngle = 0.f;
   sf::Vector2f targetPosition;
   sf::Vector2f targetAcceleration;
@@ -97,6 +98,18 @@ struct TorpedoControl {
   RotationDirection rotationDir = RotationDirection::CLOCKWISE;
 };
 
+struct ShipControl {
+  bool turning = false;
+  bool flipping = false;
+  bool burning = false;
+  float targetAngle = 0.f;
+  float timeSinceFlipped = 0.f;
+  float cooldown = 0.5f;   // for flip
+  sf::Vector2f targetPosition;
+  sf::Vector2f targetAcceleration;
+  enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE };
+  RotationDirection rotationDir = RotationDirection::CLOCKWISE;
+};
 
 enum class ShapeType { AABB, Circle};
 

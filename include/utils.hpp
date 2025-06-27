@@ -1,5 +1,7 @@
 #pragma once
 
+#include "components.hpp"
+#include "ecs.hpp"
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
 
@@ -41,4 +43,48 @@ inline sf::Vector2f rotateVector(const sf::Vector2f& vec, float angleDegrees) {
         vec.x * cs - vec.y * sn,
         vec.x * sn + vec.y * cs
     };
+}
+
+inline void startTurn(Coordinator &ecs, ShipControl &shipControl, Entity e, float angle) {
+  shipControl.targetAngle = angle;
+  auto &eRot = ecs.getComponent<Rotation>(e);
+
+  float diff = shipControl.targetAngle - eRot.angle;
+  diff = normalizeAngle(diff);
+
+  if (diff > 0.f) {
+    shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
+    shipControl.turning = true;
+  } 
+  else {
+    shipControl.rotationDir = ShipControl::RotationDirection::COUNTERCLOCKWISE;
+    shipControl.turning = true;
+  }
+}
+
+inline void performTurn(Coordinator &ecs, ShipControl &shipControl, Entity e) {
+  auto &eRot = ecs.getComponent<Rotation>(e);
+  float diff = shipControl.targetAngle - eRot.angle;
+
+  // take into account the wrap around to get the shortest distance
+  diff = normalizeAngle(diff);
+
+  // std::cout << "Performing Turn to " << shipControl.targetAngle << ", Diff " << diff << " current angle " << enemyRot.angle << "\n";
+
+  // some leeway to ensure we stop
+  if (diff >= -20.f && diff <= 20.f) {
+    eRot.angle = shipControl.targetAngle;
+    shipControl.turning = false;
+    // std::cout << "Turn complete to " << shipControl.targetAngle << "\n";
+  } 
+  else if (shipControl.rotationDir == ShipControl::RotationDirection::CLOCKWISE) {
+    eRot.angle += 15.f; //(window.getSize().x / 100.f);
+    // std::cout << "Clockwise turn to " << enemyRot.angle << "\n";
+  }
+  else {
+    eRot.angle -= 15.f; //(window.getSize().x / 100.f);
+    // std::cout << "CounterClockwise turn to " << enemyRot.angle << "\n";
+  }
+
+  eRot.angle = normalizeAngle(eRot.angle);
 }

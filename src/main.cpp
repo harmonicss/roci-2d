@@ -34,17 +34,6 @@ extern void DrawVectorOverlay(sf::RenderWindow &window, Coordinator &ecs, Entity
 
 void destroyEntity(Coordinator &ecs, Entity e);
 
-// Flip 180 and burn to a stop
-struct FlipBurnControl {
-  bool flipping = false;
-  bool burning = false;
-  float timeSinceFlipped = 0.f;
-  float cooldown = 0.5f;
-  float targetAngle = 0.f;
-  enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE };
-  RotationDirection rotationDir = RotationDirection::CLOCKWISE; 
-};
-
 // use this to control the pdc targeting
 enum class State {
   IDLE,
@@ -58,8 +47,6 @@ int main() {
   auto window = sf::RenderWindow(sf::VideoMode({1920u, 1080u}), "Rocinante",
                                  sf::Style::None);
   window.setFramerateLimit(60);
-
-  FlipBurnControl flipControl;
 
   State state = State::IDLE;
 
@@ -83,6 +70,7 @@ int main() {
   ecs.registerComponent<TorpedoControl>();
   ecs.registerComponent<EnemyShipTarget>();
   ecs.registerComponent<FriendlyShipTarget>();
+  ecs.registerComponent<ShipControl>();
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Fonts -
@@ -296,6 +284,9 @@ int main() {
     u_int16_t screenHeight = window.getSize().y;
     sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
+    // main ship control structure
+    auto &shipControl = ecs.getComponent<ShipControl>(player);
+
     ///////////////////////////////////////////////////////////////////////////////
     // - Events -
     ///////////////////////////////////////////////////////////////////////////////
@@ -355,7 +346,7 @@ int main() {
     // Keyboard and flip control
     // dont use events for the keyboard, check if currently pressed.
     ///////////////////////////////////////////////////////////////////////////////
-    if (flipControl.burning == true) {
+    if (shipControl.burning == true) {
       // burn deceleration to 0
       auto &acc = ecs.getComponent<Acceleration>(player);
       auto &vel = ecs.getComponent<Velocity>(player);
@@ -368,7 +359,7 @@ int main() {
       // approaching 0 velocity
       if ((vel.value.length() < 50.f) && 
           (vel.value.length() > -50.f)) {
-        flipControl.burning = false;
+        shipControl.burning = false;
         acc.value.x = 0.f;
         acc.value.y = 0.f;
         vel.value.x = 0.f;
@@ -380,66 +371,53 @@ int main() {
       // debounce the flip
       // rotate to burn and reduce velocity, may not be 180 if there is 
       // some lateral movement
-      if (tt > flipControl.timeSinceFlipped + flipControl.cooldown) {
+      if (tt > shipControl.timeSinceFlipped + shipControl.cooldown) {
         // std::cout << "Starting Flipping!\n";
-        flipControl.timeSinceFlipped = tt;
-        flipControl.flipping = true;
+        shipControl.timeSinceFlipped = tt;
+        shipControl.flipping = true;
         auto &rot = ecs.getComponent<Rotation>(player);
         auto &vel = ecs.getComponent<Velocity>(player).value;
 
         // cannot calculate the angle from a zero vector
         if (vel.length() == 0.f) {
           // std::cout << "Flip correctionAngle: 0\n";
-          flipControl.targetAngle = rot.angle + 180.f;
-          if (flipControl.targetAngle >= 180.f) {
-            flipControl.targetAngle -= 360.f;
-          } else if (flipControl.targetAngle < -180.f) {
-            flipControl.targetAngle += 360.f;
-          }
-          flipControl.rotationDir = FlipBurnControl::RotationDirection::CLOCKWISE;
+          shipControl.targetAngle = rot.angle + 180.f;
+          shipControl.targetAngle = normalizeAngle(shipControl.targetAngle);
+          shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
         }
         else {
           // get the angle of the velocity vector
           sf::Angle correctionAngle = vel.angle();
           // std::cout << "Flip correctionAngle: " << correctionAngle.asDegrees() << "\n";
-          flipControl.targetAngle = correctionAngle.asDegrees() - 180.f;
-          float diff = std::abs(flipControl.targetAngle - rot.angle);
+          shipControl.targetAngle = correctionAngle.asDegrees() - 180.f;
+          float diff = std::abs(shipControl.targetAngle - rot.angle);
+          diff = normalizeAngle(diff);
+
           if (diff > 0.f) {
-            flipControl.rotationDir = FlipBurnControl::RotationDirection::CLOCKWISE;
+            shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
           } else {
-            flipControl.rotationDir = FlipBurnControl::RotationDirection::COUNTERCLOCKWISE;
+            shipControl.rotationDir = ShipControl::RotationDirection::COUNTERCLOCKWISE;
           }
-          if (flipControl.targetAngle >= 180.f) {
-            flipControl.targetAngle -= 360.f;
-          } else if (flipControl.targetAngle < -180.f) {
-            flipControl.targetAngle += 360.f;
-          }
-          // std::cout << "Flip target angle: " << flipControl.targetAngle << "\n";
+ 
+          shipControl.targetAngle = normalizeAngle(shipControl.targetAngle);
+          // std::cout << "Flip target angle: " << shipControl.targetAngle << "\n";
         }
       }
     }
-    else if (flipControl.flipping == false) {
+    else if (shipControl.flipping == false) {
       if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::H)) {
         // rotate left
         auto &rot = ecs.getComponent<Rotation>(player);
         //rot.angle -= (window.getSize().x / 500.f);
         rot.angle -= 90.f * dt;
-        if (rot.angle >= 180.f) {
-          rot.angle -= 360.f;
-        } else if (rot.angle < -180.f) {
-          rot.angle += 360.f;
-        }
+        rot.angle = normalizeAngle(rot.angle);
       }
       else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::L)) {
         // rotate right
         auto &rot = ecs.getComponent<Rotation>(player);
         // rot.angle += (window.getSize().x / 500.f);
         rot.angle += 90.f * dt;
-        if (rot.angle >= 180.f) {
-          rot.angle -= 360.f;
-        } else if (rot.angle < -180.f) {
-          rot.angle += 360.f;
-        }
+        rot.angle = normalizeAngle(rot.angle);
       }
 
       if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::K)) {
@@ -466,12 +444,13 @@ int main() {
     ///////////////////////////////////////////////////////////////////////////////
     // Use the mouse to set rotation and acceleration
     ///////////////////////////////////////////////////////////////////////////////
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+    if (!shipControl.flipping && !shipControl.burning && 
+      sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
 
       sf::Vector2i clickPosition = sf::Mouse::getPosition(window);
       sf::Vector2f clickPositionf(static_cast<float>(clickPosition.x),
                                   static_cast<float>(clickPosition.y));
-   
+
       // convert to world coordinates, doesnt seem to work very well
       // sf::Vector2f worldPosition = window.mapPixelToCoords(clickPosition);
 
@@ -487,8 +466,8 @@ int main() {
       // std::cout << "new vector length " << newVector.length()
       //           << " angle: " << newVector.angle().asDegrees() << "\n";
 
-      // turn towards the vector, instant turn for now
-      rot.angle = newVector.angle().asDegrees();
+      // turn towards the vector
+      startTurn(ecs, shipControl, player, newVector.angle().asDegrees()); 
 
       // start accelerating, using dt doesnt work very well if there are lots of bullets
       // use the distance from the mouse click to set acceleration, max 10 Gs
@@ -499,18 +478,19 @@ int main() {
     ///////////////////////////////////////////////////////////////////////////////
     // Animate the flip
     ///////////////////////////////////////////////////////////////////////////////
-    if (flipControl.flipping) {
+    if (shipControl.flipping) {
       auto &rot = ecs.getComponent<Rotation>(player);
-      float diff = std::abs(flipControl.targetAngle - rot.angle);
+      float diff = std::abs(shipControl.targetAngle - rot.angle);
+      rot.angle = normalizeAngle(rot.angle);
 
-      // std::cout << "\ntargetAngle:   " << flipControl.targetAngle << "\n";
+      // std::cout << "\ntargetAngle:   " << shipControl.targetAngle << "\n";
       // std::cout << "Current angle: " << rot.angle << "\n";
       // std::cout << "Flipping diff: " << diff << "\n";
 
       if (diff < 20.f) {
-        rot.angle = flipControl.targetAngle;
+        rot.angle = shipControl.targetAngle;
       } 
-      else if (flipControl.rotationDir == FlipBurnControl::RotationDirection::CLOCKWISE) {
+      else if (shipControl.rotationDir == ShipControl::RotationDirection::CLOCKWISE) {
         rot.angle -= 15.f; //(window.getSize().x / 100.f);
       }
       else {
@@ -518,19 +498,21 @@ int main() {
       }
 
       // TODO: wrap with Angle.wrapUnsigned
-      if (rot.angle >= 180.f) {
-        rot.angle -= 360.f;
-      } else if (rot.angle < -180.f) {
-        rot.angle += 360.f;
-      }
+      rot.angle = normalizeAngle(rot.angle);
+
       // std::cout << "New angle:     " << rot.angle << "\n";
-      if (rot.angle == flipControl.targetAngle) {
-        // std::cout << "Flipped to target angle: " << flipControl.targetAngle << "\n";
-        flipControl.flipping = false;
-        flipControl.targetAngle = 0.f;
-        flipControl.burning = true;
+      if (rot.angle == shipControl.targetAngle) {
+        // std::cout << "Flipped to target angle: " << shipControl.targetAngle << "\n";
+        shipControl.flipping = false;
+        shipControl.targetAngle = 0.f;
+        shipControl.burning = true;
       }
     }
+    else if (shipControl.turning) {
+      // perform the turn
+      performTurn(ecs, shipControl, player);
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////
     // Fire! Attacking PDCs

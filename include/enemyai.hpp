@@ -27,6 +27,7 @@ public:
 
   void Update(float tt, float dt)  {
     // update state based on player distance
+    auto &shipControl = ecs.getComponent<ShipControl>(enemy);
     auto &enemyPos = ecs.getComponent<Position>(enemy);
     auto &enemyVel = ecs.getComponent<Velocity>(enemy);
     auto &enemyAcc = ecs.getComponent<Acceleration>(enemy);
@@ -118,7 +119,7 @@ public:
       // only want to turn the ship if we are not already turning, prevents jittering
       // turn to player for now
       if (shipControl.turning == false) {
-        startTurn(atp);
+        startTurn(ecs, shipControl, enemy, atp);
       }
 
       // aquire the nearest torpedo and fire the PDCs
@@ -130,7 +131,7 @@ public:
      
       // only want to turn the ship if we are not already turning, prevents jittering
       if (shipControl.turning == false) {
-        startTurn(atp);
+        startTurn(ecs, shipControl, enemy, atp);
       }
 
       // accelerate towards the player, about 3G atm
@@ -153,7 +154,7 @@ public:
 
       // only want to turn the ship if we are not already turning, prevents jittering
       if (shipControl.turning == false) {
-        startTurn(atp);
+        startTurn(ecs, shipControl, enemy, atp);
       }
 
       auto &enemyRot = ecs.getComponent<Rotation>(enemy);
@@ -180,16 +181,16 @@ public:
       auto &enemyRot = ecs.getComponent<Rotation>(enemy);
       float diff = atp - enemyRot.angle;
 
-      normalizeAngle(diff);
+      diff = normalizeAngle(diff);
 
       // playing with setting the heading to an offsest for pdc fire and to avoid collisions
       // +/- 45 degrees will miss if the player is moving, so try 35
       // probably need to take into account target velocity instead for targeting
       if (shipControl.turning == false) {
         if (diff > 0.f) {
-          startTurn(atp - 50.f);
+          startTurn(ecs, shipControl, enemy, atp - 50.f);
         } else {
-          startTurn(atp + 50.f);
+          startTurn(ecs, shipControl, enemy, atp + 50.f);
         }
       }
 
@@ -218,13 +219,13 @@ public:
 
       // only want to turn the ship if we are not already turning, prevents jittering
       if (shipControl.turning == false) {
-        startTurn(atp + 180.f); // turn away from the player
+        startTurn(ecs, shipControl, enemy, atp + 180.f); // turn away from the player
       }
     }
  
     // perform the turn
     if (shipControl.turning) {
-      performTurn();
+      performTurn(ecs, shipControl, enemy);
     }
   }
 
@@ -252,67 +253,6 @@ public:
  
   State state = State::CLOSE;
 
-  struct ShipControl {
-    bool turning = false;
-    bool burning = false;
-    float targetAngle = 0.f;
-    sf::Vector2f targetPosition;
-    sf::Vector2f targetAcceleration;
-    enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE };
-    RotationDirection rotationDir = RotationDirection::CLOCKWISE;
-  };
-  
-  ShipControl shipControl;
 
-  void startTurn(float angle) {
-    shipControl.targetAngle = angle;
-    auto &enemyRot = ecs.getComponent<Rotation>(enemy);
-
-    normalizeAngle(enemyRot.angle);
-
-    // std::cout << "Starting Turn to " << angle << "\n";
-
-    float diff = shipControl.targetAngle - enemyRot.angle;
-
-    // take into account the wrap around to get the shortest distance
-    // TODO this doesnt really work after a collision
-    normalizeAngle(diff);
-
-    if (diff > 0.f) {
-      shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
-      shipControl.turning = true;
-    } 
-    else {
-      shipControl.rotationDir = ShipControl::RotationDirection::COUNTERCLOCKWISE;
-      shipControl.turning = true;
-    }
-  }
-
-  void performTurn() {
-    auto &enemyRot = ecs.getComponent<Rotation>(enemy);
-    float diff = shipControl.targetAngle - enemyRot.angle;
-
-    // take into account the wrap around to get the shortest distance
-    normalizeAngle(diff);
- 
-    // std::cout << "Performing Turn to " << shipControl.targetAngle << ", Diff " << diff << " current angle " << enemyRot.angle << "\n";
-
-    // some leeway to ensure we stop
-    if (diff >= -20.f && diff <= 20.f) {
-      enemyRot.angle = shipControl.targetAngle;
-      shipControl.turning = false;
-      // std::cout << "Turn complete to " << shipControl.targetAngle << "\n";
-    } 
-    else if (shipControl.rotationDir == ShipControl::RotationDirection::CLOCKWISE) {
-      enemyRot.angle += 15.f; //(window.getSize().x / 100.f);
-      // std::cout << "Clockwise turn to " << enemyRot.angle << "\n";
-    }
-    else {
-      enemyRot.angle -= 15.f; //(window.getSize().x / 100.f);
-      // std::cout << "CounterClockwise turn to " << enemyRot.angle << "\n";
-    }
-
-    normalizeAngle(enemyRot.angle);
-  }
 };
 

@@ -282,12 +282,11 @@ private:
 
     torpedoControl.targetAngle = atp;
     auto &torpedoRot = ecs.getComponent<Rotation>(torpedo);
-    normalizeAngle(torpedoRot.angle);
 
     TORPEDO_DEBUG << "Starting Turn to " << atp << "\n";
 
     float diff = torpedoControl.targetAngle - torpedoRot.angle;
-    normalizeAngle(diff);
+    diff = normalizeAngle(diff);
 
     if (diff > 0.f) {
       torpedoControl.rotationDir = TorpedoControl::RotationDirection::CLOCKWISE;
@@ -304,7 +303,7 @@ private:
 
     auto &torpedoRot = ecs.getComponent<Rotation>(torpedo);
     float diff = torpedoControl.targetAngle - torpedoRot.angle;
-    normalizeAngle(diff);
+    diff = normalizeAngle(diff);
 
     TORPEDO_DEBUG << "Performing Turn to " << torpedoControl.targetAngle << ", Diff " << diff << " current angle " << torpedoRot.angle << "\n";
 
@@ -323,6 +322,6 @@ private:
       TORPEDO_DEBUG << "CounterClockwise turn to " << torpedoRot.angle << "\n";
     }
 
-    normalizeAngle(torpedoRot.angle);
+    torpedoRot.angle = normalizeAngle(torpedoRot.angle);
   }
 };

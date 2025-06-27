@@ -51,6 +51,8 @@ public:
     // as this is a friendly ship, add the component to identify it as a friendly
     ecs.addComponent(player, FriendlyShipTarget{player});
 
+    ecs.addComponent(player, ShipControl{});
+
     createMcrnPdcs6(ecs, player);
 
     return player;
@@ -89,6 +91,8 @@ public:
 
     // as this is an enemy ship, add the component to identify it as a target
     ecs.addComponent(e, EnemyShipTarget{e});
+
+    ecs.addComponent(e, ShipControl{});
 
     createBelterPdcs1(ecs, e);
 
