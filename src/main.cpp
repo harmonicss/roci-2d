@@ -354,6 +354,17 @@ int main() {
       acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
       acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
 
+      float maxx = std::cos((rot.angle) * (M_PI / 180.f)) * 1000.f;
+      float maxy = std::sin((rot.angle) * (M_PI / 180.f)) * 1000.f;
+
+      // rearrange as maxx/y can be negative
+      auto [xmin, xmax] = std::minmax(-maxx, maxx);
+      auto [ymin, ymax] = std::minmax(-maxy, maxy);
+
+      // limit to 10Gs. TODO: make this ship specific at some point
+      acc.value.x = std::clamp(acc.value.x, xmin, xmax);
+      acc.value.y = std::clamp(acc.value.y, ymin, ymax);
+
       // std::cout << "Burn velocity: " << vel.value.length() << "\n";
 
       // approaching 0 velocity
