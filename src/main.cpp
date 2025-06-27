@@ -71,6 +71,7 @@ int main() {
   ecs.registerComponent<EnemyShipTarget>();
   ecs.registerComponent<FriendlyShipTarget>();
   ecs.registerComponent<ShipControl>();
+  ecs.registerComponent<DrivePlume>();
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Fonts -
@@ -600,8 +601,6 @@ int main() {
     // it is possible that two missiles have collided near a target, so we need to check again
     collisionSystem.Update();
 
-    // player drive plume update
-    playerShipFactory.UpdateDrivePlume();
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Render -
@@ -609,7 +608,7 @@ int main() {
     window.clear(sf::Color(7, 5, 8));
 
     // GUI outer radius is torpedo threat range
-    std::array<int, 6> radius{8000, 16000, 45000};
+    std::array<int, 3> radius{8000, 16000, 45000};
 
     // Circles
     for (auto r : radius) {
@@ -642,14 +641,43 @@ int main() {
       } else {
         auto &playerpos = ecs.getComponent<Position>(player);
 
-        // not sure if zoomFactor is needed here, seems to work without
         sf::Vector2f cameraOffset = screenCentre - playerpos.value;
-        // sf::Vector2f cameraOffset = screenCentre - (playerpos.value / zoomFactor);
         sc.sprite.setPosition(pos.value + cameraOffset);
       }
 
       window.draw(sc.sprite);
+
+      // check if we have a drive plume
+      if (ecs.hasComponent<DrivePlume>(e)) {
+        auto &acc = ecs.getComponent<Acceleration>(e);
+        auto &dp = ecs.getComponent<DrivePlume>(e);
+        float accelLength = acc.value.length();
+ 
+        dp.sprite.setRotation(sf::degrees(rot.angle));
+
+        // adjust the drive plume sprite based on the acceleration length
+        if (accelLength > 0.f) {
+          dp.sprite.setScale(sf::Vector2f{5.f + (accelLength / 100.f), 5.f + (accelLength / 500.f)});
+        } else {
+          dp.sprite.setScale(sf::Vector2f{0.f, 0.f});
+        }
+
+        // center the screen for the player
+        if (e == player) {
+          sf::Vector2f drivePlumePosition = rotateVector(dp.offset, rot.angle);
+          dp.sprite.setPosition(screenCentre + drivePlumePosition);
+        } else {
+          sf::Vector2f drivePlumePosition = rotateVector(dp.offset, rot.angle);
+          auto &playerpos = ecs.getComponent<Position>(player);
+
+          sf::Vector2f cameraOffset = screenCentre - playerpos.value;
+          dp.sprite.setPosition(pos.value + cameraOffset + drivePlumePosition);
+        }
+
+        window.draw(dp.sprite);
+      }
     }
+
 
     // Draw the explosions
     for (auto &explosion : explosions) explosion.Update(dt);

@@ -8,7 +8,7 @@ void createBelterPdcs1(Coordinator &ecs, Entity e);
 class ShipFactory {
 public:
   ShipFactory(Coordinator &ecs, sf::Texture &shipTexture, sf::Texture &driveTexture) :
-    ecs(ecs), 
+    ecs(ecs),
     shipTexture(shipTexture),
     driveTexture(driveTexture) {
     // std::cout << "ShipFactory created" << std::endl;
@@ -25,99 +25,63 @@ protected:
 // shold I make this a singleton?
 class PlayerShipFactory : public ShipFactory {
 public:
-  PlayerShipFactory(Coordinator &ecs, sf::Texture &shipTexture, sf::Texture &driveTexture) : ShipFactory(ecs, shipTexture, driveTexture) {}
+  PlayerShipFactory(Coordinator &ecs, sf::Texture &shipTexture, sf::Texture &driveTexture) :
+    ShipFactory(ecs, shipTexture, driveTexture) {}
  
   ~PlayerShipFactory() override = default;
 
   Entity createPlayerShip(const std::string &name) {
-    Entity player = ecs.createEntity(name);
-    ecs.addComponent(player, Position{{0,0}});
-    ecs.addComponent(player, Velocity{{0.f, 0.f}});
-    ecs.addComponent(player, Rotation{0.f});
-    ecs.addComponent(player, Health{100});
-    ecs.addComponent(player, Acceleration{{0.f, 0.f}});
+    Entity e = ecs.createEntity(name);
+    ecs.addComponent(e, Position{{0,0}});
+    ecs.addComponent(e, Velocity{{0.f, 0.f}});
+    ecs.addComponent(e, Rotation{0.f});
+    ecs.addComponent(e, Health{100});
+    ecs.addComponent(e, Acceleration{{0.f, 0.f}});
  
     SpriteComponent sc{sf::Sprite(shipTexture)};
     sf::Vector2f shipOrigin(shipTexture.getSize().x / 2.f,
                             shipTexture.getSize().y / 2.f);
     sc.sprite.setOrigin(shipOrigin);
-    ecs.addComponent(player, sc);
+    ecs.addComponent(e, sc);
 
-    ecs.addComponent(player, Collision{player, ShapeType::AABB,
+    ecs.addComponent(e, Collision{e, ShapeType::AABB,
                                        static_cast<float>(shipTexture.getSize().x) / 2 - 45,
                                        static_cast<float>(shipTexture.getSize().y) / 2 - 45, 0.f});
 
-    ecs.addComponent(player, TorpedoLauncher1{});
-    ecs.addComponent(player, TorpedoLauncher2{});
+    ecs.addComponent(e, TorpedoLauncher1{});
+    ecs.addComponent(e, TorpedoLauncher2{});
 
     // as this is a friendly ship, add the component to identify it as a friendly
-    ecs.addComponent(player, FriendlyShipTarget{player});
+    ecs.addComponent(e, FriendlyShipTarget{e});
+    ecs.addComponent(e, ShipControl{});
 
-    ecs.addComponent(player, ShipControl{});
+    createMcrnPdcs6(ecs, e);
+    createPlayerDrivePlume(e);
 
-    createMcrnPdcs6(ecs, player);
-
-    // set the object player
-    player = player;
-    createPlayerDrivePlume();
-
-    return player;
+    return e;
   }
 
-  void UpdateDrivePlume() {
-
-    auto &driveSprite = ecs.getComponent<SpriteComponent>(drivePlume).sprite;
-    auto &pPos = ecs.getComponent<Position>(player);
-    auto &pRot = ecs.getComponent<Rotation>(player);
-    auto &pAcc = ecs.getComponent<Acceleration>(player);
-    float accelLength = pAcc.value.length();
-
-    auto &dPos = ecs.getComponent<Position>(drivePlume);
-    auto &dRot = ecs.getComponent<Rotation>(drivePlume);
-
-    sf::Vector2f drivePlumePosition = pPos.value + rotateVector({-500.f, 0.f}, pRot.angle);
-   
-    dPos.value = drivePlumePosition;
-    dRot.angle = pRot.angle;
-
-    // adjust the drive plume sprite based on the acceleration length
-    if (accelLength > 0.f) {
-      driveSprite.setScale(sf::Vector2f{5.f + (accelLength / 100.f), 5.f + (accelLength / 500.f)});
-    } else {
-      driveSprite.setScale(sf::Vector2f{0.f, 0.f});
-    }
-  };
 
 
 private:
-  Entity player;
-  Entity drivePlume;
 
   // always has to be called after the player has been created
-  void createPlayerDrivePlume() {
-    drivePlume = ecs.createEntity("PlayerDrivePlume");
-
-    auto &pPos = ecs.getComponent<Position>(player);
-    auto &pRot = ecs.getComponent<Rotation>(player);
-
-    sf::Vector2f drivePlumePosition = pPos.value + rotateVector({-500.f, 0.f}, pRot.angle);
-
-    ecs.addComponent(drivePlume, Position{{drivePlumePosition.x, drivePlumePosition.y}});
-    ecs.addComponent(drivePlume, Rotation{pRot.angle});
-
+  void createPlayerDrivePlume(Entity player) {
     SpriteComponent dc{sf::Sprite(driveTexture)};
     sf::Vector2f driveOrigin(driveTexture.getSize().x - 40.f, // the is whitespace at the front of the png
                              driveTexture.getSize().y / 2.f);
     dc.sprite.setOrigin(driveOrigin);
-    dc.sprite.setScale(sf::Vector2f{0.f, 0.f}); 
-    ecs.addComponent(drivePlume, dc);
+    dc.sprite.setScale(sf::Vector2f{0.f, 0.f});
+
+    // add the sprite to the player entity
+    ecs.addComponent(player, DrivePlume{dc.sprite, sf::Vector2f{-500.f, 0.f}});
   };
 };
 
 class BelterFrigateShipFactory : public ShipFactory {
 
 public:
-  BelterFrigateShipFactory(Coordinator &ecs, sf::Texture &shipTexture, sf::Texture driveTexture) : ShipFactory(ecs, shipTexture, driveTexture) {}
+  BelterFrigateShipFactory(Coordinator &ecs, sf::Texture &shipTexture, sf::Texture &driveTexture) : ShipFactory(ecs, shipTexture, driveTexture) {}
  
   ~BelterFrigateShipFactory() override = default;
 
@@ -146,12 +110,22 @@ public:
 
     // as this is an enemy ship, add the component to identify it as a target
     ecs.addComponent(e, EnemyShipTarget{e});
-
     ecs.addComponent(e, ShipControl{});
 
     createBelterPdcs1(ecs, e);
+    createBelterDrivePlume(e);
 
     return e;
+  }
+
+private:
+  void createBelterDrivePlume(Entity belter) {
+    SpriteComponent dc{sf::Sprite(driveTexture)};
+    sf::Vector2f driveOrigin(driveTexture.getSize().x - 40.f, // the is whitespace at the front of the png
+                             driveTexture.getSize().y / 2.f);
+    dc.sprite.setOrigin(driveOrigin);
+    dc.sprite.setScale(sf::Vector2f{0.f, 0.f});
+    ecs.addComponent(belter, DrivePlume{dc.sprite, sf::Vector2f{-800.f, 0.f}});
   }
 };
 

@@ -141,3 +141,11 @@ struct FriendlyShipTarget {
   // again, redundant
   Entity ship;  // the id of the friendly ship.
 };
+
+struct DrivePlume {
+  // this is used to create a drive plume for the ship
+  // it is a sprite that is positioned behind the ship
+  // and is scaled based on the speed of the ship
+  sf::Sprite sprite;
+  sf::Vector2f offset{0.f, 0.f}; // position of the drive plume relative to the ship
+};
