@@ -19,8 +19,6 @@
 static void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
                 sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor, float thickness);
 
-static void DrawPlayerPdcOverlay(sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor);
-
 
 HUD::HUD(Coordinator& ecs, Entity player) :
     ecs(ecs), player(player) {
@@ -36,6 +34,7 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, float 
 
   screenWidth = window.getSize().x;
   screenHeight = window.getSize().y;
+  screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
   // Sidebar
   sf::RectangleShape sidebar({180.f, static_cast<float>(screenHeight)});
@@ -50,6 +49,7 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, float 
   DrawShipNames(window, enemy2, zoomFactor);
   DrawShipNames(window, player, zoomFactor);
   DrawTorpedoOverlay(window, zoomFactor);
+  DrawPlayerPdcOverlay(window, player, zoomFactor);
   DrawVectorOverlay(window, player, zoomFactor);
   DrawVectorOverlay(window, enemy1, zoomFactor);
   DrawVectorOverlay(window, enemy2, zoomFactor);
@@ -184,10 +184,6 @@ void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
 
 void HUD::DrawShipNames (sf::RenderWindow& window, Entity e, float zoomFactor) {
 
-  u_int16_t screenWidth = window.getSize().x;
-  u_int16_t screenHeight = window.getSize().y;
-  sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
-  
   // draw the name on the gui
   sf::Text nametext(font);
   nametext.setString(ecs.getEntityName(e));
@@ -208,28 +204,17 @@ void HUD::DrawShipNames (sf::RenderWindow& window, Entity e, float zoomFactor) {
 // draws the vector on the ship
 void HUD::DrawVectorOverlay (sf::RenderWindow& window, Entity e, float zoomFactor) {
 
-  u_int16_t screenWidth = window.getSize().x;
-  u_int16_t screenHeight = window.getSize().y;
-  sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
-
-  auto &ppos = ecs.getComponent<Position>(0);
+  auto &ppos = ecs.getComponent<Position>(player);
   auto &epos = ecs.getComponent<Position>(e);
   auto &evel = ecs.getComponent<Velocity>(e);
 
   sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
 
   DrawVector(window, ecs, e, epos.value, evel.value, cameraOffset, sf::Color::Green, zoomFactor, 40.f);
-
-  if (e == player)
-    DrawPlayerPdcOverlay(window, ecs, 0, zoomFactor);
 }
 
 // draws the angles of the pdc targeting on the player
-static void DrawPlayerPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor) {
-
-  u_int16_t screenWidth = window.getSize().x;
-  u_int16_t screenHeight = window.getSize().y;
-  sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
+void HUD::DrawPlayerPdcOverlay (sf::RenderWindow& window, Entity e, float zoomFactor) {
 
   auto &ppos = ecs.getComponent<Position>(e);
   auto prot = ecs.getComponent<Rotation>(e);
@@ -279,7 +264,7 @@ static void DrawPlayerPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, En
   DrawVector(window, ecs, e, ppos.value + pdc5Offset, pdc5Vector, cameraOffset, sf::Color::Blue, zoomFactor, 10.f);
   DrawVector(window, ecs, e, ppos.value + pdc6Offset, pdc6Vector, cameraOffset, sf::Color::Cyan, zoomFactor, 10.f);
 
-#if 0
+#if 0 // firing arcs
   sf::Color darkRed(156, 0, 0);
   sf::Color lightRed(150, 110, 110);
   sf::Color darkGreen(52, 156, 0);
@@ -323,10 +308,6 @@ static void DrawPlayerPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, En
 
 void HUD::DrawTorpedoOverlay (sf::RenderWindow& window, float zoomFactor) {
 
-  u_int16_t screenWidth = window.getSize().x;
-  u_int16_t screenHeight = window.getSize().y;
-  sf::Vector2f screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
-
   // change the size of the circle based on the zoom factor
   float radius = 0.5f + (80.f / zoomFactor);
 
@@ -335,9 +316,10 @@ void HUD::DrawTorpedoOverlay (sf::RenderWindow& window, float zoomFactor) {
 
   for (auto e : torpedos) {
 
-    auto &ppos = ecs.getComponent<Position>(0);
+    auto &ppos = ecs.getComponent<Position>(player);
     auto &tpos = ecs.getComponent<Position>(e);
     auto &trot = ecs.getComponent<Rotation>(e);
+    auto &ttgt = ecs.getComponent<TorpedoTarget>(e);
 
     //std::cout << "DrawTorpedoOverlay Torpedo Position: " << tpos.value.x << ", " << tpos.value.y << "\n";
 
@@ -347,7 +329,11 @@ void HUD::DrawTorpedoOverlay (sf::RenderWindow& window, float zoomFactor) {
     sf::CircleShape circle(radius);
     circle.setFillColor(sf::Color::Transparent);
     circle.setOutlineThickness(1.f);
-    circle.setOutlineColor(sf::Color(sf::Color::Red));
+    if (ttgt.target == player)
+      circle.setOutlineColor(sf::Color(sf::Color::Red));
+    else
+      circle.setOutlineColor(sf::Color(sf::Color::Blue));
+
     circle.setOrigin(sf::Vector2f(radius, radius));
 
     // zoomFactor is needed here, as I am drawing this on a seperate HUD view

@@ -19,10 +19,11 @@ private:
  
   u_int16_t screenWidth;
   u_int16_t screenHeight;
+  sf::Vector2f screenCentre;
 
   void DrawSidebarText(sf::RenderWindow& window, Entity e);
   void DrawShipNames (sf::RenderWindow& window, Entity e, float zoomFactor);
   void DrawTorpedoOverlay (sf::RenderWindow& window, float zoomFactor);
   void DrawVectorOverlay (sf::RenderWindow& window, Entity e, float zoomFactor);
-
+  void DrawPlayerPdcOverlay (sf::RenderWindow& window, Entity e, float zoomFactor);
 };
