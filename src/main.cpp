@@ -23,6 +23,8 @@
 
 
 void destroyEntity(Coordinator &ecs, Entity e);
+void DisplayWorldThreatRings(sf::RenderWindow& window, sf::Vector2f screenCentre, float zoomFactor);
+void DrawWorldRangeRings(sf::RenderWindow& window, sf::Vector2f centerWorldPos, float zoomFactor, int ringCount = 6);
 
 // use this to control the pdc targeting
 enum class State {
@@ -317,6 +319,8 @@ int main() {
           zoomFactor = 1.f;
         }
 
+        std::cout << "Zoom Factor: " << zoomFactor << "\n";
+
         worldview.setSize({1920 * zoomFactor, 1080 * zoomFactor});
         window.setView(worldview);
       }
@@ -603,23 +607,9 @@ int main() {
     ///////////////////////////////////////////////////////////////////////////////
     window.clear(sf::Color(7, 5, 8));
 
-    // GUI outer radius is torpedo threat range
-    std::array<int, 3> radius{8000, 16000, 45000};
-
-    // Circles
-    for (auto r : radius) {
-      sf::CircleShape shape(r);
-      shape.setPointCount(100);
-      shape.setFillColor(sf::Color::Transparent);
-      shape.setOutlineThickness(1.2f * zoomFactor);
-      shape.setOutlineColor(sf::Color(75, 20, 26));
-
-      // move the origin to the centre of the circle
-      shape.setOrigin(sf::Vector2f(r, r));
-      shape.setPosition(screenCentre);
-
-      window.draw(shape);
-    }
+    // prefer the world view
+    DisplayWorldThreatRings(window, screenCentre, zoomFactor);
+    DrawWorldRangeRings(window, screenCentre, zoomFactor);
 
     // draw all the sprites
     for (auto e : ecs.view<Position, Rotation, SpriteComponent>()) {
@@ -724,4 +714,58 @@ void destroyEntity(Coordinator &ecs, Entity e) {
     ecs.removeComponent<TimeFired>(e);
   }
   ecs.destroyEntity(e);
+}
+
+void DisplayWorldThreatRings(sf::RenderWindow& window, sf::Vector2f screenCentre, float zoomFactor) {
+    // GUI outer radius is torpedo threat range
+    // middle is pdc thread range
+    // inner is best pdc range
+    std::array<int, 3> radius{8000, 16000, 45000};
+ 
+    // Circles
+    for (auto r : radius) {
+      sf::CircleShape shape(r);
+      shape.setPointCount(100);
+      shape.setFillColor(sf::Color::Transparent);
+      shape.setOutlineThickness(1.5f * zoomFactor);
+      // shape.setOutlineColor(sf::Color(75, 20, 26));
+      shape.setOutlineColor(sf::Color(100, 61, 61)); // lighter pink for close ranges
+
+      // move the origin to the centre of the circle
+      shape.setOrigin(sf::Vector2f(r, r));
+      shape.setPosition(screenCentre);
+
+      window.draw(shape);
+    }
+}
+
+void DrawWorldRangeRings(sf::RenderWindow& window, sf::Vector2f centerWorldPos, float zoomFactor, int ringCount) {
+
+  float baseSpacing = 150.f; // base spacing between rings
+  float spacing = baseSpacing * zoomFactor; // adjust spacing based on zoom factor
+
+  // dont show the rings if we are zoomed in
+  if (zoomFactor < 100.f) {
+    ringCount = 0;
+  }
+
+  // std::cout << "Drawing " << ringCount << " range rings with spacing: " << spacing << "\n";
+
+  for (size_t i = 1; i <= ringCount; ++i) {
+    float radius = i * spacing; // calculate radius for each ring
+
+    sf::CircleShape ring(radius);
+    ring.setPointCount(100);
+    ring.setFillColor(sf::Color::Transparent);
+    ring.setOutlineThickness(1.2f * zoomFactor);
+
+    // Fade with range
+    float alpha = std::max(0.f, 240.f - i * 30.f);   // simple fade rule
+    ring.setOutlineColor(sf::Color(75, 20, 26, static_cast<uint8_t>(alpha)));
+
+    ring.setOrigin(sf::Vector2f{radius, radius});
+    ring.setPosition(centerWorldPos);
+
+    window.draw(ring);  // Let SFML view transform handle scaling
+  }
 }

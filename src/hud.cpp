@@ -53,7 +53,6 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, float 
   DrawVectorOverlay(window, player, zoomFactor);
   DrawVectorOverlay(window, enemy1, zoomFactor);
   DrawVectorOverlay(window, enemy2, zoomFactor);
-
 }
 
 void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
@@ -65,7 +64,6 @@ void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
   char bufx[32];
   char bufy[32];
 
-  // entity 0 is the player
   if (e == player) {
     yOffset = 800.f;
   } else {
