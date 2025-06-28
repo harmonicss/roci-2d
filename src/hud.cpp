@@ -1,10 +1,12 @@
 #include "../include/components.hpp"
 #include "../include/ecs.hpp"
 #include "../include/utils.hpp"
+#include "../include/hud.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
@@ -12,15 +14,28 @@
 #include <string>
 #include <sys/types.h>
 
-void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
+
+
+static void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
                 sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor, float thickness);
 
-void DrawPlayerPdcOverlay(sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor);
+static void DrawPlayerPdcOverlay(sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor);
 
-void DrawHUD(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font) {
 
-  u_int16_t screenWidth = window.getSize().x;
-  u_int16_t screenHeight = window.getSize().y;
+HUD::HUD(Coordinator& ecs, Entity player) :
+    ecs(ecs), player(player) {
+
+    // Load the font
+    if (!font.openFromFile("../assets/fonts/FiraCodeNerdFont-Medium.ttf")) {
+      throw std::runtime_error("Failed to load font");
+    }
+  }
+
+// TODO: move from fixed enemy entities
+void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, float zoomFactor) {
+
+  screenWidth = window.getSize().x;
+  screenHeight = window.getSize().y;
 
   // Sidebar
   sf::RectangleShape sidebar({180.f, static_cast<float>(screenHeight)});
@@ -28,9 +43,20 @@ void DrawHUD(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& fon
   sidebar.setFillColor(sf::Color(10,40,50));
   sidebar.setPosition(sidebarPosition);
   window.draw(sidebar);
+
+  DrawSidebarText(window, player);
+  DrawSidebarText(window, enemy1);
+  DrawShipNames(window, enemy1, zoomFactor);
+  DrawShipNames(window, enemy2, zoomFactor);
+  DrawShipNames(window, player, zoomFactor);
+  DrawTorpedoOverlay(window, zoomFactor);
+  DrawVectorOverlay(window, player, zoomFactor);
+  DrawVectorOverlay(window, enemy1, zoomFactor);
+  DrawVectorOverlay(window, enemy2, zoomFactor);
+
 }
 
-void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font) {
+void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
 
   // display the enemy data at the top, player at the bottom
   float yOffset = 0;
@@ -40,7 +66,7 @@ void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::F
   char bufy[32];
 
   // entity 0 is the player
-  if (e == 0) {
+  if (e == player) {
     yOffset = 800.f;
   } else {
     yOffset = 50.f;
@@ -156,7 +182,7 @@ void DrawSidebarText(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::F
   window.draw(torpedotext);
 }
 
-void DrawShipNames (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font, float zoomFactor) {
+void HUD::DrawShipNames (sf::RenderWindow& window, Entity e, float zoomFactor) {
 
   u_int16_t screenWidth = window.getSize().x;
   u_int16_t screenHeight = window.getSize().y;
@@ -168,8 +194,7 @@ void DrawShipNames (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Fo
   nametext.setCharacterSize(13);
   nametext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
 
-  // 0 == player
-  auto &ppos = ecs.getComponent<Position>(0);
+  auto &ppos = ecs.getComponent<Position>(player);
   auto &epos = ecs.getComponent<Position>(e);
 
   sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
@@ -181,7 +206,7 @@ void DrawShipNames (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Fo
 }
 
 // draws the vector on the ship
-void DrawVectorOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Font& font, float zoomFactor) {
+void HUD::DrawVectorOverlay (sf::RenderWindow& window, Entity e, float zoomFactor) {
 
   u_int16_t screenWidth = window.getSize().x;
   u_int16_t screenHeight = window.getSize().y;
@@ -195,12 +220,12 @@ void DrawVectorOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, sf
 
   DrawVector(window, ecs, e, epos.value, evel.value, cameraOffset, sf::Color::Green, zoomFactor, 40.f);
 
-  if (e == 0)
+  if (e == player)
     DrawPlayerPdcOverlay(window, ecs, 0, zoomFactor);
 }
 
 // draws the angles of the pdc targeting on the player
-void DrawPlayerPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor) {
+static void DrawPlayerPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e, float zoomFactor) {
 
   u_int16_t screenWidth = window.getSize().x;
   u_int16_t screenHeight = window.getSize().y;
@@ -296,7 +321,7 @@ void DrawPlayerPdcOverlay (sf::RenderWindow& window, Coordinator& ecs, Entity e,
 #endif
 }
 
-void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& font, float zoomFactor) {
+void HUD::DrawTorpedoOverlay (sf::RenderWindow& window, float zoomFactor) {
 
   u_int16_t screenWidth = window.getSize().x;
   u_int16_t screenHeight = window.getSize().y;
@@ -346,7 +371,7 @@ void DrawTorpedoOverlay (sf::RenderWindow& window, Coordinator& ecs, sf::Font& f
   }
 }
 
-void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
+static void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
                 sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor, float thickness) {
 
     // std::cout << "\nDrawVectorStart: " << start.x << ", " << start.y << "\n";

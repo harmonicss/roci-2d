@@ -6,6 +6,7 @@
 #include "../include/torpedoai.hpp"
 #include "../include/targeting.hpp"
 #include "../include/explosion.hpp"
+#include "../include/hud.hpp"
 #include "ships.cpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
@@ -19,17 +20,6 @@
 #include <cstdint>
 #include <iostream>
 #include <sys/types.h>
-
-extern void DrawHUD(sf::RenderWindow &window, Coordinator &ecs, Entity player,
-                    sf::Font &font);
-extern void DrawSidebarText(sf::RenderWindow &window, Coordinator &ecs,
-                            Entity player, sf::Font &font);
-extern void DrawShipNames(sf::RenderWindow &window, Coordinator &ecs, Entity e,
-                          sf::Font &font, float zoomFactor);
-extern void DrawTorpedoOverlay(sf::RenderWindow &window, Coordinator &ecs,
-                               sf::Font &font, float zoomFactor);
-extern void DrawVectorOverlay(sf::RenderWindow &window, Coordinator &ecs, Entity e,
-                              sf::Font &font, float zoomFactor);
 
 
 void destroyEntity(Coordinator &ecs, Entity e);
@@ -271,6 +261,12 @@ int main() {
   // zoom out by default and then display
   float zoomFactor = 30.f;
   worldview.setSize({1920 * zoomFactor, 1080 * zoomFactor});
+
+  ///////////////////////////////////////////////////////////////////////////////
+  // create the HUD object
+  ///////////////////////////////////////////////////////////////////////////////
+  HUD hud(ecs, player);
+
 
   sf::Clock clock;
   float tt = 0; // total time for weapon cooldown
@@ -710,34 +706,22 @@ int main() {
     ///////////////////////////////////////////////////////////////////////////////
     sf::View hudView = window.getDefaultView();
     window.setView(hudView);
-
-    DrawHUD(window, ecs, player, font);
-    DrawSidebarText(window, ecs, player, font);
-    DrawSidebarText(window, ecs, enemy1, font);
-    DrawShipNames(window, ecs, enemy1, font, zoomFactor);
-    DrawShipNames(window, ecs, enemy2, font, zoomFactor);
-    DrawShipNames(window, ecs, player, font, zoomFactor);
-    DrawTorpedoOverlay(window, ecs, font, zoomFactor);
-    DrawVectorOverlay(window, ecs, player, font, zoomFactor);
-    DrawVectorOverlay(window, ecs, enemy1, font, zoomFactor);
-    DrawVectorOverlay(window, ecs, enemy2, font, zoomFactor);
-
-    // display everything
+    hud.DrawHUD(window, enemy1, enemy2, zoomFactor);
     window.display();
   }
 }
 
-  void destroyEntity(Coordinator &ecs, Entity e) {
-    ecs.removeComponent<Velocity>(e);
-    ecs.removeComponent<Position>(e);
-    ecs.removeComponent<Rotation>(e);
-    ecs.removeComponent<Collision>(e);
-    if (ecs.hasComponent<TorpedoTarget>(e)) {
-      ecs.removeComponent<TorpedoTarget>(e);
-    }
-    ecs.removeComponent<SpriteComponent>(e);
-    if (ecs.hasComponent<TimeFired>(e)) {
-      ecs.removeComponent<TimeFired>(e);
-    }
-    ecs.destroyEntity(e);
+void destroyEntity(Coordinator &ecs, Entity e) {
+  ecs.removeComponent<Velocity>(e);
+  ecs.removeComponent<Position>(e);
+  ecs.removeComponent<Rotation>(e);
+  ecs.removeComponent<Collision>(e);
+  if (ecs.hasComponent<TorpedoTarget>(e)) {
+    ecs.removeComponent<TorpedoTarget>(e);
   }
+  ecs.removeComponent<SpriteComponent>(e);
+  if (ecs.hasComponent<TimeFired>(e)) {
+    ecs.removeComponent<TimeFired>(e);
+  }
+  ecs.destroyEntity(e);
+}
