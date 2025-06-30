@@ -284,21 +284,37 @@ int main() {
       auto &acc = ecs.getComponent<Acceleration>(player);
       auto &vel = ecs.getComponent<Velocity>(player);
       auto &rot = ecs.getComponent<Rotation>(player);
+      std::cout << "prev acceleration: " << acc.value.x << ", " << acc.value.y << "\n";
+
       acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
       acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
 
+      std::cout << "new acceleration: " << acc.value.x << ", " << acc.value.y << "\n";
+      
       float maxx = std::cos((rot.angle) * (M_PI / 180.f)) * 1000.f;
       float maxy = std::sin((rot.angle) * (M_PI / 180.f)) * 1000.f;
 
-      // rearrange as maxx/y can be negative
-      auto [xmin, xmax] = std::minmax(-maxx, maxx);
-      auto [ymin, ymax] = std::minmax(-maxy, maxy);
+      std::cout << "max acceleration: " << maxx << ", " << maxy << "\n";
+
+      // rearrange as maxx/y can be negative.
+      // note: using auto here caused issues as the return type uses structured
+      // bindings which didnt always return the correct type. Fixed with explict type.
+      std::pair<float, float> xlimits = std::minmax(-maxx, maxx);
+      std::pair<float, float> ylimits = std::minmax(-maxy, maxy);
+
+      float xmin = xlimits.first;
+      float xmax = xlimits.second;
+      float ymin = ylimits.first;
+      float ymax = ylimits.second;
+
+      std::cout << "acceleration limits: " << xmin << ", " << xmax << ", " << ymin << ", " << ymax << "\n";
 
       // limit to 10Gs. TODO: make this ship specific at some point
       acc.value.x = std::clamp(acc.value.x, xmin, xmax);
       acc.value.y = std::clamp(acc.value.y, ymin, ymax);
 
-      // std::cout << "Burn velocity: " << vel.value.length() << "\n";
+      std::cout << "Burn velocity: " << vel.value.length() << "\n";
+      std::cout << "Clamped acceleration: " << acc.value.x << ", " << acc.value.y << "\n";
 
       // approaching 0 velocity
       if ((vel.value.length() < 50.f) && 
@@ -449,7 +465,7 @@ int main() {
 
       // std::cout << "New angle:     " << rot.angle << "\n";
       if (rot.angle == shipControl.targetAngle) {
-        // std::cout << "Flipped to target angle: " << shipControl.targetAngle << "\n";
+        std::cout << "Flipped to target angle: " << shipControl.targetAngle << "\n";
         shipControl.flipping = false;
         shipControl.targetAngle = 0.f;
         shipControl.burning = true;
