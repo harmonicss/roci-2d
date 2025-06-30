@@ -121,6 +121,7 @@ struct Collision {
   Entity firedBy; // the entity that fired this projectile, used for preventing collisions from the entity that fired it
   ShapeType type;
   CollisionType ctype;
+  u_int32_t damage = 0; // damage dealt by this collision, used for projectiles and torpedos
   float halfWidth = 0.f;  // for AABB
   float halfHeight = 0.f; // for AABB
   float radius = 0.f;     // for Circle

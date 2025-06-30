@@ -43,9 +43,16 @@ private:
     sc.sprite.setOrigin(asteroidOrigin);
     sc.sprite.setScale(sf::Vector2f{scale, scale});
     ecs.addComponent(e, sc);
-    ecs.addComponent(e, Collision{e, ShapeType::AABB, CollisionType::ASTEROID,
-                                  static_cast<float>(asteroidTexture.getSize().x) / 2, 
-                                  static_cast<float>(asteroidTexture.getSize().y) / 2, 0.f});
+    ecs.addComponent(e, Collision{e, ShapeType::AABB,
+                                  CollisionType::ASTEROID,
+                                  100, // damage
+                                  static_cast<float>(asteroidTexture.getSize().x * scale) / 2,
+                                  static_cast<float>(asteroidTexture.getSize().y * scale) / 2, 0.f});
+
+    std::cout << "Created asteroid: " << name << " with texture size: "
+              << asteroidTexture.getSize().x * scale << "x" << asteroidTexture.getSize().y * scale
+              << " at position: " << position.x << ", " << position.y << std::endl;
+
     return e;
   }
 };

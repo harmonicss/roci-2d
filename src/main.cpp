@@ -756,7 +756,7 @@ void DrawWorldRangeRings(sf::RenderWindow& window, sf::Vector2f centerWorldPos, 
     ring.setOutlineThickness(1.2f * zoomFactor);
 
     // Fade with range
-    float alpha = std::max(0.f, 240.f - i * 30.f);   // simple fade rule
+    float alpha = std::max(0.f, 240.f - i * 10.f);   // simple fade rule
     ring.setOutlineColor(sf::Color(75, 20, 26, static_cast<uint8_t>(alpha)));
 
     ring.setOrigin(sf::Vector2f{radius, radius});

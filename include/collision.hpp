@@ -104,20 +104,24 @@ private:
     // SHIP & PROJECTILE
     collisionHandlers[{CollisionType::SHIP, CollisionType::PROJECTILE}] = 
       [this](Entity e1, Entity e2) {
+        auto &damage = ecs.getComponent<Collision>(e2).damage;
+
         // grab any pdc for now
         auto &mounts = ecs.getComponent<PdcMounts>(e1);
         auto &ehealth = ecs.getComponent<Health>(e1);
-        ehealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
+        ehealth.value -= damage; 
         pdcHitSoundPlayer.play();
         destroyEntity(ecs, e2);
       };
 
     collisionHandlers[{CollisionType::PROJECTILE, CollisionType::SHIP}] = 
       [this](Entity e1, Entity e2) {
+        auto &damage = ecs.getComponent<Collision>(e1).damage;
+
         // grab any pdc for now
         auto &mounts = ecs.getComponent<PdcMounts>(e2);
         auto &ehealth = ecs.getComponent<Health>(e2);
-        ehealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
+        ehealth.value -= damage;
         pdcHitSoundPlayer.play();
         destroyEntity(ecs, e1);
       };
@@ -125,9 +129,9 @@ private:
     // SHIP & TORPEDO
     collisionHandlers[{CollisionType::SHIP, CollisionType::TORPEDO}] = 
       [this](Entity e1, Entity e2) {
-        std::cout << "Ship vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
+        auto &damage = ecs.getComponent<Collision>(e2).damage;
         auto &ehealth = ecs.getComponent<Health>(e1);
-        ehealth.value -= ecs.getComponent<TorpedoLauncher1>(e1).projectileDamage;
+        ehealth.value -= damage; 
 
         // trigger explosion
         auto &e2pos = ecs.getComponent<Position>(e2);
@@ -138,9 +142,9 @@ private:
 
     collisionHandlers[{CollisionType::TORPEDO, CollisionType::SHIP}] = 
       [this](Entity e1, Entity e2) {
-        std::cout << "Ship vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
+        auto &damage = ecs.getComponent<Collision>(e1).damage;
         auto &ehealth = ecs.getComponent<Health>(e2);
-        ehealth.value -= ecs.getComponent<TorpedoLauncher1>(e2).projectileDamage;
+        ehealth.value -= damage;
 
         // trigger explosion
         auto &e1pos = ecs.getComponent<Position>(e1);
@@ -152,7 +156,6 @@ private:
     // PROJECTILE & TORPEDO
     collisionHandlers[{CollisionType::PROJECTILE, CollisionType::TORPEDO}] = 
       [this](Entity e1, Entity e2) {
-        std::cout << "Projectile vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
         // trigger explosion
         auto &e2pos = ecs.getComponent<Position>(e2);
         explosions.emplace_back(&explosionTexture, e2pos.value, 8, 7);
@@ -163,7 +166,6 @@ private:
 
     collisionHandlers[{CollisionType::TORPEDO, CollisionType::PROJECTILE}] = 
       [this](Entity e1, Entity e2) {
-        std::cout << "Projectile vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
         // trigger explosion
         auto &e1pos = ecs.getComponent<Position>(e1);
         explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
@@ -173,41 +175,61 @@ private:
       };
 
     // ASTEROID & PROJECTILE
-    collisionHandlers[{CollisionType::ASTEROID, CollisionType::PROJECTILE}] = 
-      [](Entity e1, Entity e2) {
+    collisionHandlers[{CollisionType::ASTEROID, CollisionType::PROJECTILE}] =
+      [this](Entity e1, Entity e2) {
         std::cout << "Asteroid vs Projectile collision detected between " << e1 << " and " << e2 << "\n";
+        destroyEntity(ecs, e2);
       };
 
-    collisionHandlers[{CollisionType::PROJECTILE, CollisionType::ASTEROID}] = 
-      [](Entity e1, Entity e2) {
+    collisionHandlers[{CollisionType::PROJECTILE, CollisionType::ASTEROID}] =
+      [this](Entity e1, Entity e2) {
         std::cout << "Asteroid vs Projectile collision detected between " << e1 << " and " << e2 << "\n";
+        destroyEntity(ecs, e1);
       };
 
     // ASTEROID & TORPEDO
     collisionHandlers[{CollisionType::ASTEROID, CollisionType::TORPEDO}] =
-      [](Entity e1, Entity e2) {
+      [this](Entity e1, Entity e2) {
         std::cout << "Asteroid vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
+        // trigger explosion
+        auto &e2pos = ecs.getComponent<Position>(e2);
+        explosions.emplace_back(&explosionTexture, e2pos.value, 8, 7);
+        explosionSoundPlayer.play();
+        destroyEntity(ecs, e2);
+
+        // destroy the asteroid if it is large enough and create smaller asteroids
+        // with alot of spin and velocity
+        //destroyEntity(ecs, e1);
       };
 
     collisionHandlers[{CollisionType::TORPEDO, CollisionType::ASTEROID}] =
-      [](Entity e1, Entity e2) {
+      [this](Entity e1, Entity e2) {
         std::cout << "Asteroid vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
+        // trigger explosion
+        auto &e1pos = ecs.getComponent<Position>(e1);
+        explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
+        explosionSoundPlayer.play();
+        destroyEntity(ecs, e1);
+
+        // destroy the asteroid if it is large enough and create smaller asteroids
+        // with alot of spin and velocity
+        //destroyEntity(ecs, e2);
       };
 
     // SHIP & SHIP
-    collisionHandlers[{CollisionType::SHIP, CollisionType::SHIP}] = 
+    collisionHandlers[{CollisionType::SHIP, CollisionType::SHIP}] =
       [](Entity e1, Entity e2) {
         // currently ships cant collide with each other, so do nothing.
       };
 
     // TORPEDO & TORPEDO
-    collisionHandlers[{CollisionType::TORPEDO, CollisionType::TORPEDO}] = 
+    collisionHandlers[{CollisionType::TORPEDO, CollisionType::TORPEDO}] =
       [](Entity e1, Entity e2) {
         // torpedos cant collide with each other, so do nothing.
       };
 
     // PROJECTILE & PROJECTILE
-    collisionHandlers[{CollisionType::PROJECTILE, CollisionType::PROJECTILE}] = 
+    collisionHandlers[{CollisionType::PROJECTILE, CollisionType::PROJECTILE}] =
       [](Entity e1, Entity e2) {
         // bullets cant collide with each other, so do nothing.
       };

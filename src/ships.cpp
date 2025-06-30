@@ -44,9 +44,11 @@ public:
     sc.sprite.setOrigin(shipOrigin);
     ecs.addComponent(e, sc);
 
-    ecs.addComponent(e, Collision{e, ShapeType::AABB, CollisionType::SHIP,
-                                       static_cast<float>(shipTexture.getSize().x) / 2 - 45,
-                                       static_cast<float>(shipTexture.getSize().y) / 2 - 45, 0.f});
+    ecs.addComponent(e, Collision{e, ShapeType::AABB, 
+                                  CollisionType::SHIP,
+                                  100, // damage
+                                  static_cast<float>(shipTexture.getSize().x) / 2 - 45,
+                                  static_cast<float>(shipTexture.getSize().y) / 2 - 45, 0.f});
 
     ecs.addComponent(e, TorpedoLauncher1{});
     ecs.addComponent(e, TorpedoLauncher2{});
@@ -99,9 +101,11 @@ public:
     sc.sprite.setOrigin(shipOrigin);
     ecs.addComponent(e, sc);
 
-    ecs.addComponent(e, Collision{e, ShapeType::AABB, CollisionType::SHIP,
-                                     static_cast<float>(shipTexture.getSize().x) / 2 - 60,
-                                     static_cast<float>(shipTexture.getSize().y) / 2 - 60, 0.f});
+    ecs.addComponent(e, Collision{e, ShapeType::AABB, 
+                                  CollisionType::SHIP,
+                                  100, // damate
+                                  static_cast<float>(shipTexture.getSize().x) / 2 - 60,
+                                  static_cast<float>(shipTexture.getSize().y) / 2 - 60, 0.f});
 
     ecs.addComponent(e, TorpedoLauncher1{.rounds = 4});
     ecs.addComponent(e, TorpedoLauncher2{.rounds = 4});
