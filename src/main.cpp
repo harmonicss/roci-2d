@@ -328,7 +328,7 @@ int main() {
       }
       else if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
         ///////////////////////////////////////////////////////////////////////////////
-        // Use the mouse to set rotation and acceleration
+        // Use the left mouse key to set rotation and acceleration
         ///////////////////////////////////////////////////////////////////////////////
 
         sf::Vector2i clickPosition = sf::Mouse::getPosition(window);
@@ -357,6 +357,35 @@ int main() {
 
           // use the distance from the mouse click to set acceleration, max 10 Gs
           accelerateToMax(ecs, player, 10.f, dt);
+        }
+      }
+      else if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)) {
+        ///////////////////////////////////////////////////////////////////////////////
+        // Use the right mouse key to strafe 
+        ///////////////////////////////////////////////////////////////////////////////
+
+        sf::Vector2i clickPosition = sf::Mouse::getPosition(window);
+        sf::Vector2f clickPositionf(static_cast<float>(clickPosition.x),
+                                    static_cast<float>(clickPosition.y));
+
+        auto &acc = ecs.getComponent<Acceleration>(player);
+        auto &vel = ecs.getComponent<Velocity>(player);
+        auto &rot = ecs.getComponent<Rotation>(player);
+
+        sf::Vector2f playerPos = ecs.getComponent<Position>(player).value;
+
+        sf::Vector2f cameraOffset = screenCentre - playerPos;
+        sf::Vector2f newVector = clickPositionf - playerPos - cameraOffset;
+
+        // std::cout << "new vector length " << newVector.length()
+        //           << " angle: " << newVector.angle().asDegrees() << "\n";
+
+        // strafe towards the vector
+        if (newVector.length() > 0.f) {
+          // take this vector and strafe towards it
+
+          vel.value.x += std::cos((newVector.angle().asRadians())) * 1000.f * dt;
+          vel.value.y += std::sin((newVector.angle().asRadians())) * 1000.f * dt;
         }
       }
       else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
