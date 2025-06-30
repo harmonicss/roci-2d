@@ -12,21 +12,18 @@
 
 class CollisionSystem {
 public:
-  using CollisionCallback = std::function<void(Entity, Entity)>;
   using CollisionHandler  = std::function<void(Entity, Entity)>;
 
   CollisionSystem(Coordinator &ecs,
                   sf::Sound &pdcHitSoundPlayer,
                   sf::Sound &explosionSoundPlayer,
                   std::vector<Explosion> &explosions,
-                  sf::Texture &explosionTexture,
-                  CollisionCallback cb)
+                  sf::Texture &explosionTexture)
       : ecs(ecs), // Bind member variable to the passed in Coordinator
         pdcHitSoundPlayer(pdcHitSoundPlayer),
         explosionSoundPlayer(explosionSoundPlayer),
         explosions(explosions),
-        explosionTexture(explosionTexture),
-        onCollision(std::move(cb)) // Move callback into member
+        explosionTexture(explosionTexture)
   {
     registerCollisionHandlers();
   }
@@ -61,14 +58,12 @@ public:
             otherCollision.type == ShapeType::AABB) {
           if (AABBCollision(pos.value, rot.angle, collision.halfWidth, collision.halfHeight, 
                             otherPos.value, otherRot.angle, otherCollision.halfWidth, otherCollision.halfHeight)) {
-            // onCollision(e, other);
             handleCollision(e, other);
           }
         } else if (collision.type      == ShapeType::Circle &&
                    otherCollision.type == ShapeType::Circle) {
           if (CircleCollision(pos.value, collision.radius, 
                               otherPos.value, otherCollision.radius)) {
-            // onCollision(e, other);
             handleCollision(e, other);
           }
         }
@@ -81,7 +76,6 @@ private:
   Coordinator &ecs;
   sf::Sound &pdcHitSoundPlayer;
   sf::Sound &explosionSoundPlayer;
-  CollisionCallback onCollision;
   std::vector<Explosion> &explosions; // to store explosions
   sf::Texture &explosionTexture; // texture for explosions
 

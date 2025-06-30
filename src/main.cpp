@@ -146,92 +146,10 @@ int main() {
       "Behemoth", {14000.f, -180000.f}, {0.f, 0.f}, 90.f, 50);
 
   ///////////////////////////////////////////////////////////////////////////////
-  // Create Collision System, with lambda callback
+  // Create Collision System
   ///////////////////////////////////////////////////////////////////////////////
-  CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, explosionSoundPlayer, explosions, explosionTexture,
-                                  [&ecs, &pdcHitSoundPlayer, &explosionSoundPlayer, &explosions, &explosionTexture](Entity e1, Entity e2) {
-    std::string e1Name = ecs.getEntityName(e1);
-    std::string e2Name = ecs.getEntityName(e2);
-
-    // bullets cant collide with each other, so only destroy if they hit the player or enemy or torpedo
-    if (e1Name == "Bullet" && e2Name == "Bullet") {
-      return;
-    }
-
-    // torpedos cant collide with each other, so only destroy if they hit the player or enemy or bullet
-    if (e1Name == "Torpedo" && e2Name == "Torpedo") {
-      // std::cout << "Collision between two torpedos detected, but not handled.\n";
-      return;
-    }
-
-    // prevent collision between the firer and the bullet or torpedo fired
-    // this stops fire/launch collisions
-    if (ecs.getComponent<Collision>(e1).firedBy == e2 ||
-        ecs.getComponent<Collision>(e2).firedBy == e1) {
-      // std::cout << "Collision between " << e1Name << " and " << e2Name
-      //           << " prevented due to being fired by the other entity.\n";
-      return;
-    }
-
-    std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
-
-    // Damage the health of the entities
-    if (e1Name == "Bullet") {
-
-      // torpedo doesnt have any health
-      if (e2Name != "Torpedo") {
-        auto &ehealth = ecs.getComponent<Health>(e2);
-
-        // just grab any pdc for now
-        auto &mounts = ecs.getComponent<PdcMounts>(e2);
-        ehealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
-      }
-      pdcHitSoundPlayer.play();
-      destroyEntity(ecs, e1);
-    }
-    else if (e2Name == "Bullet") {
-
-      // torpedo doesnt have any health
-      if (e1Name != "Torpedo") {
-        auto &ehealth = ecs.getComponent<Health>(e1);
-
-        // just grab any pdc for now
-        auto &mounts = ecs.getComponent<PdcMounts>(e1);
-        ehealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
-      }
-      pdcHitSoundPlayer.play();
-      destroyEntity(ecs, e2);
-    }
-
-    if (e1Name == "Torpedo") {
-
-      if (e2Name != "Bullet") {
-        auto &ehealth = ecs.getComponent<Health>(e2);
-        ehealth.value -= ecs.getComponent<TorpedoLauncher1>(e2).projectileDamage;
-      }
-      // trigger explosion
-      auto &e1pos = ecs.getComponent<Position>(e1);
-      explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
-
-      explosionSoundPlayer.play();
- 
-      destroyEntity(ecs, e1);
-    }
-    else if (e2Name == "Torpedo") {
-      if (e1Name != "Bullet") {
-        auto &ehealth = ecs.getComponent<Health>(e1);
-        ehealth.value -= ecs.getComponent<TorpedoLauncher1>(e1).projectileDamage;
-      }
-      // trigger explosion
-      auto &e2pos = ecs.getComponent<Position>(e2);
-      explosions.emplace_back(&explosionTexture, e2pos.value, 8, 7);
-
-      explosionSoundPlayer.play();
-
-      destroyEntity(ecs, e2);
-    }
-  });
-
+  CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, explosionSoundPlayer, 
+                                  explosions, explosionTexture);
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Ballistics Factory
