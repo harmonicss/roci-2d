@@ -3,6 +3,7 @@
 #include "components.hpp"
 #include "ecs.hpp"
 #include <SFML/System/Vector2.hpp>
+#include <algorithm>
 #include <cmath>
 
 // check if an angle is within a range, considering wrap-around
@@ -87,6 +88,41 @@ inline void performTurn(Coordinator &ecs, ShipControl &shipControl, Entity e) {
   }
 
   eRot.angle = normalizeAngle(eRot.angle);
+}
+
+// set and limit acceleration based on the ship's rotation
+inline void accelerateToMax(Coordinator &ecs, Entity e, float maxAccGs, float dt) {
+
+  auto &acc = ecs.getComponent<Acceleration>(e);
+  auto &vel = ecs.getComponent<Velocity>(e);
+  auto &rot = ecs.getComponent<Rotation>(e);
+
+  acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
+  acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
+
+  // std::cout << "new acceleration: " << acc.value.x << ", " << acc.value.y << "\n";
+
+  float maxx = std::cos((rot.angle) * (M_PI / 180.f)) * maxAccGs * 100.f;
+  float maxy = std::sin((rot.angle) * (M_PI / 180.f)) * maxAccGs * 100.f;
+
+  // std::cout << "max acceleration: " << maxx << ", " << maxy << "\n";
+
+  // rearrange as maxx/y can be negative.
+  // note: using auto here caused issues as the return type uses structured
+  // bindings which didnt always return the correct type. Fixed with explict type.
+  std::pair<float, float> xlimits = std::minmax(-maxx, maxx);
+  std::pair<float, float> ylimits = std::minmax(-maxy, maxy);
+
+  float xmin = xlimits.first;
+  float xmax = xlimits.second;
+  float ymin = ylimits.first;
+  float ymax = ylimits.second;
+
+  // std::cout << "acceleration limits: " << xmin << ", " << xmax << ", " << ymin << ", " << ymax << "\n";
+
+  // limit to 10Gs. TODO: make this ship specific at some point
+  acc.value.x = std::clamp(acc.value.x, xmin, xmax);
+  acc.value.y = std::clamp(acc.value.y, ymin, ymax);
 }
 
 // TODO: Make sure that all components are removed here, 

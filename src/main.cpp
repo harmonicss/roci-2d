@@ -283,42 +283,12 @@ int main() {
       // burn deceleration to 0
       auto &acc = ecs.getComponent<Acceleration>(player);
       auto &vel = ecs.getComponent<Velocity>(player);
-      auto &rot = ecs.getComponent<Rotation>(player);
-      std::cout << "prev acceleration: " << acc.value.x << ", " << acc.value.y << "\n";
 
-      acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
-      acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
-
-      std::cout << "new acceleration: " << acc.value.x << ", " << acc.value.y << "\n";
-      
-      float maxx = std::cos((rot.angle) * (M_PI / 180.f)) * 1000.f;
-      float maxy = std::sin((rot.angle) * (M_PI / 180.f)) * 1000.f;
-
-      std::cout << "max acceleration: " << maxx << ", " << maxy << "\n";
-
-      // rearrange as maxx/y can be negative.
-      // note: using auto here caused issues as the return type uses structured
-      // bindings which didnt always return the correct type. Fixed with explict type.
-      std::pair<float, float> xlimits = std::minmax(-maxx, maxx);
-      std::pair<float, float> ylimits = std::minmax(-maxy, maxy);
-
-      float xmin = xlimits.first;
-      float xmax = xlimits.second;
-      float ymin = ylimits.first;
-      float ymax = ylimits.second;
-
-      std::cout << "acceleration limits: " << xmin << ", " << xmax << ", " << ymin << ", " << ymax << "\n";
-
-      // limit to 10Gs. TODO: make this ship specific at some point
-      acc.value.x = std::clamp(acc.value.x, xmin, xmax);
-      acc.value.y = std::clamp(acc.value.y, ymin, ymax);
-
-      std::cout << "Burn velocity: " << vel.value.length() << "\n";
-      std::cout << "Clamped acceleration: " << acc.value.x << ", " << acc.value.y << "\n";
+      accelerateToMax(ecs, player, 10.f, dt);
 
       // approaching 0 velocity
-      if ((vel.value.length() < 50.f) && 
-          (vel.value.length() > -50.f)) {
+      if ((vel.value.length() < 100.f) && 
+          (vel.value.length() > -100.f)) {
         shipControl.burning = false;
         acc.value.x = 0.f;
         acc.value.y = 0.f;
@@ -326,45 +296,8 @@ int main() {
         vel.value.y = 0.f;
       }
     }
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
-      // flip and decelerate
-      // debounce the flip
-      // rotate to burn and reduce velocity, may not be 180 if there is 
-      // some lateral movement
-      if (tt > shipControl.timeSinceFlipped + shipControl.cooldown) {
-        // std::cout << "Starting Flipping!\n";
-        shipControl.timeSinceFlipped = tt;
-        shipControl.flipping = true;
-        auto &rot = ecs.getComponent<Rotation>(player);
-        auto &vel = ecs.getComponent<Velocity>(player).value;
+    else if (shipControl.flipping == false && shipControl.burning == false) {
 
-        // cannot calculate the angle from a zero vector
-        if (vel.length() == 0.f) {
-          // std::cout << "Flip correctionAngle: 0\n";
-          shipControl.targetAngle = rot.angle + 180.f;
-          shipControl.targetAngle = normalizeAngle(shipControl.targetAngle);
-          shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
-        }
-        else {
-          // get the angle of the velocity vector
-          sf::Angle correctionAngle = vel.angle();
-          // std::cout << "Flip correctionAngle: " << correctionAngle.asDegrees() << "\n";
-          shipControl.targetAngle = correctionAngle.asDegrees() - 180.f;
-          float diff = std::abs(shipControl.targetAngle - rot.angle);
-          diff = normalizeAngle(diff);
-
-          if (diff > 0.f) {
-            shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
-          } else {
-            shipControl.rotationDir = ShipControl::RotationDirection::COUNTERCLOCKWISE;
-          }
- 
-          shipControl.targetAngle = normalizeAngle(shipControl.targetAngle);
-          // std::cout << "Flip target angle: " << shipControl.targetAngle << "\n";
-        }
-      }
-    }
-    else if (shipControl.flipping == false) {
       if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::H)) {
         // rotate left
         auto &rot = ecs.getComponent<Rotation>(player);
@@ -393,48 +326,82 @@ int main() {
         acc.value.x = std::clamp(acc.value.x, -1000.f, 1000.f);
         acc.value.y = std::clamp(acc.value.y, -1000.f, 1000.f);
       }
+      else if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+        ///////////////////////////////////////////////////////////////////////////////
+        // Use the mouse to set rotation and acceleration
+        ///////////////////////////////////////////////////////////////////////////////
+
+        sf::Vector2i clickPosition = sf::Mouse::getPosition(window);
+        sf::Vector2f clickPositionf(static_cast<float>(clickPosition.x),
+                                    static_cast<float>(clickPosition.y));
+
+        // convert to world coordinates, doesnt seem to work very well
+        // sf::Vector2f worldPosition = window.mapPixelToCoords(clickPosition);
+
+        auto &acc = ecs.getComponent<Acceleration>(player);
+        auto &vel = ecs.getComponent<Velocity>(player);
+        auto &rot = ecs.getComponent<Rotation>(player);
+
+        sf::Vector2f playerPos = ecs.getComponent<Position>(player).value;
+
+        sf::Vector2f cameraOffset = screenCentre - playerPos;
+        sf::Vector2f newVector = clickPositionf - playerPos - cameraOffset;
+
+        // std::cout << "new vector length " << newVector.length()
+        //           << " angle: " << newVector.angle().asDegrees() << "\n";
+
+        // turn towards the vector
+        if (newVector.length() > 0.f) {
+          // std::cout << "Turning towards vector: " << newVector.angle().asDegrees() << "\n";
+          startTurn(ecs, shipControl, player, newVector.angle().asDegrees()); 
+
+          // use the distance from the mouse click to set acceleration, max 10 Gs
+          accelerateToMax(ecs, player, 10.f, dt);
+        }
+      }
+      else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
+        // flip and decelerate
+        // debounce the flip
+        // rotate to burn and reduce velocity, may not be 180 if there is 
+        // some lateral movement
+        if (tt > shipControl.timeSinceFlipped + shipControl.cooldown) {
+          // std::cout << "Starting Flipping!\n";
+          shipControl.timeSinceFlipped = tt;
+          shipControl.flipping = true;
+          auto &rot = ecs.getComponent<Rotation>(player);
+          auto &vel = ecs.getComponent<Velocity>(player).value;
+
+          // cannot calculate the angle from a zero vector
+          if (vel.length() == 0.f) {
+            // std::cout << "Flip correctionAngle: 0\n";
+            shipControl.targetAngle = rot.angle + 180.f;
+            shipControl.targetAngle = normalizeAngle(shipControl.targetAngle);
+            shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
+          }
+          else {
+            // get the angle of the velocity vector
+            sf::Angle correctionAngle = vel.angle();
+            // std::cout << "Flip correctionAngle: " << correctionAngle.asDegrees() << "\n";
+            shipControl.targetAngle = correctionAngle.asDegrees() - 180.f;
+            float diff = std::abs(shipControl.targetAngle - rot.angle);
+            diff = normalizeAngle(diff);
+
+            if (diff > 0.f) {
+              shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
+            } else {
+              shipControl.rotationDir = ShipControl::RotationDirection::COUNTERCLOCKWISE;
+            }
+
+            shipControl.targetAngle = normalizeAngle(shipControl.targetAngle);
+            // std::cout << "Flip target angle: " << shipControl.targetAngle << "\n";
+          }
+        }
+      }
       else {
         // turn off acceleration if a acceleration key is not pressed
         auto &acc = ecs.getComponent<Acceleration>(player);
         acc.value.x = 0.f;
         acc.value.y = 0.f;
-      }
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Use the mouse to set rotation and acceleration
-    ///////////////////////////////////////////////////////////////////////////////
-    if (!shipControl.flipping && !shipControl.burning && 
-      sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-
-      sf::Vector2i clickPosition = sf::Mouse::getPosition(window);
-      sf::Vector2f clickPositionf(static_cast<float>(clickPosition.x),
-                                  static_cast<float>(clickPosition.y));
-
-      // convert to world coordinates, doesnt seem to work very well
-      // sf::Vector2f worldPosition = window.mapPixelToCoords(clickPosition);
-
-      auto &acc = ecs.getComponent<Acceleration>(player);
-      auto &vel = ecs.getComponent<Velocity>(player);
-      auto &rot = ecs.getComponent<Rotation>(player);
-
-      sf::Vector2f playerPos = ecs.getComponent<Position>(player).value;
-
-      sf::Vector2f cameraOffset = screenCentre - playerPos;
-      sf::Vector2f newVector = clickPositionf - playerPos - cameraOffset;
-
-      // std::cout << "new vector length " << newVector.length()
-      //           << " angle: " << newVector.angle().asDegrees() << "\n";
-
-      // turn towards the vector
-      if (newVector.length() > 0.f) {
-        // std::cout << "Turning towards vector: " << newVector.angle().asDegrees() << "\n";
-        startTurn(ecs, shipControl, player, newVector.angle().asDegrees()); 
-
-        // start accelerating, using dt doesnt work very well if there are lots of bullets
-        // use the distance from the mouse click to set acceleration, max 10 Gs
-        acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * (newVector.length() * 2.0f);
-        acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * (newVector.length() * 2.0f);
       }
     }
  
