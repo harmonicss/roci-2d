@@ -8,6 +8,7 @@
 #include "../include/explosion.hpp"
 #include "../include/hud.hpp"
 #include "ships.cpp"
+#include "../include/asteroids.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -44,7 +45,9 @@ int main() {
 
   std::vector<Explosion> explosions;
 
+  ///////////////////////////////////////////////////////////////////////////////
   // - ECS Setup -
+  ///////////////////////////////////////////////////////////////////////////////
   Coordinator ecs;
   ecs.registerComponent<Position>();
   ecs.registerComponent<Velocity>();
@@ -64,15 +67,6 @@ int main() {
   ecs.registerComponent<FriendlyShipTarget>();
   ecs.registerComponent<ShipControl>();
   ecs.registerComponent<DrivePlume>();
-
-  ///////////////////////////////////////////////////////////////////////////////
-  // - Load Fonts -
-  ///////////////////////////////////////////////////////////////////////////////
-  sf::Font font;
-  if (!font.openFromFile("../assets/fonts/FiraCodeNerdFont-Medium.ttf")) {
-    std::cout << "Error loading font" << std::endl;
-    return -1;
-  }
 
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Textures -
@@ -179,7 +173,7 @@ int main() {
       return;
     }
 
-    // std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
+    std::cout << "Collision detected between " << e1 << " and " << e2 << "\n";
 
     // Damage the health of the entities
     if (e1Name == "Bullet") {
@@ -265,6 +259,12 @@ int main() {
   worldview.setSize({1920 * zoomFactor, 1080 * zoomFactor});
 
   ///////////////////////////////////////////////////////////////////////////////
+  // create Asteroids
+  ///////////////////////////////////////////////////////////////////////////////
+  AsteroidFactory asteroidFactory(ecs);
+  asteroidFactory.createAsteroids();
+
+  ///////////////////////////////////////////////////////////////////////////////
   // create the HUD object
   ///////////////////////////////////////////////////////////////////////////////
   HUD hud(ecs, player);
@@ -343,6 +343,14 @@ int main() {
 
       // update position
       pos.value += vel.value * dt;
+    }
+
+    for (auto e : ecs.view<Rotation>()) {
+
+      auto &rot = ecs.getComponent<Rotation>(e);
+
+      // update rotating objects
+      rot.angle = rot.angle + rot.angularVelocity * dt;
     }
 
     // Collision System - check for collisions
@@ -611,7 +619,9 @@ int main() {
     DisplayWorldThreatRings(window, screenCentre, zoomFactor);
     DrawWorldRangeRings(window, screenCentre, zoomFactor);
 
+    ///////////////////////////////////////////////////////////////////////////////
     // draw all the sprites
+    ///////////////////////////////////////////////////////////////////////////////
     for (auto e : ecs.view<Position, Rotation, SpriteComponent>()) {
 
       auto &pos = ecs.getComponent<Position>(e);
@@ -701,20 +711,6 @@ int main() {
   }
 }
 
-void destroyEntity(Coordinator &ecs, Entity e) {
-  ecs.removeComponent<Velocity>(e);
-  ecs.removeComponent<Position>(e);
-  ecs.removeComponent<Rotation>(e);
-  ecs.removeComponent<Collision>(e);
-  if (ecs.hasComponent<TorpedoTarget>(e)) {
-    ecs.removeComponent<TorpedoTarget>(e);
-  }
-  ecs.removeComponent<SpriteComponent>(e);
-  if (ecs.hasComponent<TimeFired>(e)) {
-    ecs.removeComponent<TimeFired>(e);
-  }
-  ecs.destroyEntity(e);
-}
 
 void DisplayWorldThreatRings(sf::RenderWindow& window, sf::Vector2f screenCentre, float zoomFactor) {
     // GUI outer radius is torpedo threat range

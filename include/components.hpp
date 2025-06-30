@@ -22,6 +22,7 @@ struct Acceleration {
 
 struct Rotation {
   float angle = 0.f; // in degrees
+  float angularVelocity = 0.f; // in degrees per second
 };
 
 struct SpriteComponent {
@@ -111,12 +112,15 @@ struct ShipControl {
   RotationDirection rotationDir = RotationDirection::CLOCKWISE;
 };
 
+enum class CollisionType { SHIP, PROJECTILE, TORPEDO, ASTEROID };
+
 enum class ShapeType { AABB, Circle};
 
 // Describes the collision shape of an entity
 struct Collision {
   Entity firedBy; // the entity that fired this projectile, used for preventing collisions from the entity that fired it
   ShapeType type;
+  CollisionType ctype;
   float halfWidth = 0.f;  // for AABB
   float halfHeight = 0.f; // for AABB
   float radius = 0.f;     // for Circle

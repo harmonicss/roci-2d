@@ -162,7 +162,7 @@ public:
     return static_cast<ComponentArray<T> *>(it->second);
   }
 
-  // returns a std::array of IComponentArray* (or ComponnetArray<Base>*)
+  // returns a std::array of IComponentArray* (or ComponentArray<Base>*)
   // one for each Comps in the pack
   template <typename... Comps> auto getArrays() {
     return std::array<IComponentArray *, sizeof...(Comps)>{

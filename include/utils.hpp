@@ -88,3 +88,23 @@ inline void performTurn(Coordinator &ecs, ShipControl &shipControl, Entity e) {
 
   eRot.angle = normalizeAngle(eRot.angle);
 }
+
+// TODO: Make sure that all components are removed here, 
+// will need to add new components especially when destroying ships. 
+inline void destroyEntity(Coordinator &ecs, Entity e) {
+  ecs.removeComponent<Velocity>(e);
+  ecs.removeComponent<Position>(e);
+  ecs.removeComponent<Collision>(e);
+  ecs.removeComponent<Rotation>(e);
+  if (ecs.hasComponent<TorpedoTarget>(e)) {
+    ecs.removeComponent<TorpedoTarget>(e);
+  }
+  if (ecs.hasComponent<TorpedoControl>(e)) {
+    ecs.removeComponent<TorpedoControl>(e);
+  }
+  ecs.removeComponent<SpriteComponent>(e);
+  if (ecs.hasComponent<TimeFired>(e)) {
+    ecs.removeComponent<TimeFired>(e);
+  }
+  ecs.destroyEntity(e);
+}

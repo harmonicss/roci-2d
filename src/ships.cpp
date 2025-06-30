@@ -44,7 +44,7 @@ public:
     sc.sprite.setOrigin(shipOrigin);
     ecs.addComponent(e, sc);
 
-    ecs.addComponent(e, Collision{e, ShapeType::AABB,
+    ecs.addComponent(e, Collision{e, ShapeType::AABB, CollisionType::SHIP,
                                        static_cast<float>(shipTexture.getSize().x) / 2 - 45,
                                        static_cast<float>(shipTexture.getSize().y) / 2 - 45, 0.f});
 
@@ -60,8 +60,6 @@ public:
 
     return e;
   }
-
-
 
 private:
 
@@ -101,7 +99,7 @@ public:
     sc.sprite.setOrigin(shipOrigin);
     ecs.addComponent(e, sc);
 
-    ecs.addComponent(e, Collision{e, ShapeType::AABB,
+    ecs.addComponent(e, Collision{e, ShapeType::AABB, CollisionType::SHIP,
                                      static_cast<float>(shipTexture.getSize().x) / 2 - 60,
                                      static_cast<float>(shipTexture.getSize().y) / 2 - 60, 0.f});
 

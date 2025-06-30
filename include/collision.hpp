@@ -1,7 +1,8 @@
 #pragma once
 #include "components.hpp"
 #include "ecs.hpp"
-#include "../include/explosion.hpp"
+#include "explosion.hpp"
+#include "utils.hpp"
 #include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -12,20 +13,23 @@
 class CollisionSystem {
 public:
   using CollisionCallback = std::function<void(Entity, Entity)>;
+  using CollisionHandler  = std::function<void(Entity, Entity)>;
 
   CollisionSystem(Coordinator &ecs,
-                  const sf::Sound &pdcSound,
-                  const sf::Sound &explosionSound,
+                  sf::Sound &pdcHitSoundPlayer,
+                  sf::Sound &explosionSoundPlayer,
                   std::vector<Explosion> &explosions,
                   sf::Texture &explosionTexture,
                   CollisionCallback cb)
       : ecs(ecs), // Bind member variable to the passed in Coordinator
-        pdcSound(pdcSound),
-        explosionSound(explosionSound),
+        pdcHitSoundPlayer(pdcHitSoundPlayer),
+        explosionSoundPlayer(explosionSoundPlayer),
         explosions(explosions),
         explosionTexture(explosionTexture),
         onCollision(std::move(cb)) // Move callback into member
-  {}
+  {
+    registerCollisionHandlers();
+  }
 
   void Update() {
 
@@ -57,13 +61,15 @@ public:
             otherCollision.type == ShapeType::AABB) {
           if (AABBCollision(pos.value, rot.angle, collision.halfWidth, collision.halfHeight, 
                             otherPos.value, otherRot.angle, otherCollision.halfWidth, otherCollision.halfHeight)) {
-            onCollision(e, other);
+            // onCollision(e, other);
+            handleCollision(e, other);
           }
         } else if (collision.type      == ShapeType::Circle &&
                    otherCollision.type == ShapeType::Circle) {
           if (CircleCollision(pos.value, collision.radius, 
                               otherPos.value, otherCollision.radius)) {
-            onCollision(e, other);
+            // onCollision(e, other);
+            handleCollision(e, other);
           }
         }
       }
@@ -73,12 +79,164 @@ public:
 
 private:
   Coordinator &ecs;
-  const sf::Sound &pdcSound;
-  const sf::Sound &explosionSound;
+  sf::Sound &pdcHitSoundPlayer;
+  sf::Sound &explosionSoundPlayer;
   CollisionCallback onCollision;
-  std::vector<Explosion> explosions; // to store explosions
+  std::vector<Explosion> &explosions; // to store explosions
   sf::Texture &explosionTexture; // texture for explosions
+
+  inline static std::map<std::pair<CollisionType, CollisionType>, CollisionHandler> collisionHandlers;
+
+  void registerCollisionHandlers() {
+
+    // SHIP & ASTEROID
+    collisionHandlers[{CollisionType::SHIP, CollisionType::ASTEROID}] = 
+      [](Entity e1, Entity e2) {
+        // damage will depend on the speed of both. 
+        std::cout << "Ship vs Asteroid collision detected between " << e1 << " and " << e2 << "\n";
+      };
+
+    collisionHandlers[{CollisionType::ASTEROID, CollisionType::SHIP}] = 
+      [](Entity e1, Entity e2) {
+        std::cout << "Ship vs Asteroid collision detected between " << e1 << " and " << e2 << "\n";
+      };
  
+    // SHIP & PROJECTILE
+    collisionHandlers[{CollisionType::SHIP, CollisionType::PROJECTILE}] = 
+      [this](Entity e1, Entity e2) {
+        // grab any pdc for now
+        auto &mounts = ecs.getComponent<PdcMounts>(e1);
+        auto &ehealth = ecs.getComponent<Health>(e1);
+        ehealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
+        pdcHitSoundPlayer.play();
+        destroyEntity(ecs, e2);
+      };
+
+    collisionHandlers[{CollisionType::PROJECTILE, CollisionType::SHIP}] = 
+      [this](Entity e1, Entity e2) {
+        // grab any pdc for now
+        auto &mounts = ecs.getComponent<PdcMounts>(e2);
+        auto &ehealth = ecs.getComponent<Health>(e2);
+        ehealth.value -= ecs.getComponent<Pdc>(mounts.pdcEntities[0]).projectileDamage;
+        pdcHitSoundPlayer.play();
+        destroyEntity(ecs, e1);
+      };
+
+    // SHIP & TORPEDO
+    collisionHandlers[{CollisionType::SHIP, CollisionType::TORPEDO}] = 
+      [this](Entity e1, Entity e2) {
+        std::cout << "Ship vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
+        auto &ehealth = ecs.getComponent<Health>(e1);
+        ehealth.value -= ecs.getComponent<TorpedoLauncher1>(e1).projectileDamage;
+
+        // trigger explosion
+        auto &e2pos = ecs.getComponent<Position>(e2);
+        explosions.emplace_back(&explosionTexture, e2pos.value, 8, 7);
+        explosionSoundPlayer.play();
+        destroyEntity(ecs, e2);
+      };
+
+    collisionHandlers[{CollisionType::TORPEDO, CollisionType::SHIP}] = 
+      [this](Entity e1, Entity e2) {
+        std::cout << "Ship vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
+        auto &ehealth = ecs.getComponent<Health>(e2);
+        ehealth.value -= ecs.getComponent<TorpedoLauncher1>(e2).projectileDamage;
+
+        // trigger explosion
+        auto &e1pos = ecs.getComponent<Position>(e1);
+        explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
+        explosionSoundPlayer.play();
+        destroyEntity(ecs, e1);
+      };
+
+    // PROJECTILE & TORPEDO
+    collisionHandlers[{CollisionType::PROJECTILE, CollisionType::TORPEDO}] = 
+      [this](Entity e1, Entity e2) {
+        std::cout << "Projectile vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
+        // trigger explosion
+        auto &e2pos = ecs.getComponent<Position>(e2);
+        explosions.emplace_back(&explosionTexture, e2pos.value, 8, 7);
+        explosionSoundPlayer.play();
+        destroyEntity(ecs, e1);
+        destroyEntity(ecs, e2);
+      };
+
+    collisionHandlers[{CollisionType::TORPEDO, CollisionType::PROJECTILE}] = 
+      [this](Entity e1, Entity e2) {
+        std::cout << "Projectile vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
+        // trigger explosion
+        auto &e1pos = ecs.getComponent<Position>(e1);
+        explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
+        explosionSoundPlayer.play();
+        destroyEntity(ecs, e1);
+        destroyEntity(ecs, e2);
+      };
+
+    // ASTEROID & PROJECTILE
+    collisionHandlers[{CollisionType::ASTEROID, CollisionType::PROJECTILE}] = 
+      [](Entity e1, Entity e2) {
+        std::cout << "Asteroid vs Projectile collision detected between " << e1 << " and " << e2 << "\n";
+      };
+
+    collisionHandlers[{CollisionType::PROJECTILE, CollisionType::ASTEROID}] = 
+      [](Entity e1, Entity e2) {
+        std::cout << "Asteroid vs Projectile collision detected between " << e1 << " and " << e2 << "\n";
+      };
+
+    // ASTEROID & TORPEDO
+    collisionHandlers[{CollisionType::ASTEROID, CollisionType::TORPEDO}] =
+      [](Entity e1, Entity e2) {
+        std::cout << "Asteroid vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
+      };
+
+    collisionHandlers[{CollisionType::TORPEDO, CollisionType::ASTEROID}] =
+      [](Entity e1, Entity e2) {
+        std::cout << "Asteroid vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
+      };
+
+    // SHIP & SHIP
+    collisionHandlers[{CollisionType::SHIP, CollisionType::SHIP}] = 
+      [](Entity e1, Entity e2) {
+        // currently ships cant collide with each other, so do nothing.
+      };
+
+    // TORPEDO & TORPEDO
+    collisionHandlers[{CollisionType::TORPEDO, CollisionType::TORPEDO}] = 
+      [](Entity e1, Entity e2) {
+        // torpedos cant collide with each other, so do nothing.
+      };
+
+    // PROJECTILE & PROJECTILE
+    collisionHandlers[{CollisionType::PROJECTILE, CollisionType::PROJECTILE}] = 
+      [](Entity e1, Entity e2) {
+        // bullets cant collide with each other, so do nothing.
+      };
+  }
+ 
+  void handleCollision(Entity e1, Entity e2) {
+    // Get the collision types of the entities
+    CollisionType type1 = ecs.getComponent<Collision>(e1).ctype;
+    CollisionType type2 = ecs.getComponent<Collision>(e2).ctype;
+
+    // prevent collision between the firer and the bullet or torpedo fired
+    // this stops fire/launch collisions
+    if (ecs.getComponent<Collision>(e1).firedBy == e2 ||
+        ecs.getComponent<Collision>(e2).firedBy == e1) {
+      // std::cout << "Collision between " << e1Name << " and " << e2Name
+      //           << " prevented due to being fired by the other entity.\n";
+      return;
+    }
+
+    // Check if a handler exists for this pair of collision types
+    auto it = collisionHandlers.find({type1, type2});
+    if (it != collisionHandlers.end()) {
+      it->second(e1, e2);
+    } else {
+      std::cout << "No collision handler for " << static_cast<int>(type1) << " and " << static_cast<int>(type2) << "\n";
+    }
+  }
+
+
   // check for AABB collision
   // use a dynamic AABB rectangle, whish isnt the best solution as the rectangle gets bigger 
   // in certain situations, but will do for now. 
