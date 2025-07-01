@@ -3,6 +3,7 @@
 #include "ecs.hpp"
 #include "explosion.hpp"
 #include "utils.hpp"
+#include "asteroids.hpp"
 #include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -18,12 +19,14 @@ public:
                   sf::Sound &pdcHitSoundPlayer,
                   sf::Sound &explosionSoundPlayer,
                   std::vector<Explosion> &explosions,
-                  sf::Texture &explosionTexture)
+                  sf::Texture &explosionTexture,
+                  AsteroidFactory &asteroidFactory)
       : ecs(ecs), // Bind member variable to the passed in Coordinator
         pdcHitSoundPlayer(pdcHitSoundPlayer),
         explosionSoundPlayer(explosionSoundPlayer),
         explosions(explosions),
-        explosionTexture(explosionTexture)
+        explosionTexture(explosionTexture),
+        asteroidFactory(asteroidFactory)
   {
     registerCollisionHandlers();
   }
@@ -77,7 +80,8 @@ private:
   sf::Sound &pdcHitSoundPlayer;
   sf::Sound &explosionSoundPlayer;
   std::vector<Explosion> &explosions; // to store explosions
-  sf::Texture &explosionTexture; // texture for explosions
+  sf::Texture &explosionTexture;      // texture for explosions
+  AsteroidFactory &asteroidFactory;  
 
   inline static std::map<std::pair<CollisionType, CollisionType>, CollisionHandler> collisionHandlers;
 
@@ -210,6 +214,7 @@ private:
       [this](Entity e1, Entity e2) {
         std::cout << "Asteroid vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
         // trigger explosion
+        auto &e1pos = ecs.getComponent<Position>(e1);
         auto &e2pos = ecs.getComponent<Position>(e2);
         explosions.emplace_back(&explosionTexture, e2pos.value, 8, 7);
         explosionSoundPlayer.play();
@@ -217,7 +222,8 @@ private:
 
         // destroy the asteroid if it is large enough and create smaller asteroids
         // with alot of spin and velocity
-        //destroyEntity(ecs, e1);
+        destroyEntity(ecs, e1);
+        asteroidFactory.createDebrisAsteroids(e1pos.value);
       };
 
     collisionHandlers[{CollisionType::TORPEDO, CollisionType::ASTEROID}] =
@@ -225,13 +231,15 @@ private:
         std::cout << "Asteroid vs Torpedo collision detected between " << e1 << " and " << e2 << "\n";
         // trigger explosion
         auto &e1pos = ecs.getComponent<Position>(e1);
+        auto &e2pos = ecs.getComponent<Position>(e2);
         explosions.emplace_back(&explosionTexture, e1pos.value, 8, 7);
         explosionSoundPlayer.play();
         destroyEntity(ecs, e1);
 
         // destroy the asteroid if it is large enough and create smaller asteroids
         // with alot of spin and velocity
-        //destroyEntity(ecs, e2);
+        destroyEntity(ecs, e2);
+        asteroidFactory.createDebrisAsteroids(e2pos.value);
       };
 
     collisionHandlers[{CollisionType::ASTEROID, CollisionType::ASTEROID}] =

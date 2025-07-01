@@ -74,7 +74,7 @@ public:
         }
         else if (dist < attack_pdc_distance) {
           state = State::ATTACK_PDC;
-          std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
+          // std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
         } 
       }
       else if (state == State::IDLE) {
@@ -87,7 +87,7 @@ public:
 
         if (dist < attack_pdc_distance) {
           state = State::ATTACK_PDC;
-          std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
+          // std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
         } 
         else if (t1rounds == 0 && t2rounds == 0) {
           // if we have no torpedos left, switch to close

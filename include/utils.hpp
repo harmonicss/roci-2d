@@ -10,6 +10,10 @@ inline float randFloat(float min, float max) {
   return min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max - min)));
 }
 
+inline float randInt(int min, int max) {
+  return static_cast<float>(min + rand() % (max - min + 1));
+}
+
 // check if an angle is within a range, considering wrap-around
 inline bool isInRange(float angle, float minAngle, float maxAngle) {
   if (minAngle > maxAngle) {

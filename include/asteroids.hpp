@@ -22,16 +22,16 @@ public:
 
   virtual ~AsteroidFactory() = default;
 
-  void createAsteroids() {
+  void createInitialAsteroids() {
 
     for (int a = 0; a < 100; ++a) {
       float size = randFloat(1.0f, 5.0f);
-      float posX = randFloat(-1000000.f, 1000000.f);
+      float posX = randFloat(-200000.f, 200000.f);
       float posY = randFloat(-40000.f, -30000.f);  // so it wont be on the player
-      float velX = randFloat(-50.f, 50.f);
-      float velY = randFloat(-50.f, 50.f);
-      float rot  = randFloat(0.f, 360.f);
-      float av   = randFloat(0.f, 20.f);
+      float velX = randFloat(-250.f, 250.f);
+      float velY = randFloat(-250.f, 250.f);
+      float rot  = randFloat(-180.f, 180.f);
+      float av   = randFloat(-20.f, 20.f);
 
       createAsteroid(mediumAsteroidTexture, "Asteroid", size,
                      {posX, posY},
@@ -40,14 +40,28 @@ public:
                      av, 1000);
 
     }
-
-
-    // createAsteroid(mediumAsteroidTexture, "Asteroid", 1.0f, {11100.f, 200.f}, {50.f, 0.f}, 100.1f, 1000);
-    // createAsteroid(mediumAsteroidTexture, "Asteroid", 3.0f, {-11300.f, 400.f}, {-30.f, 20.f}, -0.05f, 1000);
-    // createAsteroid(mediumAsteroidTexture, "Asteroid", 3.0f, {-11300.f, 400.f}, {-30.f, 20.f}, -0.05f, 1000);
-    // createAsteroid(mediumAsteroidTexture, "Asteroid", 3.0f, {-5000.f, 2400.f}, {130.f, -20.f}, 1.00f, 1000);
-    // createAsteroid(mediumAsteroidTexture, "Asteroid", 5.0f, {1500.f, -6600.f}, {0.f, -40.f}, 0.2f, 1000);
   }
+
+  void createDebrisAsteroids(sf::Vector2f position) {
+
+    for (int a = 0; a < randInt(2,4); ++a) {
+      float size = randFloat(0.25f, 0.8f);
+      auto newpos = position + sf::Vector2f{randFloat(-1000.f, 1000.f), randFloat(-1000.f, 1000.f)};
+
+      float velY = randFloat(-5000.f, 5000.f);
+      float velX = randFloat(-5000.f, 5000.f);
+      float rot  = randFloat(-180.f, 180.f);
+      float av   = randFloat(-140.f, 140.f);
+
+      createAsteroid(mediumAsteroidTexture, "Asteroid", size,
+                     newpos,
+                     {velX, velY},
+                     rot,
+                     av, 1000);
+
+    }
+  }
+
 
 private:
     Coordinator &ecs;
@@ -77,6 +91,8 @@ private:
 
     std::cout << "Created asteroid: " << name << " with texture size: "
               << asteroidTexture.getSize().x * scale << "x" << asteroidTexture.getSize().y * scale
+              << " with velocity: " << velocity.x << ", " << velocity.y
+              << " with rotation: " << rotation
               << " at position: " << position.x << ", " << position.y << std::endl;
 
     return e;
