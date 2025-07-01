@@ -361,7 +361,7 @@ int main() {
       }
       else if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)) {
         ///////////////////////////////////////////////////////////////////////////////
-        // Use the right mouse key to strafe 
+        // Use the right mouse key to strafe
         ///////////////////////////////////////////////////////////////////////////////
 
         sf::Vector2i clickPosition = sf::Mouse::getPosition(window);
@@ -384,8 +384,9 @@ int main() {
         if (newVector.length() > 0.f) {
           // take this vector and strafe towards it
 
-          vel.value.x += std::cos((newVector.angle().asRadians())) * 1000.f * dt;
-          vel.value.y += std::sin((newVector.angle().asRadians())) * 1000.f * dt;
+          // vel.value.x += std::cos((newVector.angle().asRadians())) * 1000.f * dt;
+          // vel.value.y += std::sin((newVector.angle().asRadians())) * 1000.f * dt;
+          vel.value += newVector.normalized() * 500.f * dt;
         }
       }
       else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {

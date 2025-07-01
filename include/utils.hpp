@@ -6,6 +6,10 @@
 #include <algorithm>
 #include <cmath>
 
+inline float randFloat(float min, float max) {
+  return min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max - min)));
+}
+
 // check if an angle is within a range, considering wrap-around
 inline bool isInRange(float angle, float minAngle, float maxAngle) {
   if (minAngle > maxAngle) {
@@ -28,6 +32,12 @@ inline float length(sf::Vector2f v) {
 
 inline float distance(sf::Vector2f source, sf::Vector2f target) {
   return length(target - source);
+}
+
+inline sf::Vector2f normalizeVector(sf::Vector2f v) {
+  float len = length(v);
+  if (len == 0.f) return {0.f, 0.f}; // avoid division by zero
+  return {v / len};
 }
 
 inline float angleToTarget(sf::Vector2f source, sf::Vector2f target) {

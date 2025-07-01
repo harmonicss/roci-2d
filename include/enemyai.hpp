@@ -58,7 +58,7 @@ public:
     else if (pdc1rounds < 30 && t1rounds == 0 && t2rounds == 0) {
       // if we have no PDCs or torpedos left, switch to FLEE
       state = State::FLEE;
-      std::cout << "EnemyAI state: FLEE (no PDCs or torpedos left)" << std::endl;
+      // std::cout << "EnemyAI state: FLEE (no PDCs or torpedos left)" << std::endl;
     }
     else
     {
@@ -222,7 +222,9 @@ public:
         startTurn(ecs, shipControl, enemy, atp + 180.f); // turn away from the player
       }
     }
- 
+
+    avoidAsteroids(dt);
+
     // perform the turn
     if (shipControl.turning) {
       performTurn(ecs, shipControl, enemy);
@@ -253,6 +255,40 @@ public:
  
   State state = State::CLOSE;
 
+  void avoidAsteroids(float dt) {
+
+    const float lookAheadDistance = 10000.f; // distance to look ahead for asteroids
+    const float avoidanceForce = 5000.f * dt; // force to apply to avoid asteroids
+ 
+    auto &enemyPos = ecs.getComponent<Position>(enemy);
+    auto &enemyVel = ecs.getComponent<Velocity>(enemy);
+
+    sf::Vector2f forward = normalizeVector(enemyVel.value);
+    sf::Vector2f lookAheadPos = enemyPos.value + forward * lookAheadDistance;
+
+    for (auto &e : ecs.view<Position, Collision>()) {
+
+      auto &collision = ecs.getComponent<Collision>(e);
+
+      if (collision.ctype != CollisionType::ASTEROID) {
+        continue; // skip non-asteroid entities
+      }
+
+      auto &asteroidPos = ecs.getComponent<Position>(e).value;
+
+      float dist = distance(lookAheadPos, asteroidPos);
+
+      // this will strafe
+      // TODO: change direction at a greater range
+      if (dist < 6000.f) { // if an asteroid is too close
+        sf::Vector2f avoidanceDir = normalizeVector(lookAheadPos - asteroidPos);
+        sf::Vector2f avoidanceVector = avoidanceDir * avoidanceForce;
+        std::cout << "Avoidance vector: " << avoidanceVector.x << ", " << avoidanceVector.y << std::endl;
+        enemyVel.value += avoidanceVector; // apply avoidance force
+      }
+    }
+
+  }
 
 };
 

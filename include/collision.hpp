@@ -85,14 +85,38 @@ private:
 
     // SHIP & ASTEROID
     collisionHandlers[{CollisionType::SHIP, CollisionType::ASTEROID}] = 
-      [](Entity e1, Entity e2) {
+      [this](Entity e1, Entity e2) {
         // damage will depend on the speed of both. 
-        std::cout << "Ship vs Asteroid collision detected between " << e1 << " and " << e2 << "\n";
+        // std::cout << "Ship vs Asteroid collision detected between " << e1 << " and " << e2 << "\n";
+        auto &vel1 = ecs.getComponent<Velocity>(e1);
+        auto &vel2 = ecs.getComponent<Velocity>(e2);
+        auto damage = vel1.value + vel2.value;
+        auto &ehealth = ecs.getComponent<Health>(e1);
+
+        // reduce health based on 
+        ehealth.value -= static_cast<uint32_t>(damage.length() / 10.f);
+
+        // std::cout << "Ship health reduced by: " << (damage.length() / 10.f) << "\n";
+
+        // bounce the ship off the asteroid
+        vel1.value = -vel1.value * 0.5f;
       };
 
     collisionHandlers[{CollisionType::ASTEROID, CollisionType::SHIP}] = 
-      [](Entity e1, Entity e2) {
-        std::cout << "Ship vs Asteroid collision detected between " << e1 << " and " << e2 << "\n";
+      [this](Entity e1, Entity e2) {
+        // std::cout << "Ship vs Asteroid collision detected between " << e1 << " and " << e2 << "\n";
+        auto &vel1 = ecs.getComponent<Velocity>(e1);
+        auto &vel2 = ecs.getComponent<Velocity>(e2);
+        auto damage = vel1.value + vel2.value;
+        auto &ehealth = ecs.getComponent<Health>(e2);
+
+        // reduce health based on 
+        ehealth.value -= static_cast<uint32_t>(damage.length() / 10.f);
+
+        // std::cout << "Ship health reduced by: " << (damage.length() / 10.f) << "\n";
+
+        // bounce the ship off the asteroid
+        vel2.value = -vel2.value * 0.5f;
       };
  
     // SHIP & PROJECTILE
@@ -208,6 +232,15 @@ private:
         // destroy the asteroid if it is large enough and create smaller asteroids
         // with alot of spin and velocity
         //destroyEntity(ecs, e2);
+      };
+
+    collisionHandlers[{CollisionType::ASTEROID, CollisionType::ASTEROID}] =
+      [this](Entity e1, Entity e2) {
+        auto &vel1 = ecs.getComponent<Velocity>(e1);
+        auto &vel2 = ecs.getComponent<Velocity>(e2);
+
+        vel1.value = -vel1.value * 0.5f; // bounce off each other
+        vel2.value = -vel2.value * 0.5f; // bounce off each other
       };
 
     // SHIP & SHIP
