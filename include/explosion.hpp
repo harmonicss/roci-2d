@@ -19,7 +19,7 @@ struct Explosion {
   Explosion(sf::Texture *tex, sf::Vector2f position, int columns, int rows)
     : texture(tex), sprite(*tex), position(position), columns(columns), rows(rows) 
   {
-    std::cout << "Explosion created at position: " << position.x << ", " << position.y << std::endl;
+    // std::cout << "Explosion created at position: " << position.x << ", " << position.y << std::endl;
 
     frameWidth = texture->getSize().x / columns;
     frameHeight = texture->getSize().y / rows;

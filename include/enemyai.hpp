@@ -64,23 +64,27 @@ public:
     {
       if (state == State::DEFENCE_PDC) {
         // if we are in defence mode, we want to stop defending if there are no threats
-        std::cout << "EnemyAI state: no threats, switching to IDLE" << std::endl;
+        std::cout << "EnemyAI: " << enemy << " state: no threats, switching to IDLE" << std::endl;
         state = State::IDLE;
       }
       else if (state == State::CLOSE) {
         if (dist <= attack_torpedo_distance && t1rounds > 0 && t2rounds > 0) {
           state = State::ATTACK_TORPEDO;
-          std::cout << "EnemyAI state: ATTACK_TORPEDO" << std::endl;
+          std::cout << "EnemyAI: " << enemy << " state: ATTACK_TORPEDO" << std::endl;
         }
         else if (dist < attack_pdc_distance) {
           state = State::ATTACK_PDC;
           // std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
-        } 
+        }
+        else if (dist > close_distance) {
+          state = State::FLIP_AND_BURN;
+          std::cout << "EnemyAI: " << enemy << " state: FLIP_AND_BURN" << std::endl;
+        }
       }
       else if (state == State::IDLE) {
         if (dist < close_distance) {
           state = State::CLOSE;
-          std::cout << "EnemyAI state: CLOSE" << std::endl;
+          std::cout << "EnemyAI: " << enemy << " state: CLOSE" << std::endl;
         }
       }
       else if (state == State::ATTACK_TORPEDO) {
@@ -92,17 +96,17 @@ public:
         else if (t1rounds == 0 && t2rounds == 0) {
           // if we have no torpedos left, switch to close
           state = State::CLOSE;
-          std::cout << "EnemyAI state: CLOSE (no torpedos left)" << std::endl;
+          std::cout << "EnemyAI: " << enemy << " state: CLOSE (no torpedos left)" << std::endl;
         }
         else if (dist > attack_torpedo_distance) {
           state = State::CLOSE;
-          std::cout << "EnemyAI state: CLOSE" << std::endl;
+          std::cout << "EnemyAI: " << enemy << " state: CLOSE" << std::endl;
         }
       }
       else if (state == State::ATTACK_PDC) {
         if (dist > attack_pdc_distance) {
           state = State::ATTACK_TORPEDO;
-          std::cout << "EnemyAI state: ATTACK_TORPEDO" << std::endl;
+          std::cout << "EnemyAI: " << enemy << " state: ATTACK_TORPEDO" << std::endl;
         }
       }
     }
@@ -116,11 +120,8 @@ public:
       enemyAcc.value.x = 0.f;
       enemyAcc.value.y = 0.f;
 
-      // only want to turn the ship if we are not already turning, prevents jittering
       // turn to player for now
-      if (shipControl.turning == false) {
-        startTurn(ecs, shipControl, enemy, atp);
-      }
+      startTurn(ecs, shipControl, enemy, atp);
 
       // aquire the nearest torpedo and fire the PDCs
       pdcTarget.pdcDefendTorpedo(tt, dt);
@@ -128,16 +129,12 @@ public:
     else if (state == State::CLOSE) {
       shipControl.targetPosition = playerPos.value;
       //shipControl.targetAcceleration = enemyAcc.value;
-     
-      // only want to turn the ship if we are not already turning, prevents jittering
-      if (shipControl.turning == false) {
-        startTurn(ecs, shipControl, enemy, atp);
-      }
+
+      startTurn(ecs, shipControl, enemy, atp);
 
       // accelerate towards the player, about 3G atm
       // TODO: update to change acceleration based on distance
-      enemyAcc.value.y = std::sin((enemyRot.angle) * (M_PI / 180.f)) * 300.f;
-      enemyAcc.value.x = std::cos((enemyRot.angle) * (M_PI / 180.f)) * 300.f;
+      accelerateToMax(ecs, enemy, 1.f, dt);
     }
     else if (state == State::IDLE) {
       enemyAcc.value.x = 0.f;
@@ -153,9 +150,7 @@ public:
       enemyAcc.value.y = 0.f;
 
       // only want to turn the ship if we are not already turning, prevents jittering
-      if (shipControl.turning == false) {
-        startTurn(ecs, shipControl, enemy, atp);
-      }
+      startTurn(ecs, shipControl, enemy, atp);
 
       auto &enemyRot = ecs.getComponent<Rotation>(enemy);
       float diff = normalizeAngle(atp - enemyRot.angle);
@@ -186,12 +181,10 @@ public:
       // playing with setting the heading to an offsest for pdc fire and to avoid collisions
       // +/- 45 degrees will miss if the player is moving, so try 35
       // probably need to take into account target velocity instead for targeting
-      if (shipControl.turning == false) {
-        if (diff > 0.f) {
-          startTurn(ecs, shipControl, enemy, atp - 50.f);
-        } else {
-          startTurn(ecs, shipControl, enemy, atp + 50.f);
-        }
+      if (diff > 0.f) {
+        startTurn(ecs, shipControl, enemy, atp - 50.f);
+      } else {
+        startTurn(ecs, shipControl, enemy, atp + 50.f);
       }
 
       // set accel to 0
@@ -214,21 +207,39 @@ public:
     }
     else if (state == State::FLEE) {
       // set accel to 5G
-      enemyAcc.value.y = std::sin((enemyRot.angle) * (M_PI / 180.f)) * 500.f;
-      enemyAcc.value.x = std::cos((enemyRot.angle) * (M_PI / 180.f)) * 500.f;
+      accelerateToMax(ecs, enemy, 5.f, dt);
 
       // only want to turn the ship if we are not already turning, prevents jittering
-      if (shipControl.turning == false) {
+      if (shipControl.state == ControlState::IDLE) {
         startTurn(ecs, shipControl, enemy, atp + 180.f); // turn away from the player
+      }
+    }
+    else if (state == State::FLIP_AND_BURN) {
+
+      // this is a full accelerate, flip and burn maneuver
+
+      if (dist < close_distance) {
+        // otherwise, just close the distance
+        state = State::CLOSE;
+        std::cout << "EnemyAI: " << enemy << " state CLOSE (too close for flip and burn)" << std::endl;
+      }
+      else if (shipControl.state == ControlState::IDLE) {
+        // turn and burn towards the player, within close distance
+        startAccelBurnAndFlip(ecs, shipControl, enemy, atp, 3.0f,
+                              dist - close_distance , dt);
+      }
+      else {
+
+        if (shipControl.state == ControlState::IDLE) {
+          state = State::CLOSE; // if we are done, switch to close
+        }
       }
     }
 
     avoidAsteroids(dt);
 
-    // perform the turn
-    if (shipControl.turning) {
-      performTurn(ecs, shipControl, enemy);
-    }
+    // perform the turn (if needed)
+    updateControlState(ecs, shipControl, enemy, dist - close_distance, tt, dt);
   }
 
  private:
@@ -239,13 +250,14 @@ public:
   sf::Sound pdcFireSoundPlayer;
   PdcTarget pdcTarget;
 
-  const float close_distance          = 500000.f;
+  const float close_distance          = 50000.f;  // will close rarther than flip and burn
+  const float attack_torpedo_distance = 500000.f;
   const float attack_pdc_distance     = 8000.f;
-  const float attack_torpedo_distance = 200000.f;
 
   enum class State {
     IDLE,
     CLOSE,
+    FLIP_AND_BURN,
     ATTACK_PDC,
     DEFENCE_PDC,
     ATTACK_TORPEDO,
@@ -283,7 +295,7 @@ public:
       if (dist < 6000.f) { // if an asteroid is too close
         sf::Vector2f avoidanceDir = normalizeVector(lookAheadPos - asteroidPos);
         sf::Vector2f avoidanceVector = avoidanceDir * avoidanceForce;
-        std::cout << "Avoidance vector: " << avoidanceVector.x << ", " << avoidanceVector.y << std::endl;
+        // std::cout << "Avoidance vector: " << avoidanceVector.x << ", " << avoidanceVector.y << std::endl;
         enemyVel.value += avoidanceVector; // apply avoidance force
       }
     }

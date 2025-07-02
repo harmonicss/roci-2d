@@ -60,48 +60,73 @@ inline sf::Vector2f rotateVector(const sf::Vector2f& vec, float angleDegrees) {
     };
 }
 
+
 inline void startTurn(Coordinator &ecs, ShipControl &shipControl, Entity e, float angle) {
-  shipControl.targetAngle = angle;
+
+  // only turn if we are idle
+  if (shipControl.state != ControlState::IDLE) {
+      return;
+  }
+
   auto &eRot = ecs.getComponent<Rotation>(e);
+
+  // already at target angle
+  if (eRot.angle == angle) {
+    // std::cout << "Already at target angle: " << angle << "\n";
+    return;
+  }
+
+  shipControl.targetAngle = angle;
 
   float diff = shipControl.targetAngle - eRot.angle;
   diff = normalizeAngle(diff);
 
   if (diff > 0.f) {
     shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
-    shipControl.turning = true;
-  } 
+    shipControl.state = ControlState::TURNING;
+  }
   else {
     shipControl.rotationDir = ShipControl::RotationDirection::COUNTERCLOCKWISE;
-    shipControl.turning = true;
+    shipControl.state = ControlState::TURNING;
   }
 }
 
 inline void performTurn(Coordinator &ecs, ShipControl &shipControl, Entity e) {
-  auto &eRot = ecs.getComponent<Rotation>(e);
-  float diff = shipControl.targetAngle - eRot.angle;
+  if (shipControl.state == ControlState::TURNING) {
+    auto &eRot = ecs.getComponent<Rotation>(e);
+    float diff = shipControl.targetAngle - eRot.angle;
 
-  // take into account the wrap around to get the shortest distance
-  diff = normalizeAngle(diff);
+    // take into account the wrap around to get the shortest distance
+    diff = normalizeAngle(diff);
 
-  // std::cout << "Performing Turn to " << shipControl.targetAngle << ", Diff " << diff << " current angle " << enemyRot.angle << "\n";
+    // std::cout << "Performing Turn to " << shipControl.targetAngle << ", Diff " << diff << " current angle " << enemyRot.angle << "\n";
 
-  // some leeway to ensure we stop
-  if (diff >= -20.f && diff <= 20.f) {
-    eRot.angle = shipControl.targetAngle;
-    shipControl.turning = false;
-    // std::cout << "Turn complete to " << shipControl.targetAngle << "\n";
-  } 
-  else if (shipControl.rotationDir == ShipControl::RotationDirection::CLOCKWISE) {
-    eRot.angle += 15.f; //(window.getSize().x / 100.f);
-    // std::cout << "Clockwise turn to " << enemyRot.angle << "\n";
+    // some leeway to ensure we stop
+    if (diff >= -20.f && diff <= 20.f) {
+      eRot.angle = shipControl.targetAngle;
+
+      // std::cout << "Turn complete to " << shipControl.targetAngle << "\n";
+        // if we are flipping and burning, we need to start the burn
+      if (shipControl.flipAndBurnDistance > 0.f) {
+        shipControl.state = ControlState::BURNING_ACCEL;
+        std::cout << "Starting Burn! Distance: " << shipControl.flipAndBurnDistance << "\n";
+      } 
+      else {
+        // otherwise we are done turning
+        shipControl.state = ControlState::IDLE;
+      }
+    }
+    else if (shipControl.rotationDir == ShipControl::RotationDirection::CLOCKWISE) {
+      eRot.angle += 15.f; //(window.getSize().x / 100.f);
+      // std::cout << "Clockwise turn to " << enemyRot.angle << "\n";
+    }
+    else {
+      eRot.angle -= 15.f; //(window.getSize().x / 100.f);
+      // std::cout << "CounterClockwise turn to " << enemyRot.angle << "\n";
+    }
+
+    eRot.angle = normalizeAngle(eRot.angle);
   }
-  else {
-    eRot.angle -= 15.f; //(window.getSize().x / 100.f);
-    // std::cout << "CounterClockwise turn to " << enemyRot.angle << "\n";
-  }
-
-  eRot.angle = normalizeAngle(eRot.angle);
 }
 
 // set and limit acceleration based on the ship's rotation
@@ -114,7 +139,7 @@ inline void accelerateToMax(Coordinator &ecs, Entity e, float maxAccGs, float dt
   acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
   acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
 
-  // std::cout << "new acceleration: " << acc.value.x << ", " << acc.value.y << "\n";
+  // std::cout << "\nEntity: " << e << " new acceleration: " << acc.value.x << ", " << acc.value.y << "\n";
 
   float maxx = std::cos((rot.angle) * (M_PI / 180.f)) * maxAccGs * 100.f;
   float maxy = std::sin((rot.angle) * (M_PI / 180.f)) * maxAccGs * 100.f;
@@ -134,10 +159,147 @@ inline void accelerateToMax(Coordinator &ecs, Entity e, float maxAccGs, float dt
 
   // std::cout << "acceleration limits: " << xmin << ", " << xmax << ", " << ymin << ", " << ymax << "\n";
 
-  // limit to 10Gs. TODO: make this ship specific at some point
+  // limit to Gs. TODO: make this ship specific at some point
   acc.value.x = std::clamp(acc.value.x, xmin, xmax);
   acc.value.y = std::clamp(acc.value.y, ymin, ymax);
+ 
+  // std::cout << "Entity: " << e << " final acceleration: " << acc.value.x << ", " << acc.value.y << "\n";
 }
+
+inline void startAccelBurnAndFlip(Coordinator &ecs, ShipControl &shipControl, Entity e, float angle,
+                      float maxAccGs, float distance, float dt) {
+
+  startTurn(ecs, shipControl, e, angle);
+  shipControl.flipAndBurnMaxAccGs = maxAccGs;
+  shipControl.flipAndBurnDistance = distance;
+  std::cout << "Entity: " << e << " Starting Burn! Distance: " << distance << " ControlState: " << static_cast<int>(shipControl.state) << "\n";
+}
+
+inline void startFlipAndStop(Coordinator &ecs, ShipControl &shipControl, Entity e, 
+                             float maxAccGs, float tt) {
+
+  if (tt > shipControl.timeSinceFlipped + shipControl.flipCooldown) {
+    std::cout << "Starting Flipping!\n";
+    shipControl.timeSinceFlipped = tt;
+    shipControl.flipAndBurnMaxAccGs = maxAccGs;
+    shipControl.state = ControlState::FLIPPING;
+    auto &rot = ecs.getComponent<Rotation>(e);
+    auto &vel = ecs.getComponent<Velocity>(e).value;
+
+    // cannot calculate the angle from a zero vector
+    if (vel.length() == 0.f) {
+      // std::cout << "Flip correctionAngle: 0\n";
+      shipControl.targetAngle = rot.angle + 180.f;
+      shipControl.targetAngle = normalizeAngle(shipControl.targetAngle);
+      shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
+    }
+    else {
+      // get the angle of the velocity vector
+      sf::Angle correctionAngle = vel.angle();
+      // std::cout << "Flip correctionAngle: " << correctionAngle.asDegrees() << "\n";
+      shipControl.targetAngle = correctionAngle.asDegrees() - 180.f;
+      float diff = std::abs(shipControl.targetAngle - rot.angle);
+      diff = normalizeAngle(diff);
+
+      if (diff > 0.f) {
+        shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
+      } else {
+        shipControl.rotationDir = ShipControl::RotationDirection::COUNTERCLOCKWISE;
+      }
+
+      shipControl.targetAngle = normalizeAngle(shipControl.targetAngle);
+      std::cout << "Flip target angle: " << shipControl.targetAngle << "\n";
+    }
+  }
+}
+
+inline void performFlip(Coordinator &ecs, ShipControl &shipControl, Entity e) {
+
+    if (shipControl.state == ControlState::FLIPPING) {
+      auto &rot = ecs.getComponent<Rotation>(e);
+      float diff = std::abs(shipControl.targetAngle - rot.angle);
+      diff = normalizeAngle(diff);
+
+      // std::cout << "\ntargetAngle:   " << shipControl.targetAngle << "\n";
+      // std::cout << "Current angle: " << rot.angle << "\n";
+      // std::cout << "Flipping diff: " << diff << "\n";
+
+      if (diff < 20.f) {
+        rot.angle = shipControl.targetAngle;
+      }
+      else if (shipControl.rotationDir == ShipControl::RotationDirection::CLOCKWISE) {
+        rot.angle -= 15.f; //(window.getSize().x / 100.f);
+      }
+      else {
+        rot.angle += 15.f; //(window.getSize().x / 100.f);
+      }
+
+      rot.angle = normalizeAngle(rot.angle);
+
+      // std::cout << "New angle:     " << rot.angle << "\n";
+      if (rot.angle == shipControl.targetAngle) {
+        std::cout << "Flipped to target angle: " << shipControl.targetAngle << "\n";
+        shipControl.targetAngle = 0.f;
+        shipControl.state = ControlState::BURNING_DECEL;
+      }
+    }
+}
+
+// returns true if the ship is stopped
+inline bool performStop(Coordinator &ecs, ShipControl &shipControl, Entity e, float maxAccGs, float dt) {
+
+  // std::cout << "Performing Stop\n";
+
+  // burn deceleration to 0
+  auto &acc = ecs.getComponent<Acceleration>(e);
+  auto &vel = ecs.getComponent<Velocity>(e);
+
+  accelerateToMax(ecs, e, maxAccGs, dt);
+
+  // approaching 0 velocity
+  if ((vel.value.length() < 100.f) &&
+      (vel.value.length() > -100.f)) {
+    shipControl.state = ControlState::IDLE;
+    shipControl.flipAndBurnDistance = 0.f;
+    acc.value.x = 0.f;
+    acc.value.y = 0.f;
+    vel.value.x = 0.f;
+    return true;
+    vel.value.y = 0.f;
+  }
+
+  return false; // still moving, not stopped
+}
+
+
+inline void updateControlState(Coordinator &ecs, ShipControl &shipControl, Entity e,
+                               float currentDistance, float tt, float dt) {
+
+  if (shipControl.state == ControlState::TURNING) {
+    performTurn(ecs, shipControl, e);
+  }
+  else if (shipControl.state == ControlState::BURNING_ACCEL) {
+    accelerateToMax(ecs, e, shipControl.flipAndBurnMaxAccGs, dt);
+
+    std::cout << "Current distance: " << currentDistance 
+      << ", flip at: "
+      << shipControl.flipAndBurnDistance / 2 << " flipAndBurnDistance: "
+      << shipControl.flipAndBurnDistance << "\n";
+
+    if (currentDistance < shipControl.flipAndBurnDistance / 2) {
+      // we are done accelerating, start flipping
+      startFlipAndStop(ecs, shipControl, e, shipControl.flipAndBurnMaxAccGs, tt);
+      std::cout << "Starting Flip!\n";
+    }
+  }
+  else if (shipControl.state == ControlState::FLIPPING) {
+    performFlip(ecs, shipControl, e);
+  }
+  else if (shipControl.state == ControlState::BURNING_DECEL) {
+   performStop(ecs, shipControl, e, shipControl.flipAndBurnMaxAccGs, dt);
+  }
+}
+
 
 // TODO: Make sure that all components are removed here, 
 // will need to add new components especially when destroying ships. 

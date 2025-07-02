@@ -88,6 +88,8 @@ struct TorpedoLauncher2 {
   u_int32_t rounds = 8;
 };
 
+enum class ControlState { IDLE, TURNING, BURNING_ACCEL, FLIPPING, BURNING_DECEL };
+
 struct TorpedoControl {
   bool turning = false;
   bool burning = false;
@@ -100,12 +102,12 @@ struct TorpedoControl {
 };
 
 struct ShipControl {
-  bool turning = false;
-  bool flipping = false;
-  bool burning = false;
+  ControlState state = ControlState::IDLE;
   float targetAngle = 0.f;
   float timeSinceFlipped = 0.f;
-  float cooldown = 0.5f;   // for flip
+  float flipCooldown = 0.5f;   // for flip
+  float flipAndBurnDistance = 0.f;  // the total distance the ship will travel while accelerating, flipping and burning
+  float flipAndBurnMaxAccGs = 0.f; // max acceleration in Gs for the flip and burn
   sf::Vector2f targetPosition;
   sf::Vector2f targetAcceleration;
   enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE };

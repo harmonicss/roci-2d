@@ -24,10 +24,10 @@ public:
 
   void createInitialAsteroids() {
 
-    for (int a = 0; a < 100; ++a) {
+    for (int a = 0; a < 1; ++a) {
       float size = randFloat(1.0f, 5.0f);
       float posX = randFloat(-200000.f, 200000.f);
-      float posY = randFloat(-40000.f, -30000.f);  // so it wont be on the player
+      float posY = randFloat(20000.f, 40000.f);  // so it wont be on the player
       float velX = randFloat(-250.f, 250.f);
       float velY = randFloat(-250.f, 250.f);
       float rot  = randFloat(-180.f, 180.f);
@@ -38,13 +38,12 @@ public:
                      {velX, velY},
                      rot,
                      av, 1000);
-
     }
   }
 
   void createDebrisAsteroids(sf::Vector2f position) {
 
-    for (int a = 0; a < randInt(2,4); ++a) {
+    for (int a = 0; a < randInt(1,3); ++a) {
       float size = randFloat(0.25f, 0.8f);
       auto newpos = position + sf::Vector2f{randFloat(-1000.f, 1000.f), randFloat(-1000.f, 1000.f)};
 
@@ -58,7 +57,6 @@ public:
                      {velX, velY},
                      rot,
                      av, 1000);
-
     }
   }
 
