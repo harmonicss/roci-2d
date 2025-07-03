@@ -8,6 +8,7 @@
 #include <cmath>
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
+#include <unistd.h>
 
 class EnemyAI {
 
@@ -33,6 +34,7 @@ public:
     auto &enemyAcc = ecs.getComponent<Acceleration>(enemy);
     auto &enemyRot = ecs.getComponent<Rotation>(enemy);
     auto &playerPos = ecs.getComponent<Position>(0);
+    auto &playerVel = ecs.getComponent<Velocity>(0);
 
     float dist = distance(enemyPos.value, playerPos.value);
     float atp = angleToTarget(enemyPos.value, playerPos.value);
@@ -58,14 +60,14 @@ public:
     else if (pdc1rounds < 30 && t1rounds == 0 && t2rounds == 0) {
       // if we have no PDCs or torpedos left, switch to FLEE
       state = State::FLEE;
-      // std::cout << "EnemyAI state: FLEE (no PDCs or torpedos left)" << std::endl;
+      std::cout << "EnemyAI state: FLEE (no PDCs or torpedos left)" << std::endl;
     }
     else
     {
       if (state == State::DEFENCE_PDC) {
         // if we are in defence mode, we want to stop defending if there are no threats
-        std::cout << "EnemyAI: " << enemy << " state: no threats, switching to IDLE" << std::endl;
-        state = State::IDLE;
+        std::cout << "EnemyAI: " << enemy << " state: no threats, switching to CLOSE" << std::endl;
+        state = State::CLOSE;
       }
       else if (state == State::CLOSE) {
         if (dist <= attack_torpedo_distance && t1rounds > 0 && t2rounds > 0) {
@@ -76,9 +78,21 @@ public:
           state = State::ATTACK_PDC;
           // std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
         }
-        else if (dist > close_distance) {
+        else if (dist > close_distance && playerVel.value.length() < 1000.f) {
+          // ony flip and burn if the player is not moving too fast
           state = State::FLIP_AND_BURN;
           std::cout << "EnemyAI: " << enemy << " state: FLIP_AND_BURN" << std::endl;
+        }
+        else if (dist > close_distance && playerVel.value.length() >= 1000.f) {
+          // if the player is moving fast, chase
+          state = State::CHASE;
+          std::cout << "EnemyAI: " << enemy << " state: CHASE (player moving fast)" << std::endl;
+        }
+      }
+      else if (state == State::CHASE) {
+        if (dist < close_distance) {
+          state = State::CLOSE;
+          std::cout << "EnemyAI: " << enemy << " state: CLOSE" << std::endl;
         }
       }
       else if (state == State::IDLE) {
@@ -127,14 +141,21 @@ public:
       pdcTarget.pdcDefendTorpedo(tt, dt);
     }
     else if (state == State::CLOSE) {
-      shipControl.targetPosition = playerPos.value;
-      //shipControl.targetAcceleration = enemyAcc.value;
 
+      float chaseForce = 1000.f * dt;
+
+      sf::Vector2f interceptDir = normalizeVector(playerPos.value - enemyPos.value + playerVel.value);
+      sf::Vector2f interceptVec = interceptDir * chaseForce;
+
+      float turnAngle = angleToTarget(enemyPos.value, interceptVec);
+      // TODO None of this really works, maybe use proportional navigation instead?
+      //startTurn(ecs, shipControl, enemy, turnAngle);
       startTurn(ecs, shipControl, enemy, atp);
 
       // accelerate towards the player, about 3G atm
       // TODO: update to change acceleration based on distance
-      accelerateToMax(ecs, enemy, 1.f, dt);
+      accelerateToMax(ecs, shipControl, enemy, 1.f, dt);
+      // enemyVel.value += interceptVec;
     }
     else if (state == State::IDLE) {
       enemyAcc.value.x = 0.f;
@@ -207,39 +228,40 @@ public:
     }
     else if (state == State::FLEE) {
       // set accel to 5G
-      accelerateToMax(ecs, enemy, 5.f, dt);
-
-      // only want to turn the ship if we are not already turning, prevents jittering
-      if (shipControl.state == ControlState::IDLE) {
-        startTurn(ecs, shipControl, enemy, atp + 180.f); // turn away from the player
-      }
+      startTurn(ecs, shipControl, enemy, atp + 180.f); // turn away from the player
+      accelerateToMax(ecs, shipControl, enemy, 5.f, dt);
+    }
+    else if (state == State::CHASE) {
+      // set accel to 5G
+      startTurn(ecs, shipControl, enemy, atp); // turn towards the player
+      accelerateToMax(ecs, shipControl, enemy, 5.f, dt);
     }
     else if (state == State::FLIP_AND_BURN) {
 
       // this is a full accelerate, flip and burn maneuver
 
-      if (dist < close_distance) {
-        // otherwise, just close the distance
-        state = State::CLOSE;
-        std::cout << "EnemyAI: " << enemy << " state CLOSE (too close for flip and burn)" << std::endl;
-      }
-      else if (shipControl.state == ControlState::IDLE) {
-        // turn and burn towards the player, within close distance
+      // if (dist < close_distance) {
+      //   // otherwise, just close the distance
+      //   state = State::CLOSE;
+      //   std::cout << "EnemyAI: " << enemy << " state CLOSE (too close for flip and burn)" << std::endl;
+      // }
+      if (shipControl.state == ControlState::IDLE) {
+        // turn and burn towards the player, comfortably within close distance
         startAccelBurnAndFlip(ecs, shipControl, enemy, atp, 3.0f,
-                              dist - close_distance , dt);
+                              dist - (close_distance / 2), dt);
       }
-      else {
-
-        if (shipControl.state == ControlState::IDLE) {
-          state = State::CLOSE; // if we are done, switch to close
-        }
+      else if (shipControl.state == ControlState::DONE) {
+        state = State::CLOSE; // if we are done, switch to close
+        // the ControlState machine should reset to idle, and we should catch the DONE first
+        // shipControl.state = ControlState::IDLE; // reset the state
+        std::cout << "EnemyAI: " << enemy << " state CLOSE (done flipping and burning)" << std::endl;
       }
     }
 
-    avoidAsteroids(dt);
-
     // perform the turn (if needed)
-    updateControlState(ecs, shipControl, enemy, dist - close_distance, tt, dt);
+    updateControlState(ecs, shipControl, enemy, tt, dt);
+
+    avoidCollisions(dt);
   }
 
  private:
@@ -257,6 +279,7 @@ public:
   enum class State {
     IDLE,
     CLOSE,
+    CHASE,
     FLIP_AND_BURN,
     ATTACK_PDC,
     DEFENCE_PDC,
@@ -267,10 +290,10 @@ public:
  
   State state = State::CLOSE;
 
-  void avoidAsteroids(float dt) {
+  void avoidCollisions(float dt) {
 
-    const float lookAheadDistance = 10000.f; // distance to look ahead for asteroids
-    const float avoidanceForce = 5000.f * dt; // force to apply to avoid asteroids
+    const float lookAheadDistance = 10000.f; // distance to look ahead for collisions
+    const float avoidanceForce = 1000.f * dt; // force to apply to avoid collisions
  
     auto &enemyPos = ecs.getComponent<Position>(enemy);
     auto &enemyVel = ecs.getComponent<Velocity>(enemy);
@@ -278,22 +301,23 @@ public:
     sf::Vector2f forward = normalizeVector(enemyVel.value);
     sf::Vector2f lookAheadPos = enemyPos.value + forward * lookAheadDistance;
 
-    for (auto &e : ecs.view<Position, Collision>()) {
+    for (auto &ec : ecs.view<Position, Collision>()) {
 
-      auto &collision = ecs.getComponent<Collision>(e);
+      auto &collision = ecs.getComponent<Collision>(ec);
 
-      if (collision.ctype != CollisionType::ASTEROID) {
+      if (collision.ctype != CollisionType::ASTEROID &&
+          collision.ctype != CollisionType::SHIP) {
         continue; // skip non-asteroid entities
       }
 
-      auto &asteroidPos = ecs.getComponent<Position>(e).value;
+      auto &collisionPos = ecs.getComponent<Position>(ec).value;
 
-      float dist = distance(lookAheadPos, asteroidPos);
+      float dist = distance(lookAheadPos, collisionPos);
 
       // this will strafe
       // TODO: change direction at a greater range
-      if (dist < 6000.f) { // if an asteroid is too close
-        sf::Vector2f avoidanceDir = normalizeVector(lookAheadPos - asteroidPos);
+      if (dist < 6000.f) { // if an object is too close
+        sf::Vector2f avoidanceDir = normalizeVector(lookAheadPos - collisionPos);
         sf::Vector2f avoidanceVector = avoidanceDir * avoidanceForce;
         // std::cout << "Avoidance vector: " << avoidanceVector.x << ", " << avoidanceVector.y << std::endl;
         enemyVel.value += avoidanceVector; // apply avoidance force

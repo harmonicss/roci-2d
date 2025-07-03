@@ -72,7 +72,7 @@ public:
         TORPEDO_DEBUG << "Torpedo Velocity: " << torpedoVel.length() << ", angle: " << torpedoVel.angle().asDegrees() << "\n";
       }
 
-      if (torpedoAcc.x == 0.f && torpedoVel.y == 0.f) {
+      if (torpedoAcc.x == 0.f && torpedoAcc.y == 0.f) {
         TORPEDO_DEBUG << "Torpedo Acc: " << 0 << "\n";
       }
       else {

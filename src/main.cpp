@@ -284,7 +284,7 @@ int main() {
       ///////////////////////////////////////////////////////////////////////////////
       // Control the flip or turns(if needed)
       ///////////////////////////////////////////////////////////////////////////////
-      updateControlState(ecs, shipControl, player, 0.f, tt, dt);
+      updateControlState(ecs, shipControl, player, tt, dt);
     }
     else if (shipControl.state == ControlState::IDLE) {
 
@@ -346,7 +346,7 @@ int main() {
           startTurn(ecs, shipControl, player, newVector.angle().asDegrees()); 
 
           // use the distance from the mouse click to set acceleration, max 10 Gs
-          accelerateToMax(ecs, player, 10.f, dt);
+          accelerateToMax(ecs, shipControl, player, 10.f, dt);
         }
       }
       else if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)) {

@@ -137,7 +137,7 @@ inline void performTurn(Coordinator &ecs, ShipControl &shipControl, Entity e) {
 }
 
 // set and limit acceleration based on the ship's rotation
-inline void accelerateToMax(Coordinator &ecs, Entity e, float maxAccGs, float dt) {
+inline void accelerateToMax(Coordinator &ecs, ShipControl &shipControl, Entity e, float maxAccGs, float dt) {
 
   auto &acc = ecs.getComponent<Acceleration>(e);
   auto &vel = ecs.getComponent<Velocity>(e);
@@ -179,6 +179,7 @@ inline void startAccelBurnAndFlip(Coordinator &ecs, ShipControl &shipControl, En
   startTurn(ecs, shipControl, e, angle);
   shipControl.flipAndBurnMaxAccGs = maxAccGs;
   shipControl.flipAndBurnDistance = distance;
+  shipControl.distanceTraveled = 0.f;
   std::cout << "Entity: " << e << " Starting Burn! Distance: " << distance << " ControlState: " << static_cast<int>(shipControl.state) << "\n";
 }
 
@@ -252,8 +253,7 @@ inline void performFlip(Coordinator &ecs, ShipControl &shipControl, Entity e) {
     }
 }
 
-// returns true if the ship is stopped
-inline bool performStop(Coordinator &ecs, ShipControl &shipControl, Entity e, float maxAccGs, float dt) {
+inline void performStop(Coordinator &ecs, ShipControl &shipControl, Entity e, float maxAccGs, float dt) {
 
   // std::cout << "Performing Stop\n";
 
@@ -261,39 +261,40 @@ inline bool performStop(Coordinator &ecs, ShipControl &shipControl, Entity e, fl
   auto &acc = ecs.getComponent<Acceleration>(e);
   auto &vel = ecs.getComponent<Velocity>(e);
 
-  accelerateToMax(ecs, e, maxAccGs, dt);
+  accelerateToMax(ecs, shipControl, e, maxAccGs, dt);
 
   // approaching 0 velocity
   if ((vel.value.length() < 100.f) &&
       (vel.value.length() > -100.f)) {
-    shipControl.state = ControlState::IDLE;
+    shipControl.state = ControlState::DONE;
     shipControl.flipAndBurnDistance = 0.f;
     acc.value.x = 0.f;
     acc.value.y = 0.f;
     vel.value.x = 0.f;
-    return true;
     vel.value.y = 0.f;
   }
-
-  return false; // still moving, not stopped
 }
 
 
 inline void updateControlState(Coordinator &ecs, ShipControl &shipControl, Entity e,
-                               float currentDistance, float tt, float dt) {
+                               float tt, float dt) {
 
+  // DONE -> IDLE is performed in the enemyAI, as an external signal to get of of 
+  // enemyAI FLIP_AND_BURN state. 
   if (shipControl.state == ControlState::TURNING) {
     performTurn(ecs, shipControl, e);
   }
   else if (shipControl.state == ControlState::BURNING_ACCEL) {
-    accelerateToMax(ecs, e, shipControl.flipAndBurnMaxAccGs, dt);
+    accelerateToMax(ecs, shipControl, e, shipControl.flipAndBurnMaxAccGs, dt);
 
-    std::cout << "Current distance: " << currentDistance 
-      << ", flip at: "
-      << shipControl.flipAndBurnDistance / 2 << " flipAndBurnDistance: "
-      << shipControl.flipAndBurnDistance << "\n";
+    shipControl.distanceTraveled += ecs.getComponent<Velocity>(e).value.length() * dt;
 
-    if (currentDistance < shipControl.flipAndBurnDistance / 2) {
+    // std::cout << "Distance travelled : " << shipControl.distanceTraveled
+    //   << ", flip at: "
+    //   << shipControl.flipAndBurnDistance / 2 << " flipAndBurnDistance: "
+    //   << shipControl.flipAndBurnDistance << "\n";
+
+    if (shipControl.distanceTraveled > shipControl.flipAndBurnDistance / 2) {
       // we are done accelerating, start flipping
       startFlipAndStop(ecs, shipControl, e, shipControl.flipAndBurnMaxAccGs, tt);
       std::cout << "Starting Flip!\n";
@@ -304,6 +305,16 @@ inline void updateControlState(Coordinator &ecs, ShipControl &shipControl, Entit
   }
   else if (shipControl.state == ControlState::BURNING_DECEL) {
    performStop(ecs, shipControl, e, shipControl.flipAndBurnMaxAccGs, dt);
+  }
+  else if (shipControl.state == ControlState::IDLE) {
+    // nothing to do, just idle
+  }
+  else if (shipControl.state == ControlState::DONE) {
+    // we are done, set to idle
+    shipControl.state = ControlState::IDLE;
+  }
+  else {
+    std::cerr << "Entity: " << e << " Unknown control state: " << static_cast<int>(shipControl.state) << "\n";
   }
 }
 

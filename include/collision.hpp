@@ -253,8 +253,15 @@ private:
 
     // SHIP & SHIP
     collisionHandlers[{CollisionType::SHIP, CollisionType::SHIP}] =
-      [](Entity e1, Entity e2) {
-        // currently ships cant collide with each other, so do nothing.
+      [this](Entity e1, Entity e2) {
+
+# if 0 // ships will stick if I use this code because of multiple collisions. 
+        auto &vel1 = ecs.getComponent<Velocity>(e1);
+        auto &vel2 = ecs.getComponent<Velocity>(e2);
+
+        vel1.value = -vel1.value * 0.9f; // bounce off each other, try not to stick
+        vel2.value = -vel2.value * 0.9f; // bounce off each other
+#endif
       };
 
     // TORPEDO & TORPEDO
