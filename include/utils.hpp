@@ -73,6 +73,13 @@ inline void startTurn(Coordinator &ecs, ShipControl &shipControl, Entity e, floa
   // already at target angle
   if (eRot.angle == angle) {
     // std::cout << "Already at target angle: " << angle << "\n";
+    if (shipControl.flipAndBurnDistance > 0.f) {
+      shipControl.state = ControlState::BURNING_ACCEL;
+      std::cout << "Starting Burn! Distance: " << shipControl.flipAndBurnDistance << "\n";
+    } 
+    else {
+      shipControl.state = ControlState::IDLE;
+    }
     return;
   }
 
