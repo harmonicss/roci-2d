@@ -186,6 +186,12 @@ inline void startAccelBurnAndFlip(Coordinator &ecs, ShipControl &shipControl, En
 inline void startFlipAndStop(Coordinator &ecs, ShipControl &shipControl, Entity e, 
                              float maxAccGs, float tt) {
 
+  if (shipControl.state != ControlState::BURNING_ACCEL &&
+      shipControl.state != ControlState::IDLE) {
+    // std::cout << "Cannot start flip and stop, not in BURNING_ACCEL or IDLE state!\n";
+    return;
+  }
+
   if (tt > shipControl.timeSinceFlipped + shipControl.flipCooldown) {
     std::cout << "Starting Flipping!\n";
     shipControl.timeSinceFlipped = tt;
@@ -232,7 +238,7 @@ inline void performFlip(Coordinator &ecs, ShipControl &shipControl, Entity e) {
       // std::cout << "Current angle: " << rot.angle << "\n";
       // std::cout << "Flipping diff: " << diff << "\n";
 
-      if (diff < 20.f) {
+      if (diff > -20.f && diff < 20.f) {
         rot.angle = shipControl.targetAngle;
       }
       else if (shipControl.rotationDir == ShipControl::RotationDirection::CLOCKWISE) {
@@ -260,6 +266,26 @@ inline void performStop(Coordinator &ecs, ShipControl &shipControl, Entity e, fl
   // burn deceleration to 0
   auto &acc = ecs.getComponent<Acceleration>(e);
   auto &vel = ecs.getComponent<Velocity>(e);
+  auto &rot = ecs.getComponent<Rotation>(e);
+
+  if (vel.value.length() == 0.f) {
+    // not moving, nothing to do
+    shipControl.state = ControlState::DONE;
+    return;
+  }
+
+  // targetAngle should be facing away
+  float diff = shipControl.targetAngle + 180.f - vel.value.angle().asDegrees();
+  diff = normalizeAngle(diff);
+  float diffabs = std::abs(diff);
+
+  // if our stop vector has been changed due to collision avoidance, make small correctons here
+  if (diffabs > 0.1f) {
+    rot.angle = vel.value.angle().asDegrees() - 180.f;
+    rot.angle = normalizeAngle(rot.angle);
+    shipControl.targetAngle = rot.angle;
+    std::cout << "Correcting rotation angle to: " << rot.angle << " diff: " << diff << "\n";
+  }
 
   accelerateToMax(ecs, shipControl, e, maxAccGs, dt);
 
@@ -274,7 +300,6 @@ inline void performStop(Coordinator &ecs, ShipControl &shipControl, Entity e, fl
     vel.value.y = 0.f;
   }
 }
-
 
 inline void updateControlState(Coordinator &ecs, ShipControl &shipControl, Entity e,
                                float tt, float dt) {

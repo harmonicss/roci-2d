@@ -94,6 +94,11 @@ public:
           state = State::CLOSE;
           std::cout << "EnemyAI: " << enemy << " state: CLOSE" << std::endl;
         }
+        else if (dist > close_distance && playerVel.value.length() < 1000.f) {
+          // ony flip and burn if the player is not moving too fast
+          state = State::FLIP_AND_BURN;
+          std::cout << "EnemyAI: " << enemy << " state: FLIP_AND_BURN" << std::endl;
+        }
       }
       else if (state == State::IDLE) {
         if (dist < close_distance) {
@@ -240,11 +245,6 @@ public:
 
       // this is a full accelerate, flip and burn maneuver
 
-      // if (dist < close_distance) {
-      //   // otherwise, just close the distance
-      //   state = State::CLOSE;
-      //   std::cout << "EnemyAI: " << enemy << " state CLOSE (too close for flip and burn)" << std::endl;
-      // }
       if (shipControl.state == ControlState::IDLE) {
         // turn and burn towards the player, comfortably within close distance
         startAccelBurnAndFlip(ecs, shipControl, enemy, atp, 3.0f,
@@ -255,6 +255,12 @@ public:
         // the ControlState machine should reset to idle, and we should catch the DONE first
         // shipControl.state = ControlState::IDLE; // reset the state
         std::cout << "EnemyAI: " << enemy << " state CLOSE (done flipping and burning)" << std::endl;
+      }
+      else if (dist < close_distance) {
+        // if the player is too close, stop whatever we are doing and stop
+        // it is likely the avoidance code has messed up the vector. 
+        startFlipAndStop(ecs, shipControl, enemy, 6.0f, tt);
+        // std::cout << "EnemyAI: " << enemy << " state FLIP_AND_BURN (player close so startFlipAndStop)" << std::endl;
       }
     }
 
