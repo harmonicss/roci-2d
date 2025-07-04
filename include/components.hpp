@@ -90,6 +90,8 @@ struct TorpedoLauncher2 {
 
 enum class ControlState { IDLE, TURNING, BURNING_ACCEL, FLIPPING, BURNING_DECEL, DONE };
 
+enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE };
+
 struct TorpedoControl {
   bool turning = false;
   bool burning = false;
@@ -97,7 +99,6 @@ struct TorpedoControl {
   float targetAngle = 0.f;
   sf::Vector2f targetPosition;
   sf::Vector2f targetAcceleration;
-  enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE };
   RotationDirection rotationDir = RotationDirection::CLOCKWISE;
 };
 
@@ -111,7 +112,6 @@ struct ShipControl {
   float flipAndBurnMaxAccGs = 0.f; // max acceleration in Gs for the flip and burn
   sf::Vector2f targetPosition;     // unused atm
   sf::Vector2f targetAcceleration; // unused atm
-  enum class RotationDirection { CLOCKWISE, COUNTERCLOCKWISE };
   RotationDirection rotationDir = RotationDirection::CLOCKWISE;
 };
 

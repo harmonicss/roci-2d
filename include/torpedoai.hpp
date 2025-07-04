@@ -289,11 +289,11 @@ private:
     diff = normalizeAngle(diff);
 
     if (diff > 0.f) {
-      torpedoControl.rotationDir = TorpedoControl::RotationDirection::CLOCKWISE;
+      torpedoControl.rotationDir = RotationDirection::CLOCKWISE;
       torpedoControl.turning = true;
     } 
     else {
-      torpedoControl.rotationDir = TorpedoControl::RotationDirection::COUNTERCLOCKWISE;
+      torpedoControl.rotationDir = RotationDirection::COUNTERCLOCKWISE;
       torpedoControl.turning = true;
     }
   }
@@ -313,7 +313,7 @@ private:
       torpedoControl.turning = false;
       TORPEDO_DEBUG << "Turn complete to " << torpedoControl.targetAngle << "\n";
     } 
-    else if (torpedoControl.rotationDir == TorpedoControl::RotationDirection::CLOCKWISE) {
+    else if (torpedoControl.rotationDir == RotationDirection::CLOCKWISE) {
       torpedoRot.angle += 15.f; //(window.getSize().x / 100.f);
       TORPEDO_DEBUG << "Clockwise turn to " << torpedoRot.angle << "\n";
     }

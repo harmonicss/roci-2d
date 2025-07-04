@@ -89,11 +89,11 @@ inline void startTurn(Coordinator &ecs, ShipControl &shipControl, Entity e, floa
   diff = normalizeAngle(diff);
 
   if (diff > 0.f) {
-    shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
+    shipControl.rotationDir = RotationDirection::CLOCKWISE;
     shipControl.state = ControlState::TURNING;
   }
   else {
-    shipControl.rotationDir = ShipControl::RotationDirection::COUNTERCLOCKWISE;
+    shipControl.rotationDir = RotationDirection::COUNTERCLOCKWISE;
     shipControl.state = ControlState::TURNING;
   }
 }
@@ -123,7 +123,7 @@ inline void performTurn(Coordinator &ecs, ShipControl &shipControl, Entity e) {
         shipControl.state = ControlState::IDLE;
       }
     }
-    else if (shipControl.rotationDir == ShipControl::RotationDirection::CLOCKWISE) {
+    else if (shipControl.rotationDir == RotationDirection::CLOCKWISE) {
       eRot.angle += 15.f; //(window.getSize().x / 100.f);
       // std::cout << "Clockwise turn to " << enemyRot.angle << "\n";
     }
@@ -205,7 +205,7 @@ inline void startFlipAndStop(Coordinator &ecs, ShipControl &shipControl, Entity 
       // std::cout << "Flip correctionAngle: 0\n";
       shipControl.targetAngle = rot.angle + 180.f;
       shipControl.targetAngle = normalizeAngle(shipControl.targetAngle);
-      shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
+      shipControl.rotationDir = RotationDirection::CLOCKWISE;
     }
     else {
       // get the angle of the velocity vector
@@ -216,9 +216,9 @@ inline void startFlipAndStop(Coordinator &ecs, ShipControl &shipControl, Entity 
       diff = normalizeAngle(diff);
 
       if (diff > 0.f) {
-        shipControl.rotationDir = ShipControl::RotationDirection::CLOCKWISE;
+        shipControl.rotationDir = RotationDirection::CLOCKWISE;
       } else {
-        shipControl.rotationDir = ShipControl::RotationDirection::COUNTERCLOCKWISE;
+        shipControl.rotationDir = RotationDirection::COUNTERCLOCKWISE;
       }
 
       shipControl.targetAngle = normalizeAngle(shipControl.targetAngle);
@@ -241,7 +241,7 @@ inline void performFlip(Coordinator &ecs, ShipControl &shipControl, Entity e) {
       if (diff > -20.f && diff < 20.f) {
         rot.angle = shipControl.targetAngle;
       }
-      else if (shipControl.rotationDir == ShipControl::RotationDirection::CLOCKWISE) {
+      else if (shipControl.rotationDir == RotationDirection::CLOCKWISE) {
         rot.angle -= 15.f; //(window.getSize().x / 100.f);
       }
       else {
