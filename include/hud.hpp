@@ -9,7 +9,7 @@ public:
 
   ~HUD() = default;
 
-  void DrawHUD(sf::RenderWindow& window, Entity enemy1, Entity enemy2, float zoomFactor);
+  void DrawHUD(sf::RenderWindow& window, Entity enemy1, Entity enemy2, Entity enemy3, float zoomFactor);
 
 
 private:

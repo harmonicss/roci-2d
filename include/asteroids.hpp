@@ -25,10 +25,10 @@ public:
 
   void createInitialAsteroids() {
 
-    for (int a = 0; a < 1; ++a) {
+    for (int a = 0; a < 100; ++a) {
       float size = randFloat(1.0f, 5.0f);
       float posX = randFloat(-200000.f, 200000.f);
-      float posY = randFloat(20000.f, 40000.f);  // so it wont be on the player
+      float posY = randFloat(-20000.f, -40000.f);  // so it wont be on the player
       float velX = randFloat(-250.f, 250.f);
       float velY = randFloat(-250.f, 250.f);
       float rot  = randFloat(-180.f, 180.f);

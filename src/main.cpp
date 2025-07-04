@@ -72,8 +72,8 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   // - Load Textures -
   ///////////////////////////////////////////////////////////////////////////////
-  sf::Texture rociTexture, belterFrigateTexture, bulletTexture, torpedoTexture, 
-              explosionTexture, driveTexture;
+  sf::Texture rociTexture, belterFrigateTexture, bulletTexture, torpedoTexture,
+              explosionTexture, pellaTexture, driveTexture;
 
   if (!rociTexture.loadFromFile("../assets/textures/roci.png")) {
     std::cout << "Error loading texture" << std::endl;
@@ -82,8 +82,12 @@ int main() {
   std::cout << "Roci x " << rociTexture.getSize().x << " y "
             << rociTexture.getSize().y << "\n";
 
-  // roci fighting itself for now
   if (!belterFrigateTexture.loadFromFile("../assets/textures/bashi-bazouk.png")) {
+    std::cout << "Error loading texture" << std::endl;
+    return -1;
+  }
+
+  if (!pellaTexture.loadFromFile("../assets/textures/pella.png")) {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
@@ -141,10 +145,14 @@ int main() {
 
   BelterFrigateShipFactory belterShipFactory(ecs, belterFrigateTexture, driveTexture);
   Entity enemy1 = belterShipFactory.createBelterFrigateShip(
-      "Bashi Bazouk", {0.f, -180000.f}, {0.f, 0.f}, 90.f, 50);
+      "Bashi Bazouk", {0.f, -180000.f}, {0.f, 0.f}, 90.f, 200);
 
   Entity enemy2 = belterShipFactory.createBelterFrigateShip(
-      "Behemoth", {14000.f, -180000.f}, {0.f, 0.f}, 90.f, 50);
+      "Behemoth", {14000.f, -180000.f}, {0.f, 0.f}, 90.f, 200);
+
+  BelterPellaShipFactory pellaShipFactory(ecs, pellaTexture, driveTexture);
+  Entity enemy3 = pellaShipFactory.createBelterPellaShip(
+      "Pella", {-30000.f, - 200000.f}, {0.f, 0.f}, 90.f, 500);
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Ballistics Factory
@@ -157,6 +165,7 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
   EnemyAI enemy1AI(ecs, enemy1, bulletFactory, torpedoFactory, pdcFireSoundPlayer);
   EnemyAI enemy2AI(ecs, enemy2, bulletFactory, torpedoFactory, pdcFireSoundPlayer);
+  EnemyAI enemy3AI(ecs, enemy3, bulletFactory, torpedoFactory, pdcFireSoundPlayer);
   TorpedoAI torpedoAI(ecs);
 
   // Create PDC Targeting System for player
@@ -465,6 +474,9 @@ int main() {
     if (ecs.isAlive(enemy2))
       enemy2AI.Update(tt, dt);
 
+    if (ecs.isAlive(enemy3))
+      enemy3AI.Update(tt, dt);
+
     torpedoAI.Update(tt, dt);
     bulletFactory.Update(tt); // remove bullets that have been fired for too long
 
@@ -499,7 +511,9 @@ int main() {
       // center the screen for the player
       if (e == player) {
         sc.sprite.setPosition(screenCentre);
-      } else {
+      }
+      else if (ecs.isAlive(player)){               // possible the player is dead, dont want to crash
+
         auto &playerpos = ecs.getComponent<Position>(player);
 
         sf::Vector2f cameraOffset = screenCentre - playerpos.value;
@@ -571,7 +585,7 @@ int main() {
     ///////////////////////////////////////////////////////////////////////////////
     sf::View hudView = window.getDefaultView();
     window.setView(hudView);
-    hud.DrawHUD(window, enemy1, enemy2, zoomFactor);
+    hud.DrawHUD(window, enemy1, enemy2, enemy3, zoomFactor);
     window.display();
   }
 }

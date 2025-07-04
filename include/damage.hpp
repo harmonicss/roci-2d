@@ -28,10 +28,11 @@ public:
 
       // Check if health is below or equal to zero
       if (health.value <= 0) {
-        std::cout << "Entity " << entity << " destroyed due to damage.\n";
+        // std::cout << "Entity " << entity << " destroyed due to damage.\n";
         // Create an explosion at the entity's position
         explosions.emplace_back(&explosionTexture, position.value, 8, 7);
         explosionSoundPlayer.play();
+        // disable for testing
         destroyEntity(ecs, entity); 
       }
     }
@@ -42,6 +43,5 @@ private:
   sf::Sound &explosionSoundPlayer;
   std::vector<Explosion> &explosions;
   sf::Texture &explosionTexture;
-
 };
 

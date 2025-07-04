@@ -53,6 +53,14 @@ public:
       auto &torpedoControl = ecs.getComponent<TorpedoControl>(torpedo);
 
       Entity target = ecs.getComponent<TorpedoTarget>(torpedo).target;
+
+      // it is possible that the target has been destroyed
+      if (ecs.isAlive(target) == false) {
+        // if the target is not alive, remove the torpedo target component
+        // TODO: will need some way to reaquire another target
+        continue; // skip to the next torpedo
+      }
+
       auto &targetPos = ecs.getComponent<Position>(target);
       auto &targetVel = ecs.getComponent<Velocity>(target).value;
       auto &targetAcc = ecs.getComponent<Acceleration>(target).value;

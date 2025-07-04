@@ -30,7 +30,7 @@ HUD::HUD(Coordinator& ecs, Entity player) :
   }
 
 // TODO: move from fixed enemy entities
-void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, float zoomFactor) {
+void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity enemy3, float zoomFactor) {
 
   screenWidth = window.getSize().x;
   screenHeight = window.getSize().y;
@@ -60,6 +60,12 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, float 
     //DrawSidebarText(window, enemy2);
     DrawShipNames(window, enemy2, zoomFactor);
     DrawVectorOverlay(window, enemy2, zoomFactor);
+  }
+
+  if (ecs.isAlive(enemy3)) {
+    //DrawSidebarText(window, enemy2);
+    DrawShipNames(window, enemy3, zoomFactor);
+    DrawVectorOverlay(window, enemy3, zoomFactor);
   }
 
   DrawTorpedoOverlay(window, zoomFactor);

@@ -347,38 +347,44 @@ inline void updateControlState(Coordinator &ecs, ShipControl &shipControl, Entit
 // TODO: Make sure that all components are removed here, 
 // will need to add new components especially when destroying ships. 
 inline void destroyEntity(Coordinator &ecs, Entity e) {
-  ecs.removeComponent<Velocity>(e);
-  ecs.removeComponent<Position>(e);
-  ecs.removeComponent<Collision>(e);
-  ecs.removeComponent<Rotation>(e);
+
   ecs.removeComponent<SpriteComponent>(e);
 
-  if (ecs.hasComponent<TorpedoTarget>(e))
-    ecs.removeComponent<TorpedoTarget>(e);
- 
-  if (ecs.hasComponent<TorpedoControl>(e))
-    ecs.removeComponent<TorpedoControl>(e);
+  // keep for player, so we dont crash
+  if (e != 0) {
+    ecs.removeComponent<Position>(e);
+    ecs.removeComponent<Velocity>(e);
+    ecs.removeComponent<Collision>(e);
+    ecs.removeComponent<Rotation>(e);
+    ecs.removeComponent<Health>(e);
 
-  if (ecs.hasComponent<TimeFired>(e))
-    ecs.removeComponent<TimeFired>(e);
+    if (ecs.hasComponent<TorpedoTarget>(e))
+      ecs.removeComponent<TorpedoTarget>(e);
 
-  if (ecs.hasComponent<TorpedoLauncher1>(e))
-    ecs.removeComponent<TorpedoLauncher1>(e);
- 
-  if (ecs.hasComponent<TorpedoLauncher2>(e))
-    ecs.removeComponent<TorpedoLauncher2>(e);
+    if (ecs.hasComponent<TorpedoControl>(e))
+      ecs.removeComponent<TorpedoControl>(e);
 
-  if (ecs.hasComponent<FriendlyShipTarget>(e))
-    ecs.removeComponent<FriendlyShipTarget>(e);
- 
-  if (ecs.hasComponent<EnemyShipTarget>(e))
-    ecs.removeComponent<EnemyShipTarget>(e);
- 
-  if (ecs.hasComponent<DrivePlume>(e))
-    ecs.removeComponent<DrivePlume>(e);
+    if (ecs.hasComponent<TimeFired>(e))
+      ecs.removeComponent<TimeFired>(e);
 
-  if (ecs.hasComponent<PdcMounts>(e))
-    ecs.removeComponent<PdcMounts>(e);
+    if (ecs.hasComponent<TorpedoLauncher1>(e))
+      ecs.removeComponent<TorpedoLauncher1>(e);
 
-  ecs.destroyEntity(e);
+    if (ecs.hasComponent<TorpedoLauncher2>(e))
+      ecs.removeComponent<TorpedoLauncher2>(e);
+
+    if (ecs.hasComponent<FriendlyShipTarget>(e))
+      ecs.removeComponent<FriendlyShipTarget>(e);
+
+    if (ecs.hasComponent<EnemyShipTarget>(e))
+      ecs.removeComponent<EnemyShipTarget>(e);
+
+    if (ecs.hasComponent<DrivePlume>(e))
+      ecs.removeComponent<DrivePlume>(e);
+
+    if (ecs.hasComponent<PdcMounts>(e))
+      ecs.removeComponent<PdcMounts>(e);
+
+    ecs.destroyEntity(e);
+  }
 }
