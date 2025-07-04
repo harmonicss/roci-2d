@@ -81,7 +81,7 @@ private:
   sf::Sound &explosionSoundPlayer;
   std::vector<Explosion> &explosions; // to store explosions
   sf::Texture &explosionTexture;      // texture for explosions
-  AsteroidFactory &asteroidFactory;  
+  AsteroidFactory &asteroidFactory;
 
   inline static std::map<std::pair<CollisionType, CollisionType>, CollisionHandler> collisionHandlers;
 

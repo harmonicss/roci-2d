@@ -6,6 +6,7 @@
 #include "../include/torpedoai.hpp"
 #include "../include/targeting.hpp"
 #include "../include/explosion.hpp"
+#include "../include/damage.hpp"
 #include "../include/hud.hpp"
 #include "ships.cpp"
 #include "../include/asteroids.hpp"
@@ -182,6 +183,12 @@ int main() {
   CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, explosionSoundPlayer,
                                   explosions, explosionTexture, asteroidFactory);
 
+  ///////////////////////////////////////////////////////////////////////////////
+  // Create Damage System
+  ///////////////////////////////////////////////////////////////////////////////
+  DamageSystem damageSystem(ecs, explosionSoundPlayer,
+                            explosions, explosionTexture);
+ 
   ///////////////////////////////////////////////////////////////////////////////
   // create the HUD object
   ///////////////////////////////////////////////////////////////////////////////
@@ -452,8 +459,12 @@ int main() {
     // - Update everying else -
     ///////////////////////////////////////////////////////////////////////////////
     // Enemy & Torpedo AIs
-    enemy1AI.Update(tt, dt);
-    enemy2AI.Update(tt, dt);
+    if (ecs.isAlive(enemy1))
+      enemy1AI.Update(tt, dt);
+
+    if (ecs.isAlive(enemy2))
+      enemy2AI.Update(tt, dt);
+
     torpedoAI.Update(tt, dt);
     bulletFactory.Update(tt); // remove bullets that have been fired for too long
 
@@ -461,6 +472,8 @@ int main() {
     // it is possible that two missiles have collided near a target, so we need to check again
     collisionSystem.Update();
 
+    // DamageSystem
+    damageSystem.Update();
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Render -

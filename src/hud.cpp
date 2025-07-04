@@ -43,16 +43,26 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, float 
   sidebar.setPosition(sidebarPosition);
   window.draw(sidebar);
 
-  DrawSidebarText(window, player);
-  DrawSidebarText(window, enemy1);
-  DrawShipNames(window, enemy1, zoomFactor);
-  DrawShipNames(window, enemy2, zoomFactor);
-  DrawShipNames(window, player, zoomFactor);
+  if (ecs.isAlive(player)) {
+    DrawSidebarText(window, player);
+    DrawShipNames(window, player, zoomFactor);
+    DrawPlayerPdcOverlay(window, player, zoomFactor);
+    DrawVectorOverlay(window, player, zoomFactor);
+  }
+
+  if (ecs.isAlive(enemy1)) {
+    DrawSidebarText(window, enemy1);
+    DrawShipNames(window, enemy1, zoomFactor);
+    DrawVectorOverlay(window, enemy1, zoomFactor);
+  }
+
+  if (ecs.isAlive(enemy2)) {
+    //DrawSidebarText(window, enemy2);
+    DrawShipNames(window, enemy2, zoomFactor);
+    DrawVectorOverlay(window, enemy2, zoomFactor);
+  }
+
   DrawTorpedoOverlay(window, zoomFactor);
-  DrawPlayerPdcOverlay(window, player, zoomFactor);
-  DrawVectorOverlay(window, player, zoomFactor);
-  DrawVectorOverlay(window, enemy1, zoomFactor);
-  DrawVectorOverlay(window, enemy2, zoomFactor);
 }
 
 void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {

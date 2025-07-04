@@ -5,6 +5,7 @@
 #include "components.hpp"
 #include "utils.hpp"
 #include <SFML/Graphics/Texture.hpp>
+#include <cstdint>
 
 class AsteroidFactory {
 public:
@@ -37,7 +38,7 @@ public:
                      {posX, posY},
                      {velX, velY},
                      rot,
-                     av, 1000);
+                     av, 2000);
     }
   }
 
@@ -56,7 +57,7 @@ public:
                      newpos,
                      {velX, velY},
                      rot,
-                     av, 1000);
+                     av, 2000);
     }
   }
 
@@ -67,7 +68,7 @@ private:
 
   // Create an asteroid entity
   Entity createAsteroid(sf::Texture &asteroidTexture, const std::string &name, float scale, sf::Vector2f position,
-                        sf::Vector2f velocity, float rotation, float angularVelocity, unsigned int health) {
+                        sf::Vector2f velocity, float rotation, float angularVelocity, int32_t health) {
     Entity e = ecs.createEntity(name);
     ecs.addComponent(e, Position{position});
     ecs.addComponent(e, Velocity{velocity});

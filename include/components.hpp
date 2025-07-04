@@ -30,7 +30,7 @@ struct SpriteComponent {
 };
 
 struct Health {
-  unsigned int value = 100;
+  signed int value = 100;
 };
 
 struct TimeFired {

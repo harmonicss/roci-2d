@@ -276,7 +276,6 @@ public:
 private:
   Coordinator &ecs;
 
-
   void startTurn(float atp, Entity torpedo) {
     auto &torpedoControl = ecs.getComponent<TorpedoControl>(torpedo);
 

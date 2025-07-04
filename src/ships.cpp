@@ -86,7 +86,7 @@ public:
   ~BelterFrigateShipFactory() override = default;
 
   Entity createBelterFrigateShip(const std::string &name, const sf::Vector2f position,
-                                 const sf::Vector2f velocity, const float rotation, const uint32_t health) {
+                                 const sf::Vector2f velocity, const float rotation, const int32_t health) {
 
     Entity e = ecs.createEntity(name);
     ecs.addComponent(e, Position{position});
