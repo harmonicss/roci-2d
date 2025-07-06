@@ -284,7 +284,7 @@ inline void performStop(Coordinator &ecs, ShipControl &shipControl, Entity e, fl
     rot.angle = vel.value.angle().asDegrees() - 180.f;
     rot.angle = normalizeAngle(rot.angle);
     shipControl.targetAngle = rot.angle;
-    std::cout << "Correcting rotation angle to: " << rot.angle << " diff: " << diff << "\n";
+    // std::cout << "Correcting rotation angle to: " << rot.angle << " diff: " << diff << "\n";
   }
 
   accelerateToMax(ecs, shipControl, e, maxAccGs, dt);

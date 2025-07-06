@@ -31,12 +31,12 @@ public:
  
   ~PlayerShipFactory() override = default;
 
-  Entity createPlayerShip(const std::string &name) {
+  Entity createPlayerShip(const std::string &name, int32_t health) {
     Entity e = ecs.createEntity(name);
     ecs.addComponent(e, Position{{0,0}});
     ecs.addComponent(e, Velocity{{0.f, 0.f}});
     ecs.addComponent(e, Rotation{0.f});
-    ecs.addComponent(e, Health{300});
+    ecs.addComponent(e, Health{health});
     ecs.addComponent(e, Acceleration{{0.f, 0.f}});
  
     SpriteComponent sc{sf::Sprite(shipTexture)};
@@ -108,8 +108,8 @@ public:
                                   static_cast<float>(shipTexture.getSize().x) / 2 - 60,
                                   static_cast<float>(shipTexture.getSize().y) / 2 - 60, 0.f});
 
-    ecs.addComponent(e, TorpedoLauncher1{.rounds = 0});
-    ecs.addComponent(e, TorpedoLauncher2{.rounds = 0});
+    ecs.addComponent(e, TorpedoLauncher1{.rounds = 8});
+    ecs.addComponent(e, TorpedoLauncher2{.rounds = 8});
 
     // as this is an enemy ship, add the component to identify it as a target
     ecs.addComponent(e, EnemyShipTarget{e});

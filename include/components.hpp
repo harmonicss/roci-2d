@@ -75,6 +75,10 @@ struct TorpedoLauncher1 {
   float projectileAccel = 500.f;
   u_int32_t projectileDamage = 200;
   u_int32_t rounds = 8;
+  u_int32_t barrageRounds = 2;       // number of rounds to fire in a barrage. Only use in enemyAI
+  u_int32_t barrageCount = 0; 
+  float timeSinceBarrage = 0.f; 
+  float barrageCooldown = 120.f;
 };
 
 struct TorpedoLauncher2 {
@@ -86,6 +90,10 @@ struct TorpedoLauncher2 {
   float projectileAccel = 500.f;
   u_int32_t projectileDamage = 200;
   u_int32_t rounds = 8;
+  u_int32_t barrageRounds = 2; 
+  u_int32_t barrageCount = 0; 
+  float timeSinceBarrage = 0.f; 
+  float barrageCooldown = 120.f;
 };
 
 enum class ControlState { IDLE, TURNING, BURNING_ACCEL, FLIPPING, BURNING_DECEL, DONE };

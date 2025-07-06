@@ -4,6 +4,7 @@
 #include "ballistics.hpp"
 #include "targeting.hpp"
 #include "utils.hpp"
+#include <cstdint>
 #include <iostream>
 #include <cmath>
 #include <SFML/Graphics.hpp>
@@ -22,6 +23,14 @@ public:
     pdcFireSoundPlayer(pdcFireSoundPlayer),
     pdcTarget(ecs, enemy, bulletFactory, pdcFireSoundPlayer) {
 
+    // allow immediate torpedo barrage launch
+ 
+    auto &launcher1 = ecs.getComponent<TorpedoLauncher1>(enemy);
+    auto &launcher2 = ecs.getComponent<TorpedoLauncher2>(enemy);
+
+    launcher1.timeSinceBarrage = -launcher1.barrageCooldown;
+    launcher2.timeSinceBarrage = -launcher2.barrageCooldown;
+
     std::cout << "EnemyAI created" << std::endl;
   }
   ~EnemyAI() = default;
@@ -39,8 +48,11 @@ public:
     float dist = distance(enemyPos.value, playerPos.value);
     float atp = angleToTarget(enemyPos.value, playerPos.value);
 
-    auto &t1rounds = ecs.getComponent<TorpedoLauncher1>(enemy).rounds;
-    auto &t2rounds = ecs.getComponent<TorpedoLauncher2>(enemy).rounds;
+    auto &launcher1 = ecs.getComponent<TorpedoLauncher1>(enemy);
+    auto &launcher2 = ecs.getComponent<TorpedoLauncher2>(enemy);
+
+    auto &t1rounds = launcher1.rounds;
+    auto &t2rounds = launcher2.rounds;
 
     // just get pdc1 rounds for now
     auto &pdcMounts = ecs.getComponent<PdcMounts>(enemy).pdcEntities;
@@ -70,13 +82,23 @@ public:
         state = State::CLOSE;
       }
       else if (state == State::CLOSE) {
-        if (dist <= attack_torpedo_distance && t1rounds > 0 && t2rounds > 0) {
-          state = State::ATTACK_TORPEDO;
-          std::cout << "EnemyAI: " << enemy << " state: ATTACK_TORPEDO" << std::endl;
-        }
-        else if (dist < attack_pdc_distance) {
+
+        // std::cout << "EnemyAI: " << enemy << " tt: " << tt 
+        //   << " launcher1.timeSinceBarrage: " << launcher1.timeSinceBarrage
+        //   << " launcher2.timeSinceBarrage: " << launcher2.timeSinceBarrage
+        //   << std::endl;
+
+        if (dist < attack_pdc_distance) {
           state = State::ATTACK_PDC;
           // std::cout << "EnemyAI state: ATTACK_PDC" << std::endl;
+        }
+        else if (dist <= attack_torpedo_distance &&
+            t1rounds > 0 && t2rounds > 0    &&
+            tt > launcher1.timeSinceBarrage + launcher1.barrageCooldown &&
+            tt > launcher2.timeSinceBarrage + launcher2.barrageCooldown)
+        {
+          state = State::ATTACK_TORPEDO;
+          std::cout << "EnemyAI: " << enemy << " state: ATTACK_TORPEDO" << std::endl;
         }
         else if (dist > close_distance && playerVel.value.length() < 1000.f) {
           // ony flip and burn if the player is not moving too fast
@@ -120,6 +142,11 @@ public:
         else if (dist > attack_torpedo_distance) {
           state = State::CLOSE;
           std::cout << "EnemyAI: " << enemy << " state: CLOSE" << std::endl;
+        }
+        else if (tt < launcher1.timeSinceBarrage + launcher1.barrageCooldown &&
+                 tt < launcher2.timeSinceBarrage + launcher2.barrageCooldown) {
+          state = State::CLOSE;
+          std::cout << "EnemyAI: " << enemy << " state: CLOSE (barrage complete)" << std::endl;
         }
       }
       else if (state == State::ATTACK_PDC) {
@@ -167,8 +194,6 @@ public:
       enemyAcc.value.y = 0.f;
     }
     else if (state == State::ATTACK_TORPEDO) {
-      auto &launcher1 = ecs.getComponent<TorpedoLauncher1>(enemy);
-      auto &launcher2 = ecs.getComponent<TorpedoLauncher2>(enemy);
 
       // set accel to 0
       // probably want to set a target velocity instead
@@ -187,14 +212,26 @@ public:
           launcher1.timeSinceFired = tt;
           torpedoFactory.fireone<TorpedoLauncher1>(enemy, 0);
           launcher1.rounds--;
+          launcher1.barrageCount++;
           std::cout << "EnemyAI firing TorpedoLauncher1" << std::endl;
         }
         if (tt > launcher2.timeSinceFired + launcher2.cooldown && launcher2.rounds) {
           launcher2.timeSinceFired = tt;
           torpedoFactory.fireone<TorpedoLauncher2>(enemy, 0);
           launcher2.rounds--;
+          launcher2.barrageCount++;
           std::cout << "EnemyAI firing TorpedoLauncher2" << std::endl;
         }
+      }
+
+      if (launcher1.barrageCount >= launcher1.barrageRounds &&
+          launcher2.barrageCount >= launcher2.barrageRounds) {
+
+        std::cout << "EnemyAI: " << enemy << " Barrage complete" << std::endl;
+        launcher1.timeSinceBarrage = tt; // reset the barrage timer
+        launcher2.timeSinceBarrage = tt; // reset the barrage timer
+        launcher1.barrageCount = 0;
+        launcher2.barrageCount = 0;
       }
     }
     else if (state == State::ATTACK_PDC) {

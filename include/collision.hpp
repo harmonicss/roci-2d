@@ -199,13 +199,13 @@ private:
     // ASTEROID & PROJECTILE
     collisionHandlers[{CollisionType::ASTEROID, CollisionType::PROJECTILE}] =
       [this](Entity e1, Entity e2) {
-        std::cout << "Asteroid vs Projectile collision detected between " << e1 << " and " << e2 << "\n";
+        // std::cout << "Asteroid vs Projectile collision detected between " << e1 << " and " << e2 << "\n";
         destroyEntity(ecs, e2);
       };
 
     collisionHandlers[{CollisionType::PROJECTILE, CollisionType::ASTEROID}] =
       [this](Entity e1, Entity e2) {
-        std::cout << "Asteroid vs Projectile collision detected between " << e1 << " and " << e2 << "\n";
+        // std::cout << "Asteroid vs Projectile collision detected between " << e1 << " and " << e2 << "\n";
         destroyEntity(ecs, e1);
       };
 

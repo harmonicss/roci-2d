@@ -141,14 +141,14 @@ int main() {
   ///////////////////////////////////////////////////////////////////////////////
 
   PlayerShipFactory playerShipFactory(ecs, rociTexture, driveTexture);
-  Entity player = playerShipFactory.createPlayerShip("Rocinante");
+  Entity player = playerShipFactory.createPlayerShip("Rocinante", 10000); // just for testing
 
   BelterFrigateShipFactory belterShipFactory(ecs, belterFrigateTexture, driveTexture);
   Entity enemy1 = belterShipFactory.createBelterFrigateShip(
-      "Bashi Bazouk", {0.f, -180000.f}, {0.f, 0.f}, 90.f, 200);
+      "Bashi Bazouk", {14000.f, -180000.f}, {0.f, 0.f}, 90.f, 200);
 
   Entity enemy2 = belterShipFactory.createBelterFrigateShip(
-      "Behemoth", {14000.f, -180000.f}, {0.f, 0.f}, 90.f, 200);
+      "Behemoth", {-50000.f, -180000.f}, {0.f, 0.f}, 90.f, 200);
 
   BelterPellaShipFactory pellaShipFactory(ecs, pellaTexture, driveTexture);
   Entity enemy3 = pellaShipFactory.createBelterPellaShip(
