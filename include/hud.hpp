@@ -21,7 +21,9 @@ private:
   u_int16_t screenHeight;
   sf::Vector2f screenCentre;
 
-  void DrawSidebarText(sf::RenderWindow& window, Entity e);
+  enum class SidebarPosition {LEFT_TOP, RIGHT_TOP, LEFT_MIDDLE, RIGHT_MIDDLE, LEFT_BOTTOM, RIGHT_BOTTOM};
+
+  void DrawSidebarText(sf::RenderWindow& window, Entity e, SidebarPosition pos);
   void DrawShipNames (sf::RenderWindow& window, Entity e, float zoomFactor);
   void DrawTorpedoOverlay (sf::RenderWindow& window, float zoomFactor);
   void DrawVectorOverlay (sf::RenderWindow& window, Entity e, float zoomFactor);

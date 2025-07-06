@@ -20,6 +20,7 @@ static void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf:
                 sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor, float thickness);
 
 
+
 HUD::HUD(Coordinator& ecs, Entity player) :
     ecs(ecs), player(player) {
 
@@ -37,33 +38,39 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity
   screenCentre = {screenWidth / 2.f, screenHeight / 2.f};
 
   // Sidebar
-  sf::RectangleShape sidebar({180.f, static_cast<float>(screenHeight)});
-  sf::Vector2f sidebarPosition = {0.f, 0.f};
-  sidebar.setFillColor(sf::Color(10,40,50));
-  sidebar.setPosition(sidebarPosition);
-  window.draw(sidebar);
+  sf::RectangleShape sidebarLeft({180.f, static_cast<float>(screenHeight)});
+  sf::Vector2f sidebarLeftPosition = {0.f, 0.f};
+  sidebarLeft.setFillColor(sf::Color(10,40,50));
+  sidebarLeft.setPosition(sidebarLeftPosition);
+  window.draw(sidebarLeft);
+
+  sf::RectangleShape sidebarRight({180.f, static_cast<float>(screenHeight)});
+  sf::Vector2f sidebarRightPosition = {static_cast<float>(screenWidth - 180.f), 0.f};
+  sidebarRight.setFillColor(sf::Color(10,40,50));
+  sidebarRight.setPosition(sidebarRightPosition);
+  window.draw(sidebarRight);
 
   if (ecs.isAlive(player)) {
-    DrawSidebarText(window, player);
+    DrawSidebarText(window, player, SidebarPosition::LEFT_BOTTOM);
     DrawShipNames(window, player, zoomFactor);
     DrawPlayerPdcOverlay(window, player, zoomFactor);
     DrawVectorOverlay(window, player, zoomFactor);
   }
 
   if (ecs.isAlive(enemy1)) {
-    DrawSidebarText(window, enemy1);
+    DrawSidebarText(window, enemy1, SidebarPosition::RIGHT_TOP);
     DrawShipNames(window, enemy1, zoomFactor);
     DrawVectorOverlay(window, enemy1, zoomFactor);
   }
 
   if (ecs.isAlive(enemy2)) {
-    //DrawSidebarText(window, enemy2);
+    DrawSidebarText(window, enemy2, SidebarPosition::RIGHT_MIDDLE);
     DrawShipNames(window, enemy2, zoomFactor);
     DrawVectorOverlay(window, enemy2, zoomFactor);
   }
 
   if (ecs.isAlive(enemy3)) {
-    //DrawSidebarText(window, enemy2);
+    DrawSidebarText(window, enemy3, SidebarPosition::LEFT_TOP);
     DrawShipNames(window, enemy3, zoomFactor);
     DrawVectorOverlay(window, enemy3, zoomFactor);
   }
@@ -71,19 +78,32 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity
   DrawTorpedoOverlay(window, zoomFactor);
 }
 
-void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
+void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e, SidebarPosition pos) {
 
   // display the enemy data at the top, player at the bottom
   float yOffset = 0;
+  float xOffset = 0;
 
   // Sidebar Text
   char bufx[32];
   char bufy[32];
 
-  if (e == player) {
-    yOffset = 800.f;
+  if (pos == SidebarPosition::LEFT_TOP ||
+      pos == SidebarPosition::LEFT_MIDDLE ||
+      pos == SidebarPosition::LEFT_BOTTOM) {
+    xOffset = 10.f; // left side
   } else {
-    yOffset = 50.f;
+    xOffset = screenWidth - 180.f + 10.f; // right side
+  }
+
+  if (pos == SidebarPosition::LEFT_TOP ||
+      pos == SidebarPosition::RIGHT_TOP) {
+    yOffset = 10.f; // top
+  } else if (pos == SidebarPosition::LEFT_MIDDLE ||
+             pos == SidebarPosition::RIGHT_MIDDLE) {
+    yOffset = screenHeight / 2.f - 100.f; // middle
+  } else {
+    yOffset = screenHeight - 300.f; // bottom
   }
 
   // Name
@@ -92,7 +112,7 @@ void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
   nametext.setString(name);
   nametext.setCharacterSize(16);
   nametext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-  sf::Vector2f nameTextPosition = { 10.f, yOffset };
+  sf::Vector2f nameTextPosition = { xOffset, yOffset };
   yOffset += 20.f;
   nametext.setPosition(nameTextPosition);
   window.draw(nametext);
@@ -103,7 +123,7 @@ void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
   healthtext.setString(healthString);
   healthtext.setCharacterSize(10);
   healthtext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-  sf::Vector2f healthTextPosition = { 10.f, yOffset };
+  sf::Vector2f healthTextPosition = { xOffset, yOffset };
   yOffset += 20.f;
   healthtext.setPosition(healthTextPosition);
   window.draw(healthtext);
@@ -117,7 +137,7 @@ void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
   acctext.setString(accString);
   acctext.setCharacterSize(10);
   acctext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-  sf::Vector2f accTextPosition = { 10.f, yOffset };
+  sf::Vector2f accTextPosition = { xOffset, yOffset };
   yOffset += 20.f;
   acctext.setPosition(accTextPosition);
   window.draw(acctext);
@@ -136,7 +156,7 @@ void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
   veltext.setString(velString);
   veltext.setCharacterSize(10);
   veltext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-  sf::Vector2f velTextPosition = { 10.f, yOffset };
+  sf::Vector2f velTextPosition = { xOffset, yOffset };
   yOffset += 20.f;
   veltext.setPosition(velTextPosition);
   window.draw(veltext);
@@ -148,7 +168,7 @@ void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
   rottext.setString(rotString);
   rottext.setCharacterSize(10);
   rottext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-  sf::Vector2f rotTextPosition = { 10.f, yOffset };
+  sf::Vector2f rotTextPosition = { xOffset, yOffset };
   yOffset += 20.f;
   rottext.setPosition(rotTextPosition);
   window.draw(rottext);
@@ -161,7 +181,7 @@ void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
   postext.setString(posString);
   postext.setCharacterSize(10);
   postext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-  sf::Vector2f posTextPosition = { 10.f, yOffset };
+  sf::Vector2f posTextPosition = { xOffset, yOffset };
   yOffset += 20.f;
   postext.setPosition(posTextPosition);
   window.draw(postext);
@@ -176,7 +196,7 @@ void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
     pdctext.setString(pdcString);
     pdctext.setCharacterSize(10);
     pdctext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-    sf::Vector2f pdcTextPosition = { 10.f, yOffset };
+    sf::Vector2f pdcTextPosition = { xOffset, yOffset };
     yOffset += 20.f;
     pdctext.setPosition(pdcTextPosition);
     window.draw(pdctext);
@@ -190,7 +210,7 @@ void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e) {
   torpedotext.setString(torpedoString);
   torpedotext.setCharacterSize(10);
   torpedotext.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
-  sf::Vector2f torpedoTextPosition = { 10.f, yOffset };
+  sf::Vector2f torpedoTextPosition = { xOffset, yOffset };
   yOffset += 20.f;
   torpedotext.setPosition(torpedoTextPosition);
   window.draw(torpedotext);
