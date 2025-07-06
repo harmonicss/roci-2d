@@ -4,7 +4,7 @@
 #include "../include/ballistics.hpp"
 #include "../include/enemyai.hpp"
 #include "../include/torpedoai.hpp"
-#include "../include/targeting.hpp"
+#include "../include/pdctarget.hpp"
 #include "../include/explosion.hpp"
 #include "../include/damage.hpp"
 #include "../include/hud.hpp"

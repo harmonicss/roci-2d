@@ -1,6 +1,6 @@
 #include "../include/components.hpp"
 #include "../include/ecs.hpp"
-#include "../include/targeting.hpp"
+#include "../include/pdctarget.hpp"
 
 void createMcrnPdcs6(Coordinator &ecs, Entity e);
 void createMcrnPdcs9(Coordinator &ecs, Entity e);
