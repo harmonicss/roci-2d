@@ -178,18 +178,13 @@ public:
   }
 
 private:
-  // two drive plumes foe the pella
   void createPellaDrivePlume(Entity e) {
-    SpriteComponent dc1{sf::Sprite(driveTexture)};
-    SpriteComponent dc2{sf::Sprite(driveTexture)};
+    SpriteComponent dc{sf::Sprite(driveTexture)};
     sf::Vector2f driveOrigin(driveTexture.getSize().x - 40.f, // the is whitespace at the front of the png
                              driveTexture.getSize().y / 2.f);
-    dc1.sprite.setOrigin(driveOrigin);
-    dc2.sprite.setOrigin(driveOrigin);
-    dc1.sprite.setScale(sf::Vector2f{0.f, 0.f});
-    dc2.sprite.setScale(sf::Vector2f{0.f, 0.f});
-    ecs.addComponent(e, DrivePlume{dc1.sprite, sf::Vector2f{-1000.f, -200.f}});
-    ecs.addComponent(e, DrivePlume{dc2.sprite, sf::Vector2f{-1000.f, 200.f}});
+    dc.sprite.setOrigin(driveOrigin);
+    dc.sprite.setScale(sf::Vector2f{0.f, 0.f});
+    ecs.addComponent(e, DrivePlume{dc.sprite, sf::Vector2f{-900.f, 0.f}});
   }
 };
 

@@ -73,7 +73,7 @@ int main() {
   // - Load Textures -
   ///////////////////////////////////////////////////////////////////////////////
   sf::Texture rociTexture, belterFrigateTexture, bulletTexture, torpedoTexture,
-              explosionTexture, pellaTexture, driveTexture;
+              explosionTexture, pellaTexture, driveTexture, pellaDriveTexture;
 
   if (!rociTexture.loadFromFile("../assets/textures/roci.png")) {
     std::cout << "Error loading texture" << std::endl;
@@ -108,6 +108,11 @@ int main() {
   }
 
   if (!driveTexture.loadFromFile("../assets/textures/drive.png")) {
+    std::cout << "Error loading texture" << std::endl;
+    return -1;
+  }
+
+if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
     std::cout << "Error loading texture" << std::endl;
     return -1;
   }
@@ -150,9 +155,11 @@ int main() {
   Entity enemy2 = belterShipFactory.createBelterFrigateShip(
       "Behemoth", {-50000.f, -180000.f}, {0.f, 0.f}, 90.f, 200);
 
-  BelterPellaShipFactory pellaShipFactory(ecs, pellaTexture, driveTexture);
+  BelterPellaShipFactory pellaShipFactory(ecs, pellaTexture, pellaDriveTexture);
   Entity enemy3 = pellaShipFactory.createBelterPellaShip(
       "Pella", {-30000.f, - 200000.f}, {0.f, 0.f}, 90.f, 500);
+
+  std::cout << "Pella: " << enemy3 << "\n";
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Ballistics Factory

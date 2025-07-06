@@ -88,11 +88,11 @@ private:
                                   static_cast<float>(asteroidTexture.getSize().x * scale * 0.75f) / 2,
                                   static_cast<float>(asteroidTexture.getSize().y * scale * 0.75f) / 2, 0.f});
 
-    std::cout << "Created asteroid: " << name << " with texture size: "
-              << asteroidTexture.getSize().x * scale << "x" << asteroidTexture.getSize().y * scale
-              << " with velocity: " << velocity.x << ", " << velocity.y
-              << " with rotation: " << rotation
-              << " at position: " << position.x << ", " << position.y << std::endl;
+    // std::cout << "Created asteroid: " << name << " with texture size: "
+    //           << asteroidTexture.getSize().x * scale << "x" << asteroidTexture.getSize().y * scale
+    //           << " with velocity: " << velocity.x << ", " << velocity.y
+    //           << " with rotation: " << rotation
+    //           << " at position: " << position.x << ", " << position.y << std::endl;
 
     return e;
   }
