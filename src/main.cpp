@@ -147,7 +147,7 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
   ///////////////////////////////////////////////////////////////////////////////
 
   PlayerShipFactory playerShipFactory(ecs, rociTexture, driveTexture);
-  Entity player = playerShipFactory.createPlayerShip("Rocinante", 10000); // just for testing
+  Entity player = playerShipFactory.createPlayerShip("Rocinante", 300); // just for testing
 
   BelterFrigateShipFactory belterShipFactory(ecs, belterFrigateTexture, driveTexture);
   Entity enemy1 = belterShipFactory.createBelterFrigateShip(
@@ -266,6 +266,9 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
         else if (keyPressed->scancode == sf::Keyboard::Scancode::Num2) {
           // assign to launcher 2
           torpedoTargeting.setLauncher2Target( torpedoTargeting.getTargetEntity());
+        }
+        else if (keyPressed->scancode == sf::Keyboard::Scancode::O) {
+          hud.toggleOverlay();
         }
       } else if (event->is<sf::Event::MouseWheelScrolled>()) {
         auto *scroll = event->getIf<sf::Event::MouseWheelScrolled>();

@@ -15,12 +15,6 @@
 #include <sys/types.h>
 
 
-
-static void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
-                sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor, float thickness);
-
-
-
 HUD::HUD(Coordinator& ecs, Entity player, TorpedoTargeting &torpedoTargeting) :
     ecs(ecs), player(player), torpedoTargeting(torpedoTargeting) {
 
@@ -29,6 +23,11 @@ HUD::HUD(Coordinator& ecs, Entity player, TorpedoTargeting &torpedoTargeting) :
       throw std::runtime_error("Failed to load font");
     }
   }
+
+void HUD::toggleOverlay() {
+  displayOverlay = !displayOverlay;
+  std::cout << "Display Overlay: " << (displayOverlay ? "ON" : "OFF") << std::endl;
+}
 
 // TODO: move from fixed enemy entities
 void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity enemy3, float zoomFactor) {
@@ -84,6 +83,7 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity
   }
 
   DrawTorpedoOverlay(window, zoomFactor);
+  DrawShipOverlay(window, zoomFactor);
 }
 
 void HUD::DrawTorpedoTargetingText(sf::RenderWindow & window) {
@@ -279,6 +279,10 @@ void HUD::DrawShipNames (sf::RenderWindow& window, Entity e, float zoomFactor) {
 // draws the vector on the ship
 void HUD::DrawVectorOverlay (sf::RenderWindow& window, Entity e, float zoomFactor) {
 
+  if (displayOverlay == false) {
+    return; // no vectors to display
+  }
+
   auto &ppos = ecs.getComponent<Position>(player);
   auto &epos = ecs.getComponent<Position>(e);
   auto &evel = ecs.getComponent<Velocity>(e);
@@ -290,6 +294,10 @@ void HUD::DrawVectorOverlay (sf::RenderWindow& window, Entity e, float zoomFacto
 
 // draws the angles of the pdc targeting on the player
 void HUD::DrawPlayerPdcOverlay (sf::RenderWindow& window, Entity e, float zoomFactor) {
+
+  if (displayOverlay == false) {
+    return; // no vectors to display
+  }
 
   auto &ppos = ecs.getComponent<Position>(e);
   auto prot = ecs.getComponent<Rotation>(e);
@@ -432,44 +440,94 @@ void HUD::DrawTorpedoOverlay (sf::RenderWindow& window, float zoomFactor) {
   }
 }
 
-static void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
+void HUD::DrawShipOverlay (sf::RenderWindow& window, float zoomFactor) {
+
+  // change the size of the circle based on the zoom factor
+  float radius = 4.0f + (500.f / zoomFactor);
+
+  // need to get all the enemy ships
+  std::vector<Entity> torpedos = ecs.getEntitiesByName("Torpedo");
+
+  for (auto e : ecs.view<EnemyShipTarget>()) {
+
+    auto &ppos = ecs.getComponent<Position>(player);
+    auto &tpos = ecs.getComponent<Position>(e);
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // draw a circle around the ship
+   ///////////////////////////////////////////////////////////////////////////////
+    sf::CircleShape circle(radius);
+    circle.setFillColor(sf::Color::Transparent);
+    circle.setOutlineThickness(1.f);
+    circle.setOutlineColor(sf::Color(sf::Color::Red));
+
+    circle.setOrigin(sf::Vector2f(radius, radius));
+
+    // zoomFactor is needed here, as I am drawing this on a seperate HUD view
+    sf::Vector2f cameraOffset = screenCentre - (ppos.value / zoomFactor);
+    sf::Vector2f tposRelative = tpos.value / zoomFactor;
+
+    circle.setPosition(tposRelative + cameraOffset);
+    window.draw(circle);
+
+#if 0 // already do this, could tidyup
+    ///////////////////////////////////////////////////////////////////////////////
+    // draw the vector of the acceleration, velocity and rotation
+    ///////////////////////////////////////////////////////////////////////////////
+    DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Acceleration>(e).value, cameraOffset, sf::Color::Red, zoomFactor, 20.f);
+    DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Velocity>(e).value, cameraOffset, sf::Color::Green, zoomFactor, 20.f);
+
+    float radians = trot.angle * (M_PI / 180.f);
+ 
+    DrawVector(window, ecs, e, tpos.value,
+               sf::Vector2f{std::cos(radians) * 10000.f, std::sin(radians) * 10000.f}, 
+               cameraOffset, sf::Color::Blue, zoomFactor, 30.f);
+#endif
+  }
+}
+
+void HUD::DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,
                 sf::Vector2f end, sf::Vector2f cameraOffset, sf::Color color, float zoomFactor, float thickness) {
 
-    // std::cout << "\nDrawVectorStart: " << start.x << ", " << start.y << "\n";
-    // std::cout << "DrawVectorEnd: " << end.x << ", " << end.y << "\n";
-    // std::cout << "DrawVector Camera Offset: " << cameraOffset.x << ", " << cameraOffset.y << "\n";
+  // std::cout << "\nDrawVectorStart: " << start.x << ", " << start.y << "\n";
+  // std::cout << "DrawVectorEnd: " << end.x << ", " << end.y << "\n";
+  // std::cout << "DrawVector Camera Offset: " << cameraOffset.x << ", " << cameraOffset.y << "\n";
 
-    // compute the direction and length of the arrow shaft
+  // compute the direction and length of the arrow shaft
 
-    float length = std::hypot(end.x, end.y);
-    // std::cout << "DrawVector Length: " << length << "\n";
+  if (displayOverlay == false) {
+    return; // no vectors to display
+  }
 
-    length = length / zoomFactor; // scale length with zoom factor
-    length *= 2;                  // easier to see with zoom
+  float length = std::hypot(end.x, end.y);
+  // std::cout << "DrawVector Length: " << length << "\n";
 
-    if (length < 1.f)
-      return; // don't draw if the length is too small
+  length = length / zoomFactor; // scale length with zoom factor
+  length *= 2;                  // easier to see with zoom
 
-    thickness = thickness / zoomFactor; // make it thinner with zoom
+  if (length < 1.f)
+    return; // don't draw if the length is too small
 
-    if (thickness < 1.f)
-      thickness = 1.f; // don't let it get too thin
-  
-    // create a rectangle of size (length x thickness)
-    sf::RectangleShape arrow(sf::Vector2f(length, thickness));
+  thickness = thickness / zoomFactor; // make it thinner with zoom
 
-    arrow.setFillColor(color);
+  if (thickness < 1.f)
+    thickness = 1.f; // don't let it get too thin
 
-    // centre it vertically
-    arrow.setOrigin(sf::Vector2f(0.f, thickness / 2.f));
+  // create a rectangle of size (length x thickness)
+  sf::RectangleShape arrow(sf::Vector2f(length, thickness));
 
-    // position the arrow at the start position
-    arrow.setPosition((start / zoomFactor) + cameraOffset);
+  arrow.setFillColor(color);
 
-    // rotate to match the direction of the arrow
-    float angle = std::atan2(end.y, end.x) * (180.f / M_PI);
+  // centre it vertically
+  arrow.setOrigin(sf::Vector2f(0.f, thickness / 2.f));
 
-    arrow.setRotation(sf::degrees(angle));
+  // position the arrow at the start position
+  arrow.setPosition((start / zoomFactor) + cameraOffset);
 
-    window.draw(arrow);
+  // rotate to match the direction of the arrow
+  float angle = std::atan2(end.y, end.x) * (180.f / M_PI);
+
+  arrow.setRotation(sf::degrees(angle));
+
+  window.draw(arrow);
 }

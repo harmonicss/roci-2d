@@ -73,7 +73,7 @@ struct TorpedoLauncher1 {
   float timeSinceFired = 0.f;
   float projectileSpeed = 100.f;
   float projectileAccel = 500.f;
-  u_int32_t projectileDamage = 200;
+  u_int32_t projectileDamage = 1000;
   u_int32_t rounds = 8;
   u_int32_t barrageRounds = 2;       // number of rounds to fire in a barrage. Only use in enemyAI
   u_int32_t barrageCount = 0; 
@@ -88,7 +88,7 @@ struct TorpedoLauncher2 {
   float timeSinceFired = 0.f;
   float projectileSpeed = 100.f;
   float projectileAccel = 500.f;
-  u_int32_t projectileDamage = 200;
+  u_int32_t projectileDamage = 1000;
   u_int32_t rounds = 8;
   u_int32_t barrageRounds = 2; 
   u_int32_t barrageCount = 0; 
