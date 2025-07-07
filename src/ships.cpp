@@ -108,8 +108,8 @@ public:
                                   static_cast<float>(shipTexture.getSize().x) / 2 - 60,
                                   static_cast<float>(shipTexture.getSize().y) / 2 - 60, 0.f});
 
-    ecs.addComponent(e, TorpedoLauncher1{.rounds = 8});
-    ecs.addComponent(e, TorpedoLauncher2{.rounds = 8});
+    ecs.addComponent(e, TorpedoLauncher1{.rounds = 10});
+    ecs.addComponent(e, TorpedoLauncher2{.rounds = 10});
 
     // as this is an enemy ship, add the component to identify it as a target
     ecs.addComponent(e, EnemyShipTarget{e});

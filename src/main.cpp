@@ -5,6 +5,7 @@
 #include "../include/enemyai.hpp"
 #include "../include/torpedoai.hpp"
 #include "../include/pdctarget.hpp"
+#include "../include/torpedotarget.hpp"
 #include "../include/explosion.hpp"
 #include "../include/damage.hpp"
 #include "../include/hud.hpp"
@@ -176,9 +177,14 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
   TorpedoAI torpedoAI(ecs);
 
   // Create PDC Targeting System for player
-  PdcTarget pdcTarget(ecs, player, bulletFactory, pdcFireSoundPlayer);
+  PdcTargeting pdcTargeting(ecs, player, bulletFactory, pdcFireSoundPlayer);
 
+  // create torpedo targeting for player
+  TorpedoTargeting torpedoTargeting(ecs, player, torpedoFactory);
+
+  ///////////////////////////////////////////////////////////////////////////////
   // Set up worldview
+  ///////////////////////////////////////////////////////////////////////////////
   sf::FloatRect viewRect({0.f, 0.f}, {1920.f, 1080.f});
   sf::View worldview(viewRect);
   window.setView(worldview);
@@ -197,7 +203,7 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
   // Create Collision System
   ///////////////////////////////////////////////////////////////////////////////
   CollisionSystem collisionSystem(ecs, pdcHitSoundPlayer, explosionSoundPlayer,
-                                  explosions, explosionTexture, asteroidFactory);
+                                 explosions, explosionTexture, asteroidFactory);
 
   ///////////////////////////////////////////////////////////////////////////////
   // Create Damage System
@@ -208,7 +214,7 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
   ///////////////////////////////////////////////////////////////////////////////
   // create the HUD object
   ///////////////////////////////////////////////////////////////////////////////
-  HUD hud(ecs, player);
+  HUD hud(ecs, player, torpedoTargeting);
 
 
   sf::Clock clock;
@@ -245,6 +251,21 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
 
         if (keyPressed->scancode == sf::Keyboard::Scancode::Escape) {
           window.close();
+        }
+      } else if (const auto *keyPressed =
+                     event->getIf<sf::Event::KeyReleased>()) {
+
+        // use key released for single press of the T key for next torpedo target
+        if (keyPressed->scancode == sf::Keyboard::Scancode::T) {
+          torpedoTargeting.selectNextTarget();
+        }
+        else if (keyPressed->scancode == sf::Keyboard::Scancode::Num1) {
+          // assign to launcher 1
+          torpedoTargeting.setLauncher1Target( torpedoTargeting.getTargetEntity());
+        }
+        else if (keyPressed->scancode == sf::Keyboard::Scancode::Num2) {
+          // assign to launcher 2
+          torpedoTargeting.setLauncher2Target( torpedoTargeting.getTargetEntity());
         }
       } else if (event->is<sf::Event::MouseWheelScrolled>()) {
         auto *scroll = event->getIf<sf::Event::MouseWheelScrolled>();
@@ -441,11 +462,11 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
     ///////////////////////////////////////////////////////////////////////////////
     if (state == State::ATTACK_PDC) {
       // target the enemy
-      pdcTarget.pdcAttack<EnemyShipTarget>(tt);
+      pdcTargeting.pdcAttack<EnemyShipTarget>(tt);
     }
     else if (state == State::DEFENCE_PDC) {
       // target the nearest torpedo
-      pdcTarget.pdcDefendTorpedo(tt, dt);
+      pdcTargeting.pdcDefendTorpedo(tt, dt);
     }
 
     state = State::IDLE;
@@ -454,30 +475,15 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
     // Fire! Torpedo 1 & 2
     ///////////////////////////////////////////////////////////////////////////////
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
-
-      auto &launcher1 = ecs.getComponent<TorpedoLauncher1>(player);
-      auto &launcher2 = ecs.getComponent<TorpedoLauncher2>(player);
-
-      if ((launcher1.timeSinceFired == 0.f || tt > launcher1.timeSinceFired + launcher1.cooldown) && launcher1.rounds) {
-        launcher1.timeSinceFired = tt;
-        //TODO: need some way to target enemies
-        torpedoFactory.fireone<TorpedoLauncher1>(player, enemy1);
-        // TODO: add torpedo sound
-        pdcFireSoundPlayer.play();
-        launcher1.rounds--;
-      }
-      if ((launcher2.timeSinceFired == 0.f || tt > launcher2.timeSinceFired + launcher2.cooldown) && launcher2.rounds) {
-        launcher2.timeSinceFired = tt;
-        torpedoFactory.fireone<TorpedoLauncher2>(player, enemy2);
-        pdcFireSoundPlayer.play();
-        launcher2.rounds--;
-      }
+      torpedoTargeting.fireBoth(tt);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
     // - Update everying else -
     ///////////////////////////////////////////////////////////////////////////////
     // Enemy & Torpedo AIs
+    torpedoTargeting.Update<EnemyShipTarget>(); // re-aquire targets for the torpedos
+    
     if (ecs.isAlive(enemy1))
       enemy1AI.Update(tt, dt);
 

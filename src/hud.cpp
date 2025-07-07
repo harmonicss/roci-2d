@@ -21,8 +21,8 @@ static void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf:
 
 
 
-HUD::HUD(Coordinator& ecs, Entity player) :
-    ecs(ecs), player(player) {
+HUD::HUD(Coordinator& ecs, Entity player, TorpedoTargeting &torpedoTargeting) :
+    ecs(ecs), player(player), torpedoTargeting(torpedoTargeting) {
 
     // Load the font
     if (!font.openFromFile("../assets/fonts/FiraCodeNerdFont-Medium.ttf")) {
@@ -50,6 +50,14 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity
   sidebarRight.setPosition(sidebarRightPosition);
   window.draw(sidebarRight);
 
+  sf::RectangleShape torpedoTargeting({350.f, 100.f});
+  sf::Vector2f torpedoTargetingPosition = {190.f, static_cast<float>(screenHeight - 100.f)};
+  torpedoTargeting.setFillColor(sf::Color(10,40,50));
+  torpedoTargeting.setPosition(torpedoTargetingPosition);
+  window.draw(torpedoTargeting);
+
+  DrawTorpedoTargetingText (window);
+
   if (ecs.isAlive(player)) {
     DrawSidebarText(window, player, SidebarPosition::LEFT_BOTTOM);
     DrawShipNames(window, player, zoomFactor);
@@ -76,6 +84,39 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity
   }
 
   DrawTorpedoOverlay(window, zoomFactor);
+}
+
+void HUD::DrawTorpedoTargetingText(sf::RenderWindow & window) {
+
+  sf::Text text(font);
+  sf::String target = torpedoTargeting.getTarget();
+  text.setString("Torpedo Target: " + target);
+  text.setCharacterSize(16);
+  text.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
+
+  float xOffset = 210.f;
+  float yOffset = static_cast<float>(screenHeight - 90.f);
+
+  sf::Vector2f textPosition = { xOffset, yOffset };
+  yOffset += 30.f;
+  text.setPosition(textPosition);
+  window.draw(text);
+
+  target = torpedoTargeting.getLauncher1Target();
+  text.setString("Launcher 1: " + target);
+  text.setCharacterSize(12);
+  textPosition = { xOffset, yOffset };
+  text.setPosition(textPosition);
+  yOffset += 20.f;
+  window.draw(text);
+
+  target = torpedoTargeting.getLauncher2Target();
+  text.setString("Launcher 2: " + target);
+  text.setCharacterSize(12);
+  textPosition = { xOffset, yOffset };
+  text.setPosition(textPosition);
+  yOffset += 20.f;
+  window.draw(text);
 }
 
 void HUD::DrawSidebarText(sf::RenderWindow& window, Entity e, SidebarPosition pos) {

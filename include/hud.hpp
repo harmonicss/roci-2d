@@ -1,11 +1,12 @@
 #pragma once
 
-#include "../include/ecs.hpp"
+#include "ecs.hpp"
+#include "torpedotarget.hpp"
 #include <SFML/Graphics.hpp>
 
 class HUD {
 public:
-  HUD(Coordinator& ecs, Entity player);
+  HUD(Coordinator& ecs, Entity player, TorpedoTargeting &torpedoTargeting);
 
   ~HUD() = default;
 
@@ -16,6 +17,7 @@ private:
   sf::Font font;
   Coordinator& ecs;
   Entity player;
+  TorpedoTargeting &torpedoTargeting;
  
   u_int16_t screenWidth;
   u_int16_t screenHeight;
@@ -23,6 +25,7 @@ private:
 
   enum class SidebarPosition {LEFT_TOP, RIGHT_TOP, LEFT_MIDDLE, RIGHT_MIDDLE, LEFT_BOTTOM, RIGHT_BOTTOM};
 
+  void DrawTorpedoTargetingText(sf::RenderWindow & window);
   void DrawSidebarText(sf::RenderWindow& window, Entity e, SidebarPosition pos);
   void DrawShipNames (sf::RenderWindow& window, Entity e, float zoomFactor);
   void DrawTorpedoOverlay (sf::RenderWindow& window, float zoomFactor);

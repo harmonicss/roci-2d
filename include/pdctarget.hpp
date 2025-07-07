@@ -29,10 +29,10 @@ static std::ostream pdcNullStream(&pdcNullBuffer); // global null stream to use 
 const Entity INVALID_TARGET_ID = 0xFFFF; // used to indicate no target
 
 // to target the pdcs and burst fire at incoming torpedos or enemy ships
-class PdcTarget {
+class PdcTargeting {
 public:
   // Entity e is the player or enemy that is using the pdcs
-  PdcTarget(Coordinator &ecs, Entity e, BulletFactory bulletFactory, sf::Sound pdcFireSoundPlayer) :
+  PdcTargeting(Coordinator &ecs, Entity e, BulletFactory bulletFactory, sf::Sound pdcFireSoundPlayer) :
     ecs(ecs),
     e(e),
     bulletFactory(bulletFactory),
@@ -40,7 +40,7 @@ public:
   {
     PDCTARGET_DEBUG << "PdcTarget created for entity: " << e << std::endl;
   }
-  ~PdcTarget() = default;
+  ~PdcTargeting() = default;
 
   bool pdcTorpedoThreatDetect() {
     Entity nearestTorpedo = 0xFFFF;  // so as not to confuse with the player 
@@ -484,7 +484,7 @@ private:
   std::map<float, Entity> torpedoTargetDistances;      // map of torpedo targets and their distances
   std::map<float, Entity> shipTargetDistances;         // map of ships and their distances
 
-  std::array<std::optional<Entity>, 4> pdcTargets; // list of 4 current targets 
+  std::array<std::optional<Entity>, 9> pdcTargets; // list of 4 current targets 
  
   // distance in pixels to consider a torpedo a threat.
   // has to be close enough for pdcs to track it.

@@ -21,7 +21,7 @@ public:
     bulletFactory(bulletFactory),
     torpedoFactory(torpedoFactory),
     pdcFireSoundPlayer(pdcFireSoundPlayer),
-    pdcTarget(ecs, enemy, bulletFactory, pdcFireSoundPlayer) {
+    pdcTargeting(ecs, enemy, bulletFactory, pdcFireSoundPlayer) {
 
     // allow immediate torpedo barrage launch
  
@@ -65,7 +65,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////////
     // - Ship State Machine -
     ///////////////////////////////////////////////////////////////////////////////
-    if (pdcTarget.pdcTorpedoThreatDetect() && pdc1rounds > 0) {
+    if (pdcTargeting.pdcTorpedoThreatDetect() && pdc1rounds > 0) {
       state = State::DEFENCE_PDC;
       std::cout << "EnemyAI state: DEFENCE_PDC" << std::endl;
     }
@@ -170,7 +170,7 @@ public:
       startTurn(ecs, shipControl, enemy, atp);
 
       // aquire the nearest torpedo and fire the PDCs
-      pdcTarget.pdcDefendTorpedo(tt, dt);
+      pdcTargeting.pdcDefendTorpedo(tt, dt);
     }
     else if (state == State::CLOSE) {
 
@@ -266,7 +266,7 @@ public:
 
       // for now, attack the player. 
       // Could additional evasive maneuvers later.
-      pdcTarget.pdcAttack<FriendlyShipTarget>(tt);
+      pdcTargeting.pdcAttack<FriendlyShipTarget>(tt);
     }
     else if (state == State::FLEE) {
       // set accel to 5G
@@ -313,7 +313,7 @@ public:
   BulletFactory bulletFactory;
   TorpedoFactory torpedoFactory;
   sf::Sound pdcFireSoundPlayer;
-  PdcTarget pdcTarget;
+  PdcTargeting pdcTargeting;
 
   const float close_distance          = 50000.f;  // will close rarther than flip and burn
   const float attack_torpedo_distance = 500000.f;
