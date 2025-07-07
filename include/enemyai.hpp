@@ -42,6 +42,7 @@ public:
     auto &enemyVel = ecs.getComponent<Velocity>(enemy);
     auto &enemyAcc = ecs.getComponent<Acceleration>(enemy);
     auto &enemyRot = ecs.getComponent<Rotation>(enemy);
+    auto &enemyHealth = ecs.getComponent<Health>(enemy);
     auto &playerPos = ecs.getComponent<Position>(0);
     auto &playerVel = ecs.getComponent<Velocity>(0);
 
@@ -65,14 +66,19 @@ public:
     ///////////////////////////////////////////////////////////////////////////////
     // - Ship State Machine -
     ///////////////////////////////////////////////////////////////////////////////
-    if (pdcTargeting.pdcTorpedoThreatDetect() && pdc1rounds > 0) {
-      state = State::DEFENCE_PDC;
-      std::cout << "EnemyAI state: DEFENCE_PDC" << std::endl;
+    if (enemyHealth.value <= 0) {
+      state = State::DISABLED;
+      std::cout << "EnemyAI: " << enemy << "EnemyAI state: DISABLED (health <= 0)" << std::endl;
     }
-    else if (pdc1rounds < 30 && t1rounds == 0 && t2rounds == 0) {
-      // if we have no PDCs or torpedos left, switch to FLEE
+    else if (pdcTargeting.pdcTorpedoThreatDetect() && pdc1rounds > 0) {
+      state = State::DEFENCE_PDC;
+      // std::cout << "EnemyAI state: DEFENCE_PDC" << std::endl;
+    }
+    else if ((pdc1rounds < 30 && t1rounds == 0 && t2rounds == 0) ||
+             enemyHealth.value <= 50) {
+      // if we have no PDCs or torpedos left, or damaged, switch to FLEE
       state = State::FLEE;
-      std::cout << "EnemyAI state: FLEE (no PDCs or torpedos left)" << std::endl;
+      std::cout << "EnemyAI: " << enemy << "state: FLEE (damaged or no PDCs or torpedos left)" << std::endl;
     }
     else
     {
@@ -300,6 +306,17 @@ public:
         // std::cout << "EnemyAI: " << enemy << " state FLIP_AND_BURN (player close so startFlipAndStop)" << std::endl;
       }
     }
+    else if (state == State::DISABLED) {
+      // do nothing, the ship is disabled
+      enemyAcc.value.x = 0.f;
+      enemyAcc.value.y = 0.f;
+      // slow spin for disabled ship
+      startTurn(ecs, shipControl, enemy, enemyRot.angle + 1.0f); 
+      std::cout << "EnemyAI: " << enemy << " state DISABLED" << std::endl;
+    }
+    else {
+      std::cout << "EnemyAI: " << enemy << " state UNKNOWN" << std::endl;
+    }
 
     // perform the turn (if needed)
     updateControlState(ecs, shipControl, enemy, tt, dt);
@@ -328,7 +345,8 @@ public:
     DEFENCE_PDC,
     ATTACK_TORPEDO,
     EVADE,
-    FLEE
+    FLEE,
+    DISABLED
   };
  
   State state = State::CLOSE;

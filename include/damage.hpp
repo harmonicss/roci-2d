@@ -26,8 +26,9 @@ public:
       auto &health = ecs.getComponent<Health>(entity);
       auto &position = ecs.getComponent<Position>(entity);
 
-      // Check if health is below or equal to zero
-      if (health.value <= 0) {
+      // Check if health is below or equal to -200 for destruction
+      // the enemyAI state machine will disable the ship if < 0
+      if (health.value <= -200) {
         // std::cout << "Entity " << entity << " destroyed due to damage.\n";
         // Create an explosion at the entity's position
         explosions.emplace_back(&explosionTexture, position.value, 8, 7);

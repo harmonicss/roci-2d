@@ -389,7 +389,7 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
           // std::cout << "Turning towards vector: " << newVector.angle().asDegrees() << "\n";
           startTurn(ecs, shipControl, player, newVector.angle().asDegrees()); 
 
-          float maxAccel = newVector.length() / 100.f; 
+          float maxAccel = newVector.length() / 30.f; 
           maxAccel = std::clamp(maxAccel, 0.f, 10.f); // limit to 10 Gs
  
           // use the distance from the mouse click to set acceleration, max 10 Gs
