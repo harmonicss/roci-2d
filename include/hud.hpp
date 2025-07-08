@@ -32,7 +32,7 @@ private:
   void DrawSidebarText(sf::RenderWindow& window, Entity e, SidebarPosition pos);
   void DrawShipNames (sf::RenderWindow& window, Entity e, float zoomFactor);
   void DrawTorpedoOverlay (sf::RenderWindow& window, float zoomFactor);
-  void DrawShipOverlay (sf::RenderWindow& window, float zoomFactor);
+  void DrawEnemyShipOverlay (sf::RenderWindow& window, float zoomFactor);
   void DrawVectorOverlay (sf::RenderWindow& window, Entity e, float zoomFactor);
   void DrawPlayerPdcOverlay (sf::RenderWindow& window, Entity e, float zoomFactor);
   void DrawVector(sf::RenderWindow& window, Coordinator& ecs, Entity e, sf::Vector2f start,

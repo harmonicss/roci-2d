@@ -312,7 +312,7 @@ public:
       enemyAcc.value.y = 0.f;
       // slow spin for disabled ship
       startTurn(ecs, shipControl, enemy, enemyRot.angle + 1.0f); 
-      std::cout << "EnemyAI: " << enemy << " state DISABLED" << std::endl;
+      // std::cout << "EnemyAI: " << enemy << " state DISABLED" << std::endl;
     }
     else {
       std::cout << "EnemyAI: " << enemy << " state UNKNOWN" << std::endl;

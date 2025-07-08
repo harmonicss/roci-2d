@@ -67,23 +67,20 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity
   if (ecs.isAlive(enemy1)) {
     DrawSidebarText(window, enemy1, SidebarPosition::RIGHT_TOP);
     DrawShipNames(window, enemy1, zoomFactor);
-    DrawVectorOverlay(window, enemy1, zoomFactor);
   }
 
   if (ecs.isAlive(enemy2)) {
     DrawSidebarText(window, enemy2, SidebarPosition::RIGHT_MIDDLE);
     DrawShipNames(window, enemy2, zoomFactor);
-    DrawVectorOverlay(window, enemy2, zoomFactor);
   }
 
   if (ecs.isAlive(enemy3)) {
     DrawSidebarText(window, enemy3, SidebarPosition::LEFT_TOP);
     DrawShipNames(window, enemy3, zoomFactor);
-    DrawVectorOverlay(window, enemy3, zoomFactor);
   }
 
   DrawTorpedoOverlay(window, zoomFactor);
-  DrawShipOverlay(window, zoomFactor);
+  DrawEnemyShipOverlay(window, zoomFactor);
 }
 
 void HUD::DrawTorpedoTargetingText(sf::RenderWindow & window) {
@@ -435,12 +432,12 @@ void HUD::DrawTorpedoOverlay (sf::RenderWindow& window, float zoomFactor) {
     float radians = trot.angle * (M_PI / 180.f);
  
     DrawVector(window, ecs, e, tpos.value,
-               sf::Vector2f{std::cos(radians) * 10000.f, std::sin(radians) * 10000.f}, 
+               sf::Vector2f{std::cos(radians) * 5000.f, std::sin(radians) * 5000.f}, 
                cameraOffset, sf::Color::Blue, zoomFactor, 30.f);
   }
 }
 
-void HUD::DrawShipOverlay (sf::RenderWindow& window, float zoomFactor) {
+void HUD::DrawEnemyShipOverlay (sf::RenderWindow& window, float zoomFactor) {
 
   // change the size of the circle based on the zoom factor
   float radius = 4.0f + (500.f / zoomFactor);
@@ -452,6 +449,7 @@ void HUD::DrawShipOverlay (sf::RenderWindow& window, float zoomFactor) {
 
     auto &ppos = ecs.getComponent<Position>(player);
     auto &tpos = ecs.getComponent<Position>(e);
+    auto &trot = ecs.getComponent<Rotation>(e);
 
     ///////////////////////////////////////////////////////////////////////////////
     // draw a circle around the ship
@@ -470,17 +468,17 @@ void HUD::DrawShipOverlay (sf::RenderWindow& window, float zoomFactor) {
     circle.setPosition(tposRelative + cameraOffset);
     window.draw(circle);
 
-#if 0 // already do this, could tidyup
+#if 1 // already do this, could tidyup
     ///////////////////////////////////////////////////////////////////////////////
     // draw the vector of the acceleration, velocity and rotation
     ///////////////////////////////////////////////////////////////////////////////
-    DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Acceleration>(e).value, cameraOffset, sf::Color::Red, zoomFactor, 20.f);
+    DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Acceleration>(e).value * 10.f, cameraOffset, sf::Color::Red, zoomFactor, 30.f);
     DrawVector(window, ecs, e, tpos.value, ecs.getComponent<Velocity>(e).value, cameraOffset, sf::Color::Green, zoomFactor, 20.f);
 
     float radians = trot.angle * (M_PI / 180.f);
  
     DrawVector(window, ecs, e, tpos.value,
-               sf::Vector2f{std::cos(radians) * 10000.f, std::sin(radians) * 10000.f}, 
+               sf::Vector2f{std::cos(radians) * 2000.f, std::sin(radians) * 2000.f},
                cameraOffset, sf::Color::Blue, zoomFactor, 30.f);
 #endif
   }
