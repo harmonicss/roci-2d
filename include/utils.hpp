@@ -344,6 +344,48 @@ inline void updateControlState(Coordinator &ecs, ShipControl &shipControl, Entit
 }
 
 
+
+// return true if there is a torpedo targeting the entity
+inline bool torpedoThreatDetect(Coordinator &ecs, Entity e, const float torpedoThreatRange) {
+    Entity nearestTorpedo = 0xFFFF;  // so as not to confuse with the player 
+    float nearestTorpedoDist = std::numeric_limits<float>::max();
+
+    // find target torpedos
+    for (auto &torpedo : ecs.view<TorpedoTarget>()) {
+      auto &torpedoTarget = ecs.getComponent<TorpedoTarget>(torpedo);
+
+      if (torpedoTarget.target != e) {
+        // skip if the torpedo is not targeting this entity
+        continue;
+      }
+
+      // find the nearest torpedo to the player or enemy
+      auto &torpedoPos = ecs.getComponent<Position>(torpedo);
+      auto &myPos = ecs.getComponent<Position>(e);
+
+      float dist = distance(myPos.value, torpedoPos.value);
+
+      if (dist < nearestTorpedoDist) {
+        nearestTorpedoDist = dist;
+        nearestTorpedo = torpedo;
+      }
+    }
+
+    // no torpedos to target
+    if (nearestTorpedo == 0) {
+      return false;
+    }
+
+    // no torpedos in range
+    if (nearestTorpedoDist > torpedoThreatRange) {
+      // PDCTARGET_DEBUG << "PdcTarget no torpedos in range\n";
+      return false;
+    }
+
+    // PDCTARGET_DEBUG << "pdcThreatDetected nearest torpedo: " << nearestTorpedo << "\n";
+    return true; // there is a torpedo to target
+  }
+
 // TODO: Make sure that all components are removed here, 
 // will need to add new components especially when destroying ships. 
 inline void destroyEntity(Coordinator &ecs, Entity e) {

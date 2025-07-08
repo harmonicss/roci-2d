@@ -147,18 +147,18 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
   ///////////////////////////////////////////////////////////////////////////////
 
   PlayerShipFactory playerShipFactory(ecs, rociTexture, driveTexture);
-  Entity player = playerShipFactory.createPlayerShip("Rocinante", 300); // just for testing
+  Entity player = playerShipFactory.createPlayerShip("Rocinante", 1300); // just for testing
 
   BelterFrigateShipFactory belterShipFactory(ecs, belterFrigateTexture, driveTexture);
   Entity enemy1 = belterShipFactory.createBelterFrigateShip(
-      "Bashi Bazouk", {14000.f, -180000.f}, {0.f, 0.f}, 90.f, 200);
+      "Bashi Bazouk", {14000.f, -280000.f}, {0.f, 0.f}, 90.f, 200);
 
   Entity enemy2 = belterShipFactory.createBelterFrigateShip(
-      "Behemoth", {-50000.f, -180000.f}, {0.f, 0.f}, 90.f, 200);
+      "Behemoth", {-50000.f, -280000.f}, {0.f, 0.f}, 90.f, 200);
 
   BelterPellaShipFactory pellaShipFactory(ecs, pellaTexture, pellaDriveTexture);
   Entity enemy3 = pellaShipFactory.createBelterPellaShip(
-      "Pella", {-30000.f, - 200000.f}, {0.f, 0.f}, 90.f, 500);
+      "Pella", {-30000.f, -300000.f}, {0.f, 0.f}, 90.f, 500);
 
   std::cout << "Pella: " << enemy3 << "\n";
 

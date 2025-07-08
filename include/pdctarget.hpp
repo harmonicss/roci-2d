@@ -42,46 +42,6 @@ public:
   }
   ~PdcTargeting() = default;
 
-  bool pdcTorpedoThreatDetect() {
-    Entity nearestTorpedo = 0xFFFF;  // so as not to confuse with the player 
-    float nearestTorpedoDist = std::numeric_limits<float>::max();
-
-    // find target torpedos
-    for (auto &torpedo : ecs.view<TorpedoTarget>()) {
-      auto &torpedoTarget = ecs.getComponent<TorpedoTarget>(torpedo);
-
-      if (torpedoTarget.target != e) {
-        // skip if the torpedo is not targeting this entity
-        continue;
-      }
-
-      // find the nearest torpedo to the player or enemy
-      auto &torpedoPos = ecs.getComponent<Position>(torpedo);
-      auto &myPos = ecs.getComponent<Position>(e);
-
-      float dist = distance(myPos.value, torpedoPos.value);
-
-      if (dist < nearestTorpedoDist) {
-        nearestTorpedoDist = dist;
-        nearestTorpedo = torpedo;
-      }
-    }
-
-    // no torpedos to target
-    if (nearestTorpedo == 0) {
-      return false;
-    }
-
-    // no torpedos in range
-    if (nearestTorpedoDist > torpedoThreatRange) {
-      // PDCTARGET_DEBUG << "PdcTarget no torpedos in range\n";
-      return false;
-    }
-
-    PDCTARGET_DEBUG << "pdcThreatDetected nearest torpedo: " << nearestTorpedo << "\n";
-    return true; // there is a torpedo to target
-  }
-
   // target and fire on enemy ships within range
   template<typename TargetType> // should be EnemyShipTarget or FriendlyShipTarget
   void pdcAttack(float tt) {
@@ -194,7 +154,7 @@ public:
     }
 
     // no torpedos in range
-    if (nearestTorpedoDist > torpedoThreatRange) {
+    if (nearestTorpedoDist > pdcTorpedoTrackingRange) {
       // PDCTARGET_DEBUG << "PdcTarget no torpedos in range\n";
       return;
     }
@@ -486,9 +446,9 @@ private:
 
   std::array<std::optional<Entity>, 9> pdcTargets; // list of 4 current targets 
  
+  float shipThreatRange = 16000.f; // distance in pixels to consider an ship a threat for pdc targeting
+
   // distance in pixels to consider a torpedo a threat.
   // has to be close enough for pdcs to track it.
-  float torpedoThreatRange = 45000.f;
-
-  float shipThreatRange = 16000.f; // distance in pixels to consider an ship a threat for pdc targeting
+  const float pdcTorpedoTrackingRange = 45000.f;
 };

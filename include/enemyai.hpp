@@ -70,7 +70,7 @@ public:
       state = State::DISABLED;
       std::cout << "EnemyAI: " << enemy << "EnemyAI state: DISABLED (health <= 0)" << std::endl;
     }
-    else if (pdcTargeting.pdcTorpedoThreatDetect() && pdc1rounds > 0) {
+    else if (torpedoThreatDetect(ecs, enemy, pdcTorpedoTrackingRange) && pdc1rounds > 0) {
       state = State::DEFENCE_PDC;
       // std::cout << "EnemyAI state: DEFENCE_PDC" << std::endl;
     }
@@ -121,6 +121,14 @@ public:
         if (dist < close_distance) {
           state = State::CLOSE;
           std::cout << "EnemyAI: " << enemy << " state: CLOSE" << std::endl;
+        }
+        else if (dist <= attack_torpedo_distance &&
+                 t1rounds > 0 && t2rounds > 0    &&
+                 tt > launcher1.timeSinceBarrage + launcher1.barrageCooldown &&
+                 tt > launcher2.timeSinceBarrage + launcher2.barrageCooldown)
+        {
+          state = State::ATTACK_TORPEDO;
+          std::cout << "EnemyAI: " << enemy << " state: ATTACK_TORPEDO" << std::endl;
         }
         else if (dist > close_distance && playerVel.value.length() < 1000.f) {
           // ony flip and burn if the player is not moving too fast
@@ -335,6 +343,10 @@ public:
   const float close_distance          = 50000.f;  // will close rarther than flip and burn
   const float attack_torpedo_distance = 500000.f;
   const float attack_pdc_distance     = 8000.f;
+
+  // distance in pixels to consider a torpedo a threat.
+  // has to be close enough for pdcs to track it.
+  const float pdcTorpedoTrackingRange = 45000.f;
 
   enum class State {
     IDLE,

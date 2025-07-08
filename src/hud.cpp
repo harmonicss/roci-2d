@@ -55,6 +55,8 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity
   torpedoTargeting.setPosition(torpedoTargetingPosition);
   window.draw(torpedoTargeting);
 
+  DrawTorpedoThreat(window);
+
   DrawTorpedoTargetingText (window);
 
   if (ecs.isAlive(player)) {
@@ -81,6 +83,27 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity
 
   DrawTorpedoOverlay(window, zoomFactor);
   DrawEnemyShipOverlay(window, zoomFactor);
+}
+
+void HUD::DrawTorpedoThreat(sf::RenderWindow & window) {
+
+  if (torpedoThreatDetect(ecs, player, torpedoThreatRange)) {
+
+    // Draw a red box
+    sf::RectangleShape threatBox({160.f, 30.f});
+    sf::Vector2f threatBoxPosition = {190.f, static_cast<float>(screenHeight - 140.f)};
+    threatBox.setFillColor(sf::Color(255,00,00));
+    threatBox.setPosition(threatBoxPosition);
+    window.draw(threatBox);
+
+    sf::Text text(font);
+    text.setString ("ALERT: Torpedo");
+    text.setCharacterSize(16);
+    text.setFillColor(sf::Color::White);
+    sf::Vector2f textPosition = {200.f, static_cast<float>(screenHeight - 135.f)};
+    text.setPosition(textPosition);
+    window.draw(text);
+  }
 }
 
 void HUD::DrawTorpedoTargetingText(sf::RenderWindow & window) {
