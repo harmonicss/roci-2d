@@ -220,14 +220,11 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
   sf::Clock clock;
   float tt = 0; // total time for weapon cooldown
 
+  float constAccelGs = 0;
+
   while (window.isOpen()) {
     float dt = clock.restart().asSeconds();
     tt += dt;
-
-    // use this as a temporary fix to stop bullets colliding with the ship that
-    // fired it means the bullets start away from the ship, but live for this
-    // for now
-    const uint32_t bullet_launch_distance = 500;
 
     // this is the main space window. Render this first, then render the HUD
     window.setView(worldview);
@@ -269,6 +266,16 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
         }
         else if (keyPressed->scancode == sf::Keyboard::Scancode::O) {
           hud.toggleOverlay();
+        }
+        else if (keyPressed->scancode == sf::Keyboard::Scancode::K) {
+          // increase constant acceleration
+          constAccelGs += 1.0;
+          constAccelGs = std::clamp(constAccelGs, 0.f, 10.f);
+        }
+        else if (keyPressed->scancode == sf::Keyboard::Scancode::J) {
+          // decrease constant acceleration
+          constAccelGs -= 1.0;
+          constAccelGs = std::clamp(constAccelGs, 0.f, 10.f);
         }
       } else if (event->is<sf::Event::MouseWheelScrolled>()) {
         auto *scroll = event->getIf<sf::Event::MouseWheelScrolled>();
@@ -350,23 +357,13 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
         rot.angle = normalizeAngle(rot.angle);
       }
 
-      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::K)) {
-        // accelerate
-        auto &acc = ecs.getComponent<Acceleration>(player);
-        auto &rot = ecs.getComponent<Rotation>(player);
-        acc.value.x += std::cos((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
-        acc.value.y += std::sin((rot.angle) * (M_PI / 180.f)) * 500.f * dt;
- 
-        // limit the acceleration to a maximum value, I am assuming 100 = 1G
-        // this is a bit arbitrary, but it is a good starting point, as I am limiting 
-        // the maximum accel in x and y, rather than limiting the length of the vector
-        acc.value.x = std::clamp(acc.value.x, -1000.f, 1000.f);
-        acc.value.y = std::clamp(acc.value.y, -1000.f, 1000.f);
-      }
-      else if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+      if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
         ///////////////////////////////////////////////////////////////////////////////
         // Use the left mouse key to set rotation and acceleration
         ///////////////////////////////////////////////////////////////////////////////
+
+        // turn off constant acceleration
+        constAccelGs = 0.f;
 
         sf::Vector2i clickPosition = sf::Mouse::getPosition(window);
         sf::Vector2f clickPositionf(static_cast<float>(clickPosition.x),
@@ -400,10 +397,14 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
         }
       }
       else if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)) {
+
+        // turn off constant acceleration
+        constAccelGs = 0.f;
+
         ///////////////////////////////////////////////////////////////////////////////
         // Use the right mouse key to strafe
-        ///////////////////////////////////////////////////////////////////////////////
 
+        ///////////////////////////////////////////////////////////////////////////////
         sf::Vector2i clickPosition = sf::Mouse::getPosition(window);
         sf::Vector2f clickPositionf(static_cast<float>(clickPosition.x),
                                     static_cast<float>(clickPosition.y));
@@ -437,10 +438,7 @@ if (!pellaDriveTexture.loadFromFile("../assets/textures/pella-drive.png")) {
         startFlipAndStop(ecs, shipControl, player, 8.0f, tt);
       }
       else {
-        // turn off acceleration if a acceleration key is not pressed
-        auto &acc = ecs.getComponent<Acceleration>(player);
-        acc.value.x = 0.f;
-        acc.value.y = 0.f;
+        accelerateToMax(ecs, shipControl, player, constAccelGs, dt);
       }
     }
  
