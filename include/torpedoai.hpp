@@ -129,7 +129,7 @@ public:
       // torpedo applies a lateral acceleration (perpendicular to its velocity vector) of
       // magnitude Acc = N * Vc * |dot_atp|, where N is the proportional navigation constant
       // and Vc is the closing speed
-      float Acc_N = 3.f * Vc * std::abs(dot_att); // N = 3 is a common value
+      float Acc_N = 4.f * Vc * std::abs(dot_att); // N = 3 is a common value
 
       TORPEDO_DEBUG << "TorpedoAI commanded lateral acceleration: " << Acc_N << "\n";
 
@@ -213,7 +213,7 @@ public:
 
 
       // apply the sign from the dot lambda
-      Rem_Acc_N *= (dot_att < 0.f) ? -1.f : 1.f;
+      // Rem_Acc_N *= (dot_att < 0.f) ? -1.f : 1.f;
 
       // convert remaining lateral acceleration to a heading rate
       // hopefully the speed is always non-zero
@@ -244,24 +244,26 @@ public:
 
       // convert to degrees per second
       omega = omega * (180.f / M_PI);
-      omega *= 10.f;  // TODO: not sure about this
+      omega *= 1.f;  // TODO: not sure about this
 
       // limit the heading rate to a maximum 
       // this might be causing some jumping round of the direction
       // TODO: not sure about this either
-      if (omega > 40.f) {
-        omega = 40.f;
-      } else if (omega < -40.f) {
-        omega = -40.f;
+#if 0
+      if (omega > 180.f) {
+        omega = 180.f;
+      } else if (omega < -180.f) {
+        omega = -180.f;
       }
-
+#endif
       TORPEDO_DEBUG << "TorpedoAI lateral heading rate: " << omega << "\n";
+      std::cout << "TorpedoAI lateral heading rate: " << omega << "\n";
 
       // turn towards the target, also apply extra turn from the lateral thrust.
       if (torpedoControl.turning == false) {
         // startTurn(att, torpedo, target);
         // not really sure why subtraction works, maybe I get the sign wrong somewhere
-        startTurn(att - omega, torpedo);
+        startTurn(att + omega, torpedo);
       }
 
       // perform the turn
