@@ -49,7 +49,7 @@ void HUD::DrawHUD(sf::RenderWindow &window, Entity enemy1, Entity enemy2, Entity
   sidebarRight.setPosition(sidebarRightPosition);
   window.draw(sidebarRight);
 
-  sf::RectangleShape torpedoTargeting({350.f, 100.f});
+  sf::RectangleShape torpedoTargeting({450.f, 100.f});
   sf::Vector2f torpedoTargetingPosition = {190.f, static_cast<float>(screenHeight - 100.f)};
   torpedoTargeting.setFillColor(sf::Color(10,40,50));
   torpedoTargeting.setPosition(torpedoTargetingPosition);
@@ -108,9 +108,13 @@ void HUD::DrawTorpedoThreat(sf::RenderWindow & window) {
 
 void HUD::DrawTorpedoTargetingText(sf::RenderWindow & window) {
 
+  char buf[32];
   sf::Text text(font);
   sf::String target = torpedoTargeting.getTarget();
-  text.setString("Torpedo Target: " + target);
+  float dist = torpedoTargeting.getTargetDistance();
+
+  std::snprintf(buf, sizeof(buf), "%.1f", dist / 100);
+  text.setString("Torpedo Target: " + target + " Dist: " + buf);
   text.setCharacterSize(16);
   text.setFillColor(sf::Color(0x81, 0xb6, 0xbe));
 

@@ -124,6 +124,16 @@ public:
     return INVALID_TARGET_ID; // no target
   }
 
+  float getTargetDistance() {
+    if (!shipTargetDistances.empty()) {
+      auto it = shipTargetDistances.begin();
+      std::advance(it, selectTargetIndex);  // get the next one
+      return (it->first);
+    }
+
+    return 0.f;
+  }
+
   void setLauncher1Target(Entity target) {
     launcher1Target = target;
     TORPEDOTARGET_DEBUG << "Torpedo setLauncher1Target: " << target << "\n";

@@ -28,8 +28,8 @@ public:
     auto &launcher1 = ecs.getComponent<TorpedoLauncher1>(enemy);
     auto &launcher2 = ecs.getComponent<TorpedoLauncher2>(enemy);
 
-    launcher1.timeSinceBarrage = -launcher1.barrageCooldown;
-    launcher2.timeSinceBarrage = -launcher2.barrageCooldown;
+    launcher1.timeSinceBarrage = -launcher1.barrageCooldown - 10.f;
+    launcher2.timeSinceBarrage = -launcher2.barrageCooldown - 10.f;
 
     std::cout << "EnemyAI created" << std::endl;
   }
@@ -68,7 +68,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////////
     if (enemyHealth.value <= 0) {
       state = State::DISABLED;
-      std::cout << "EnemyAI: " << enemy << "EnemyAI state: DISABLED (health <= 0)" << std::endl;
+      std::cout << "EnemyAI: " << enemy << " EnemyAI state: DISABLED (health <= 0)" << std::endl;
     }
     else if (torpedoThreatDetect(ecs, enemy, pdcTorpedoTrackingRange) && pdc1rounds > 0) {
       state = State::DEFENCE_PDC;
@@ -78,7 +78,7 @@ public:
              enemyHealth.value <= 50) {
       // if we have no PDCs or torpedos left, or damaged, switch to FLEE
       state = State::FLEE;
-      std::cout << "EnemyAI: " << enemy << "state: FLEE (damaged or no PDCs or torpedos left)" << std::endl;
+      std::cout << "EnemyAI: " << enemy << " state: FLEE (damaged or no PDCs or torpedos left)" << std::endl;
     }
     else
     {
@@ -104,17 +104,17 @@ public:
             tt > launcher2.timeSinceBarrage + launcher2.barrageCooldown)
         {
           state = State::ATTACK_TORPEDO;
-          std::cout << "EnemyAI: " << enemy << " state: ATTACK_TORPEDO" << std::endl;
+          std::cout << "EnemyAI: " << enemy << " state: ATTACK_TORPEDO from CLOSE" << std::endl;
         }
         else if (dist > close_distance && playerVel.value.length() < 1000.f) {
           // ony flip and burn if the player is not moving too fast
           state = State::FLIP_AND_BURN;
-          std::cout << "EnemyAI: " << enemy << " state: FLIP_AND_BURN" << std::endl;
+          std::cout << "EnemyAI: " << enemy << " state: FLIP_AND_BURN from CLOSE" << std::endl;
         }
         else if (dist > close_distance && playerVel.value.length() >= 1000.f) {
           // if the player is moving fast, chase
-          state = State::CHASE;
           std::cout << "EnemyAI: " << enemy << " state: CHASE (player moving fast)" << std::endl;
+          state = State::CHASE;
         }
       }
       else if (state == State::CHASE) {
@@ -128,12 +128,12 @@ public:
                  tt > launcher2.timeSinceBarrage + launcher2.barrageCooldown)
         {
           state = State::ATTACK_TORPEDO;
-          std::cout << "EnemyAI: " << enemy << " state: ATTACK_TORPEDO" << std::endl;
+          std::cout << "EnemyAI: " << enemy << " state: ATTACK_TORPEDO from CHASE" << std::endl;
         }
         else if (dist > close_distance && playerVel.value.length() < 1000.f) {
           // ony flip and burn if the player is not moving too fast
           state = State::FLIP_AND_BURN;
-          std::cout << "EnemyAI: " << enemy << " state: FLIP_AND_BURN" << std::endl;
+          std::cout << "EnemyAI: " << enemy << " state: FLIP_AND_BURN from CHASE" << std::endl;
         }
       }
       else if (state == State::IDLE) {
